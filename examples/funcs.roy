@@ -1,0 +1,12 @@
+let print x =
+  console.log x
+
+print "Hello"
+print 100
+print [1, 2, 3]
+
+let log = console.log
+
+log "Hello"
+log 100
+log [1, 2, 3]

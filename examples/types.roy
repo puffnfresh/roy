@@ -1,0 +1,13 @@
+// Strong
+console.log 40 + 2
+
+// Won't compile:
+// console.log "40" + 2
+
+// Explicit
+let f x : Number = x
+
+console.log (f 100)
+
+// Won't compile:
+// console.log (f "100")

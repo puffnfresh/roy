@@ -1,0 +1,6 @@
+console.log "One"
+console.info "Two"
+console.warn "Three"
+console.error "Four"
+console.trace "Five"
+console.assert "Six"

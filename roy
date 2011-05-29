@@ -1,0 +1,10 @@
+#!/usr/bin/env node
+
+try {
+    require('./src/parser');
+} catch(e) {
+    console.log('parser module not found. Must run `make` first.');
+    return;
+}
+
+require('./src/compile');
