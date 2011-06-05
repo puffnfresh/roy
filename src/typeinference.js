@@ -44,7 +44,7 @@ var unify = function(t1, t2) {
             unify(t1.types[i], t2.types[i]);
 	}
     } else {
-        throw new Error("Not unified");
+        throw new Error("Not unified: " + t1 + ", " + t2);
     }
 };
 
@@ -115,6 +115,7 @@ var occursInTypeArray = function(t1, types) {
 //
 // `analyse` is the core inference function. It takes an AST node and returns
 // the infered type.
+var data = {};
 var analyse = function(node, env, nonGeneric) {
     if(!nonGeneric) nonGeneric = [];
 
@@ -198,10 +199,27 @@ var analyse = function(node, env, nonGeneric) {
 		types.push(argType);
 	    });
 
+            var funType = analyse(node.func, env, nonGeneric);
+	    if(prune(funType) instanceof t.NativeType) {
+		return new t.NativeType();
+	    }
+
+	    if(prune(funType) instanceof t.TagType) {
+		var nameType = new t.TagNameType(prune(funType).name);
+		var tagTypes = [nameType];
+		types.forEach(function(t) {
+		    tagTypes.push(t);
+		});
+
+		types.forEach(function(t, i) {
+		    unify(t, data[node.func.value][i]);
+		});
+		
+		return funType;
+	    }
+
             var resultType = new t.Variable();
 	    types.push(resultType);
-
-            var funType = analyse(node.func, env, nonGeneric);
             unify(new t.FunctionType(types), funType);
 
             return resultType;
@@ -225,16 +243,82 @@ var analyse = function(node, env, nonGeneric) {
 	visitAccess: function() {
 	    var valueType = analyse(node.value, env, nonGeneric);
 
+	    if(prune(valueType) instanceof t.NativeType) {
+		return new t.NativeType();
+	    }
+
 	    unify(new t.ObjectType({}), valueType);
 
-	    return valueType.getPropertyType(node.property);
+	    var property = prune(valueType).getPropertyType(node.property);
+
+	    if(property) {
+		return property;
+	    } else {
+		return new t.NativeType();
+	    }
 	},
-	visitOperator: function() {
+	visitBinaryGenericOperator: function() {
             var leftType = analyse(node.left, env, nonGeneric);
             var rightType = analyse(node.right, env, nonGeneric);
             unify(leftType, rightType);
 
             return leftType;
+	},
+	visitBinaryNumberOperator: function() {
+	    var resultType = new t.NumberType();
+            var leftType = analyse(node.left, env, nonGeneric);
+            var rightType = analyse(node.right, env, nonGeneric);
+            unify(resultType, rightType);
+            unify(resultType, leftType);
+
+            return resultType;
+	},
+	visitData: function() {
+	    var nameType = new t.TagNameType(node.name);
+	    var types = [nameType];
+	    var dataTypes = {};
+	    node.args.map(function(arg) {
+		var argType;
+		if(arg.type) {
+		    argType = nodeToType(arg);
+		} else {
+		    argType = new t.Variable();
+		}
+		dataTypes[arg.name] = argType;
+		types.push(argType);
+	    });
+	    var type = new t.TagType(types);
+	    node.tags.forEach(function(tag) {
+		data[tag.name] = [];
+		tag.vars.forEach(function(v, i) {
+		    var varType;
+		    if(v.type) {
+			varType = nodeToType(v);
+		    } else {
+			varType = new t.Variable();
+		    }
+		    if(dataTypes[v.name]) {
+			unify(dataTypes[v.name], varType);
+		    }
+		    data[tag.name][i] = varType;
+		});
+		env[tag.name] = type;
+	    });
+	    return new t.NativeType();
+	},
+	visitMatch: function() {
+	    var resultType = new t.Variable();
+	    var value = analyse(node.value, env, nonGeneric);
+	    node.cases.forEach(function(nodeCase) {
+		var tagTypes = data[nodeCase.pattern.tag];
+		unify(value, env[nodeCase.pattern.tag]);
+		nodeCase.pattern.vars.forEach(function(v, i) {
+		    env[v] = tagTypes[i];
+		});
+		var caseType = analyse(nodeCase.value, env, nonGeneric);
+		unify(resultType, caseType);
+	    });
+	    return resultType;
 	},
 	// #### Identifier
 	//
@@ -243,7 +327,7 @@ var analyse = function(node, env, nonGeneric) {
 	visitIdentifier: function() {
 	    var name = node.value;
 	    if(!env[name]) {
-		throw JSON.stringify(name) + " is not defined";
+		return new t.NativeType();
 	    }
 	    return fresh(env[name], nonGeneric);
 	},

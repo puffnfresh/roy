@@ -32,23 +32,47 @@ var grammar = {
 	],
 	"statement": [
 	    ["letFunction", "$$ = $1;"],
-	    ["letBinding", "$$ = $1;"]
+	    ["letBinding", "$$ = $1;"],
+	    ["dataDecl", "$$ = $1;"]
 	],
 	"expression": [
 	    ["innerExpression", "$$ = $1;"],
+	    ["FN paramList optType = expression", "$$ = new yy.Function(undefined, $2, [$5], $3);"],
+	    ["FN paramList optType = block", "$$ = new yy.Function(undefined, $2, $5, $3);"],
+	    ["MATCH innerExpression INDENT caseList OUTDENT", "$$ = new yy.Match($2, $4);"],
 	    ["call", "$$ = $1;"]
 	],
 	"innerExpression": [
 	    ["ifThenElse", "$$ = $1;"],
 	    ["( expression )", "$$ = $2;"],
 	    ["accessor", "$$ = $1;"],
-	    ["innerExpression + innerExpression", "$$ = new yy.Operator($2, $1, $3);"],
-	    ["innerExpression % innerExpression", "$$ = new yy.Operator($2, $1, $3);"],
-	    ["innerExpression == innerExpression", "$$ = new yy.Operator($2, $1, $3);"],
+	    ["innerExpression + innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
+	    ["innerExpression % innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
+	    ["innerExpression == innerExpression", "$$ = new yy.BinaryGenericOperator($2, $1, $3);"],
 	    ["literal", "$$ = $1;"]
+	],
+	"caseList": [
+	    ["CASE pattern = expression", "$$ = [new yy.Case($2, $4)];"],
+	    ["caseList TERMINATOR CASE pattern = expression", "$$ = $1; $1.push(new yy.Case($4, $6));"]
+	],
+	"pattern": [
+	    ["( IDENTIFIER IDENTIFIER )", "$$ = new yy.Pattern($2, [$3]);"],
+	    ["IDENTIFIER", "$$ = new yy.Pattern($1, []);"]
 	],
 	"ifThenElse": [
 	    ["IF innerExpression THEN block TERMINATOR ELSE block", "$$ = new yy.IfThenElse($2, $4, $7);"]
+	],
+	"dataDecl": [
+	    ["DATA IDENTIFIER optParamList = dataList", "$$ = new yy.Data($2, $3, $5);"],
+	    ["DATA IDENTIFIER optParamList = INDENT dataList OUTDENT", "$$ = new yy.Data($2, $3, $6);"]
+	],
+	"dataList": [
+	    ["IDENTIFIER optParamList", "$$ = [new yy.Tag($1, $2)];"],
+	    ["dataList | IDENTIFIER optParamList", "$$ = $1; $1.push(new yy.Tag($3, $4));"]
+	],
+	"optParamList": [
+	    ["", "$$ = [];"],
+	    ["paramList", "$$ = $1;"]
 	],
 	"letFunction": [
 	    ["LET IDENTIFIER paramList optType = block", "$$ = new yy.Function($2, $3, $6, $4);"],
@@ -59,7 +83,9 @@ var grammar = {
 	    ["LET IDENTIFIER optType = INDENT expression OUTDENT", "$$ = new yy.Let($2, $6, $3);"]
 	],
 	"paramList": [
+	    ["( )", "$$ = [];"],
 	    ["param", "$$ = [$1];"],
+	    ["paramList ( )", "$$ = $1;"],
 	    ["paramList param", "$$ = $1; $1.push($2);"]
 	],
 	"param": [
@@ -75,7 +101,9 @@ var grammar = {
 	    ["( expression ) argList", "$$ = new yy.Call($2, $4);"]
 	],
 	"argList": [
+	    ["( )", "$$ = [];"],
 	    ["innerExpression", "$$ = [$1];"],
+	    ["argList ( )", "$$ = $1;"],
 	    ["argList innerExpression", "$$ = $1; $1.push($2);"]
 	],
 	"literal": [
@@ -103,7 +131,8 @@ var grammar = {
 	],
 	"accessor": [
 	    ["IDENTIFIER", "$$ = new yy.Identifier($1);"],
-	    ["accessor . IDENTIFIER", "$$ = new yy.Access($1, $3);"]
+	    ["accessor . IDENTIFIER", "$$ = new yy.Access($1, $3);"],
+	    ["( expression ) . IDENTIFIER", "$$ = new yy.Access($2, $5);"]
 	],
 	"identifier": [
 	    ["IDENTIFIER", "$$ = new yy.Identifier($1);"]

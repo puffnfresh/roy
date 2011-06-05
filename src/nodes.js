@@ -25,12 +25,54 @@ exports.nodes = {
 	    }
 	};
     },
-    Data: function(name) {
+    Data: function(name, args, tags) {
 	this.name = name;
+	this.args = args;
+	this.tags = tags;
 
 	this.accept = function(a) {
 	    if(a.visitData) {
 		return a.visitData(this);
+	    }
+	};
+    },
+    Match: function(value, cases) {
+	this.value = value;
+	this.cases = cases;
+
+	this.accept = function(a) {
+	    if(a.visitMatch) {
+		return a.visitMatch(this);
+	    }
+	};
+    },
+    Case: function(pattern, value) {
+	this.pattern = pattern;
+	this.value = value;
+
+	this.accept = function(a) {
+	    if(a.visitCase) {
+		return a.visitCase(this);
+	    }
+	};
+    },
+    Tag: function(name, vars) {
+	this.name = name;
+	this.vars = vars;
+
+	this.accept = function(a) {
+	    if(a.visitTag) {
+		return a.visitTag(this);
+	    }
+	};
+    },
+    Pattern: function(tag, vars) {
+	this.tag = tag;
+	this.vars = vars;
+	
+	this.accept = function(a) {
+	    if(a.visitPattern) {
+		return a.visitPattern(this);
 	    }
 	};
     },
@@ -87,14 +129,25 @@ exports.nodes = {
 	    }
 	};
     },
-    Operator: function(name, left, right) {
+    BinaryGenericOperator: function(name, left, right) {
 	this.name = name;
 	this.left = left;
 	this.right = right;
 
 	this.accept = function(a) {
-	    if(a.visitOperator) {
-		return a.visitOperator(this);
+	    if(a.visitBinaryGenericOperator) {
+		return a.visitBinaryGenericOperator(this);
+	    }
+	};
+    },
+    BinaryNumberOperator: function(name, left, right) {
+	this.name = name;
+	this.left = left;
+	this.right = right;
+
+	this.accept = function(a) {
+	    if(a.visitBinaryNumberOperator) {
+		return a.visitBinaryNumberOperator(this);
 	    }
 	};
     },

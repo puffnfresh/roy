@@ -1,0 +1,35 @@
+data Maybe a =
+  Some a | None
+
+let printSomething m = match m
+  case (Some x) = console.log x
+  case None = console.log "Empty"
+
+printSomething (Some 1)
+printSomething None
+
+data Either a b =
+  Left a | Right b
+
+let printString (s : String) =
+  console.log s
+
+let printResult e = match e
+  case (Left x) = console.log x
+  case (Right x) = printString x
+
+printResult (Left 10)
+printResult (Right "Error")
+
+// Won't compile:
+// printResult (Right 10)
+
+data Bool =
+  True | False
+
+let getBool b ifTrue ifFalse = match b
+  case True = ifTrue
+  case False = ifFalse
+
+console.log (getBool True 1 2)
+console.log (getBool False 1 2)

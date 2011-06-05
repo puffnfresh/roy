@@ -7,4 +7,4 @@ try {
     return;
 }
 
-require('./src/compile');
+require('./src/compile').main();

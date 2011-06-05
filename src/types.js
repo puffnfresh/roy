@@ -98,3 +98,36 @@ ObjectType.prototype.getPropertyType = function(prop) {
     return this.props[prop];
 };
 exports.ObjectType = ObjectType;
+
+var TagNameType = function(name) {
+    this.name = name;
+};
+TagNameType.prototype = new BaseType();
+TagNameType.prototype.constructor = TagNameType;
+TagNameType.prototype.map = function() {
+    return this.name;
+};
+exports.TagNameType = TagNameType;
+
+var TagType = function(types) {
+    this.types = types;
+    this.name = types[0].toString();
+};
+TagType.prototype = new BaseType();
+TagType.prototype.constructor = TagType;
+TagType.prototype.map = function(f) {
+    return this.types.map(f);
+};
+exports.TagType = TagType;
+
+var UnitType = function() {};
+UnitType.prototype = new BaseType();
+UnitType.prototype.constructor = UnitType;
+UnitType.prototype.name = "Unit";
+exports.UnitType = UnitType;
+
+var NativeType = function() {};
+NativeType.prototype = new BaseType();
+NativeType.prototype.constructor = NativeType;
+NativeType.prototype.name = "Native";
+exports.NativeType = NativeType;

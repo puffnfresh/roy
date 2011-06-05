@@ -17,21 +17,21 @@ var identifierToken = function() {
     if(token) {
 	value = token[0];
 	switch(value) {
-	case 'let':
-	    name = 'LET';
-	    break;
-	case 'if':
-	    name = 'IF';
-	    break;
-	case 'then':
-	    name = 'THEN';
-	    break;
-	case 'else':
-	    name = 'ELSE';
-	    break;
 	case 'true':
 	case 'false':
 	    name = 'BOOLEAN';
+	    break;
+	case 'let':
+	case 'fn':
+	case 'if':
+	case 'then':
+	case 'else':
+	case 'data':
+	case 'match':
+	case 'case':
+	case 'bind':
+	case 'return':
+	    name = value.toUpperCase();
 	    break;
 	default:
 	    name = 'IDENTIFIER'
@@ -113,7 +113,14 @@ var lineToken = function() {
 		    last = indents[indents.length - 1];
 		}
 	    }
-	    tokens.push(['TERMINATOR', token[0].substring(0, lastNewline)]);
+	    if(tokens.length >= 2 && tokens[tokens.length - 2][0] == 'TERMINATOR' && tokens[tokens.length - 1][0] == ')') {
+		/* Swap TERMINATOR and ')' */
+		var t = [tokens.pop(), tokens.pop()];
+		tokens.push(t[0]);
+		tokens.push(t[1]);
+	    } else {
+		tokens.push(['TERMINATOR', token[0].substring(0, lastNewline)]);
+	    }
 	}
 	indent = size;
 	return token[0].length;
@@ -143,6 +150,7 @@ var literalToken = function() {
     case '*':
     case '/':
     case '%':
+    case '|':
     case '[':
     case ']':
     case '{':
