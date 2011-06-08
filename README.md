@@ -17,7 +17,7 @@ Input (test.roy):
 
     let addTwo n =
         n + 2
-    
+
     console.log (addTwo 40)
 
 Output (test.js):

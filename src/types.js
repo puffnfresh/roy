@@ -17,7 +17,7 @@ exports.Variable = Variable;
 // should be used for the string instead.
 Variable.prototype.toString = function() {
     if(!this.instance) {
-	return "'" + String.fromCharCode("a".charCodeAt(0) + this.id);
+        return "'" + String.fromCharCode("a".charCodeAt(0) + this.id);
     }
     return this.instance.toString();
 };
@@ -38,7 +38,7 @@ exports.BaseType = BaseType;
 // ## Specific types
 //
 // A `FunctionType` contains a `types` array. The last element represents the
-// return type. Each element before represents an argument type. 
+// return type. Each element before represents an argument type.
 var FunctionType = function(types) {
     this.types = types;
 };
@@ -90,7 +90,7 @@ ObjectType.prototype.map = function(f) {
     var props = this.props;
     var name;
     for(name in props) {
-	props[name] = f(props[name]);
+        props[name] = f(props[name]);
     }
     return props;
 };

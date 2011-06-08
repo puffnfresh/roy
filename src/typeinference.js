@@ -30,19 +30,19 @@ var unify = function(t1, t2) {
     if(t1 instanceof t.Variable) {
         if(t1 != t2) {
             if(occursInType(t1, t2)) {
-		throw "Recursive unification";
-	    }
+                throw "Recursive unification";
+            }
             t1.instance = t2;
-	}
+        }
     } else if(t1 instanceof t.BaseType && t2 instanceof t.Variable) {
         unify(t2, t1);
     } else if(t1 instanceof t.BaseType && t2 instanceof t.BaseType) {
         if(t1.name != t2.name || t1.types.length != t2.types.length) {
             throw new Error("Type error: " + t1.toString() + " is not " + t2.toString());
-	}
-	for(i = 0; i < Math.min(t1.types.length, t2.types.length); i++) {
+        }
+        for(i = 0; i < Math.min(t1.types.length, t2.types.length); i++) {
             unify(t1.types[i], t2.types[i]);
-	}
+        }
     } else {
         throw new Error("Not unified: " + t1 + ", " + t2);
     }
@@ -77,16 +77,16 @@ var fresh = function(type, nonGeneric, mappings) {
     if(type instanceof t.Variable) {
         if(occursInTypeArray(type, nonGeneric)) {
             return type;
-	} else {
+        } else {
             if(!mappings[type.id]) {
                 mappings[type.id] = new t.Variable();
-	    }
+            }
             return mappings[type.id];
-	}
+        }
     }
 
     return new type.constructor(type.map(function(type) {
-	return fresh(type, nonGeneric, mappings);
+        return fresh(type, nonGeneric, mappings);
     }));
 };
 
@@ -107,7 +107,7 @@ var occursInType = function(t1, t2) {
 
 var occursInTypeArray = function(t1, types) {
     return types.map(function(t2) {
-	return occursInType(t1, t2);
+        return occursInType(t1, t2);
     }).indexOf(true) >= 0;
 };
 
@@ -120,235 +120,235 @@ var analyse = function(node, env, nonGeneric) {
     if(!nonGeneric) nonGeneric = [];
 
     return node.accept({
-	// #### Function definition
-	//
-	// Assigns a type variable to each typeless argument and return type.
-	//
-	// Each typeless argument also gets added to the non-generic scope
-	// array. The `fresh` function can then return the existing type from
-	// the scope.
-	//
-	// Assigns the function's type in the environment and returns it.
-	//
-	// We create temporary types for recursive definitions.
-	visitFunction: function() {
-	    var types = [];
+        // #### Function definition
+        //
+        // Assigns a type variable to each typeless argument and return type.
+        //
+        // Each typeless argument also gets added to the non-generic scope
+        // array. The `fresh` function can then return the existing type from
+        // the scope.
+        //
+        // Assigns the function's type in the environment and returns it.
+        //
+        // We create temporary types for recursive definitions.
+        visitFunction: function() {
+            var types = [];
             var newNonGeneric = nonGeneric.slice();
 
-	    var tempTypes = [];
-	    for(var i = 0; i < node.args.length; i++) {
-		tempTypes.push(new t.Variable());
-	    }
-	    tempTypes.push(new t.Variable());
+            var tempTypes = [];
+            for(var i = 0; i < node.args.length; i++) {
+                tempTypes.push(new t.Variable());
+            }
+            tempTypes.push(new t.Variable());
             env[node.name] = new t.FunctionType(tempTypes);
 
-	    node.args.forEach(function(arg, i) {
-		var argType;
-		if(arg.type) {
-		    argType = nodeToType(arg.type);
-		} else {
-		    argType = tempTypes[i];
-		    newNonGeneric.push(argType);
-		}
-		env[arg.name] = argType;
-		types.push(argType);
-	    });
+            node.args.forEach(function(arg, i) {
+                var argType;
+                if(arg.type) {
+                    argType = nodeToType(arg.type);
+                } else {
+                    argType = tempTypes[i];
+                    newNonGeneric.push(argType);
+                }
+                env[arg.name] = argType;
+                types.push(argType);
+            });
 
-	    var scopeTypes = node.body.map(function(expression) {
-		return analyse(expression, env, newNonGeneric);
-	    });
+            var scopeTypes = node.body.map(function(expression) {
+                return analyse(expression, env, newNonGeneric);
+            });
 
-	    var resultType = scopeTypes[scopeTypes.length - 1];
-	    types.push(resultType);
+            var resultType = scopeTypes[scopeTypes.length - 1];
+            types.push(resultType);
 
-	    var annotationType;
-	    if(node.type) {
-		annotationType = nodeToType(node.type);
-		unify(resultType, annotationType);
-	    }
+            var annotationType;
+            if(node.type) {
+                annotationType = nodeToType(node.type);
+                unify(resultType, annotationType);
+            }
 
-	    var functionType = new t.FunctionType(types);
+            var functionType = new t.FunctionType(types);
             env[node.name] = functionType;
 
             return functionType;
-	},
-	visitIfThenElse: function() {
-	    var ifTrueScopeTypes = node.ifTrue.map(function(expression) {
-		return analyse(expression, env, nonGeneric);
-	    });
-	    var ifTrueType = ifTrueScopeTypes[ifTrueScopeTypes.length - 1];
+        },
+        visitIfThenElse: function() {
+            var ifTrueScopeTypes = node.ifTrue.map(function(expression) {
+                return analyse(expression, env, nonGeneric);
+            });
+            var ifTrueType = ifTrueScopeTypes[ifTrueScopeTypes.length - 1];
 
-	    var ifFalseScopeTypes = node.ifFalse.map(function(expression) {
-		return analyse(expression, env, nonGeneric);
-	    });
-	    var ifFalseType = ifFalseScopeTypes[ifFalseScopeTypes.length - 1];
+            var ifFalseScopeTypes = node.ifFalse.map(function(expression) {
+                return analyse(expression, env, nonGeneric);
+            });
+            var ifFalseType = ifFalseScopeTypes[ifFalseScopeTypes.length - 1];
 
             unify(ifTrueType, ifFalseType);
 
-	    return ifTrueType;
-	},
-	// #### Function call
-	//
-	// Ensures that all argument types `unify` with the defined function and
-	// returns the function's result type.
-	visitCall: function() {
-	    var types = [];
+            return ifTrueType;
+        },
+        // #### Function call
+        //
+        // Ensures that all argument types `unify` with the defined function and
+        // returns the function's result type.
+        visitCall: function() {
+            var types = [];
 
-	    node.args.forEach(function(arg) {
-		var argType = analyse(arg, env, nonGeneric);
-		types.push(argType);
-	    });
+            node.args.forEach(function(arg) {
+                var argType = analyse(arg, env, nonGeneric);
+                types.push(argType);
+            });
 
             var funType = analyse(node.func, env, nonGeneric);
-	    if(prune(funType) instanceof t.NativeType) {
-		return new t.NativeType();
-	    }
+            if(prune(funType) instanceof t.NativeType) {
+                return new t.NativeType();
+            }
 
-	    if(prune(funType) instanceof t.TagType) {
-		var nameType = new t.TagNameType(prune(funType).name);
-		var tagTypes = [nameType];
-		types.forEach(function(t, i) {
-		    tagTypes.push(t);
-		    var tagType;
-		    if(data[node.func.value][i].type) {
-			tagType = nodeToType(data[node.func.value][i].type);
-		    } else {
-			tagType = data[node.func.value][i];
-		    }
-		    unify(t, tagType);
-		});
-		return funType;
-	    }
+            if(prune(funType) instanceof t.TagType) {
+                var nameType = new t.TagNameType(prune(funType).name);
+                var tagTypes = [nameType];
+                types.forEach(function(t, i) {
+                    tagTypes.push(t);
+                    var tagType;
+                    if(data[node.func.value][i].type) {
+                        tagType = nodeToType(data[node.func.value][i].type);
+                    } else {
+                        tagType = data[node.func.value][i];
+                    }
+                    unify(t, tagType);
+                });
+                return funType;
+            }
 
             var resultType = new t.Variable();
-	    types.push(resultType);
+            types.push(resultType);
             unify(new t.FunctionType(types), funType);
 
             return resultType;
-	},
-	// #### Let binding
-	//
-	// Infer the value's type, assigns it in the environment and returns it.
-	visitLet: function() {
+        },
+        // #### Let binding
+        //
+        // Infer the value's type, assigns it in the environment and returns it.
+        visitLet: function() {
             var valueType = analyse(node.value, env, nonGeneric);
 
-	    var annotionType;
-	    if(node.type) {
-		annotionType = nodeToType(node.type);
-		unify(valueType, annotionType);
-	    }
+            var annotionType;
+            if(node.type) {
+                annotionType = nodeToType(node.type);
+                unify(valueType, annotionType);
+            }
 
             env[node.name] = valueType;
 
             return valueType;
-	},
-	visitAccess: function() {
-	    var valueType = analyse(node.value, env, nonGeneric);
+        },
+        visitAccess: function() {
+            var valueType = analyse(node.value, env, nonGeneric);
 
-	    if(prune(valueType) instanceof t.NativeType) {
-		return new t.NativeType();
-	    }
+            if(prune(valueType) instanceof t.NativeType) {
+                return new t.NativeType();
+            }
 
-	    unify(new t.ObjectType({}), valueType);
+            unify(new t.ObjectType({}), valueType);
 
-	    var property = prune(valueType).getPropertyType(node.property);
+            var property = prune(valueType).getPropertyType(node.property);
 
-	    if(property) {
-		return property;
-	    } else {
-		return new t.NativeType();
-	    }
-	},
-	visitBinaryGenericOperator: function() {
+            if(property) {
+                return property;
+            } else {
+                return new t.NativeType();
+            }
+        },
+        visitBinaryGenericOperator: function() {
             var leftType = analyse(node.left, env, nonGeneric);
             var rightType = analyse(node.right, env, nonGeneric);
             unify(leftType, rightType);
 
             return leftType;
-	},
-	visitBinaryNumberOperator: function() {
-	    var resultType = new t.NumberType();
+        },
+        visitBinaryNumberOperator: function() {
+            var resultType = new t.NumberType();
             var leftType = analyse(node.left, env, nonGeneric);
             var rightType = analyse(node.right, env, nonGeneric);
             unify(resultType, rightType);
             unify(resultType, leftType);
 
             return resultType;
-	},
-	visitData: function() {
-	    var nameType = new t.TagNameType(node.name);
-	    var types = [nameType];
-	    var dataTypes = {};
-	    node.args.map(function(arg) {
-		var argType;
-		if(arg.type) {
-		    argType = nodeToType(arg);
-		} else {
-		    argType = new t.Variable();
-		}
-		dataTypes[arg.name] = argType;
-		types.push(argType);
-	    });
-	    var type = new t.TagType(types);
-	    node.tags.forEach(function(tag) {
-		data[tag.name] = [];
-		tag.vars.forEach(function(v, i) {
-		    var varType;
-		    if(v.type) {
-			varType = nodeToType(v);
-		    } else {
-			varType = new t.Variable();
-		    }
-		    if(dataTypes[v.name]) {
-			unify(dataTypes[v.name], varType);
-		    }
-		    data[tag.name][i] = varType;
-		});
-		env[tag.name] = type;
-	    });
-	    return new t.NativeType();
-	},
-	visitMatch: function() {
-	    var resultType = new t.Variable();
-	    var value = analyse(node.value, env, nonGeneric);
-	    node.cases.forEach(function(nodeCase) {
-		var tagTypes = data[nodeCase.pattern.tag];
-		unify(value, env[nodeCase.pattern.tag]);
-		nodeCase.pattern.vars.forEach(function(v, i) {
-		    env[v] = tagTypes[i];
-		});
-		var caseType = analyse(nodeCase.value, env, nonGeneric);
-		unify(resultType, caseType);
-	    });
-	    return resultType;
-	},
-	// #### Identifier
-	//
-	// Creates a `fresh` copy of a type if the name is found in an
-	// environment, otherwise throws an error.
-	visitIdentifier: function() {
-	    var name = node.value;
-	    if(!env[name]) {
-		return new t.NativeType();
-	    }
-	    return fresh(env[name], nonGeneric);
-	},
-	// #### Primitive type
-	visitNumber: function() {
-	    return new t.NumberType();
-	},
-	visitString: function() {
-	    return new t.StringType();
-	},
-	visitBoolean: function() {
-	    return new t.BooleanType();
-	},
-	visitArray: function() {
-	    return new t.ArrayType();
-	},
-	visitObject: function() {
-	    return new t.ObjectType({});
-	}
+        },
+        visitData: function() {
+            var nameType = new t.TagNameType(node.name);
+            var types = [nameType];
+            var dataTypes = {};
+            node.args.map(function(arg) {
+                var argType;
+                if(arg.type) {
+                    argType = nodeToType(arg);
+                } else {
+                    argType = new t.Variable();
+                }
+                dataTypes[arg.name] = argType;
+                types.push(argType);
+            });
+            var type = new t.TagType(types);
+            node.tags.forEach(function(tag) {
+                data[tag.name] = [];
+                tag.vars.forEach(function(v, i) {
+                    var varType;
+                    if(v.type) {
+                        varType = nodeToType(v);
+                    } else {
+                        varType = new t.Variable();
+                    }
+                    if(dataTypes[v.name]) {
+                        unify(dataTypes[v.name], varType);
+                    }
+                    data[tag.name][i] = varType;
+                });
+                env[tag.name] = type;
+            });
+            return new t.NativeType();
+        },
+        visitMatch: function() {
+            var resultType = new t.Variable();
+            var value = analyse(node.value, env, nonGeneric);
+            node.cases.forEach(function(nodeCase) {
+                var tagTypes = data[nodeCase.pattern.tag];
+                unify(value, env[nodeCase.pattern.tag]);
+                nodeCase.pattern.vars.forEach(function(v, i) {
+                    env[v] = tagTypes[i];
+                });
+                var caseType = analyse(nodeCase.value, env, nonGeneric);
+                unify(resultType, caseType);
+            });
+            return resultType;
+        },
+        // #### Identifier
+        //
+        // Creates a `fresh` copy of a type if the name is found in an
+        // environment, otherwise throws an error.
+        visitIdentifier: function() {
+            var name = node.value;
+            if(!env[name]) {
+                return new t.NativeType();
+            }
+            return fresh(env[name], nonGeneric);
+        },
+        // #### Primitive type
+        visitNumber: function() {
+            return new t.NumberType();
+        },
+        visitString: function() {
+            return new t.StringType();
+        },
+        visitBoolean: function() {
+            return new t.BooleanType();
+        },
+        visitArray: function() {
+            return new t.ArrayType();
+        },
+        visitObject: function() {
+            return new t.ObjectType({});
+        }
     });
 };
 
@@ -357,13 +357,13 @@ var analyse = function(node, env, nonGeneric) {
 var nodeToType = function(type) {
     switch(type.value) {
     case 'Number':
-	return new t.NumberType();
+        return new t.NumberType();
     case 'String':
-	return new t.StringType();
+        return new t.StringType();
     case 'Boolean':
-	return new t.BooleanType();
+        return new t.BooleanType();
     default:
-	throw new Error("Can't convert from explicit type: " + JSON.stringify(type));
+        throw new Error("Can't convert from explicit type: " + JSON.stringify(type));
     }
 };
 
@@ -372,7 +372,7 @@ var typecheck = function(ast, builtins) {
     if(!builtins) builtins = {};
 
     return ast.map(function(node) {
-	return analyse(node, builtins);
+        return analyse(node, builtins);
     });
 };
 
@@ -381,101 +381,101 @@ exports.typecheck = typecheck;
 // ## Examples
 if(!module.parent) {
     (function() {
-	var types = typecheck([
-	    // let a = 10
-	    //
-	    // Result: Number
-	    {
-		accept: function(a) {
-		    return a.visitLet();
-		},
-		name: 'a',
-		value: {
-		    accept: function(a) {
-			return a.visitNumber();
-		    },
-		    value: 10
-		}
-	    },
-	    // fun id x = x
-	    //
-	    // Result: Function('a,'a)
-	    {
-		accept: function(a) {
-		    return a.visitFunction();
-		},
-		name: "id",
-		args: [{name: "x"}],
-		body: [{
-		    accept: function(a) {
-			return a.visitIdentifier();
-		    },
-		    value: "x"
-		}]
-	    },
-	    // fun explicitNumber (x : Number) = x
-	    //
-	    // Result: Function(Number,Number)
-	    {
-		accept: function(a) {
-		    return a.visitFunction();
-		},
-		name: "explicitNumber",
-		args: [
-		    {
-			name: "x",
-			type: {
-			    value: 'Number'
-			}
-		    }
-		],
-		body: [{
-		    accept: function(a) {
-			return a.visitIdentifier();
-		    },
-		    value: "x"
-		}]
-	    },
-	    // fun ignoreArg a = 100
-	    //
-	    // Result: Function('b, Number)
-	    {
-		accept: function(a) {
-		    return a.visitFunction();
-		},
-		name: "ignoreArg",
-		args: [{name: "a"}],
-		body: [{
-		    accept: function(a) {
-			return a.visitNumber();
-		    },
-		    value: 100
-		}]
-	    },
-	    // id 200
-	    //
-	    // Result: Number
-	    {
-		accept: function(a) {
-		    return a.visitCall();
-		},
-		name: {
-		    accept: function(a) {
-			return a.visitIdentifier();
-		    },
-		    value: "id"
-		},
-		args: [
-		    {
-			accept: function(a) {
-			    return a.visitNumber();
-			},
-			value: 100
-		    }
-		]
-	    }
-	]);
+        var types = typecheck([
+            // let a = 10
+            //
+            // Result: Number
+            {
+                accept: function(a) {
+                    return a.visitLet();
+                },
+                name: 'a',
+                value: {
+                    accept: function(a) {
+                        return a.visitNumber();
+                    },
+                    value: 10
+                }
+            },
+            // fun id x = x
+            //
+            // Result: Function('a,'a)
+            {
+                accept: function(a) {
+                    return a.visitFunction();
+                },
+                name: "id",
+                args: [{name: "x"}],
+                body: [{
+                    accept: function(a) {
+                        return a.visitIdentifier();
+                    },
+                    value: "x"
+                }]
+            },
+            // fun explicitNumber (x : Number) = x
+            //
+            // Result: Function(Number,Number)
+            {
+                accept: function(a) {
+                    return a.visitFunction();
+                },
+                name: "explicitNumber",
+                args: [
+                    {
+                        name: "x",
+                        type: {
+                            value: 'Number'
+                        }
+                    }
+                ],
+                body: [{
+                    accept: function(a) {
+                        return a.visitIdentifier();
+                    },
+                    value: "x"
+                }]
+            },
+            // fun ignoreArg a = 100
+            //
+            // Result: Function('b, Number)
+            {
+                accept: function(a) {
+                    return a.visitFunction();
+                },
+                name: "ignoreArg",
+                args: [{name: "a"}],
+                body: [{
+                    accept: function(a) {
+                        return a.visitNumber();
+                    },
+                    value: 100
+                }]
+            },
+            // id 200
+            //
+            // Result: Number
+            {
+                accept: function(a) {
+                    return a.visitCall();
+                },
+                name: {
+                    accept: function(a) {
+                        return a.visitIdentifier();
+                    },
+                    value: "id"
+                },
+                args: [
+                    {
+                        accept: function(a) {
+                            return a.visitNumber();
+                        },
+                        value: 100
+                    }
+                ]
+            }
+        ]);
 
-	console.log(types.toString());
+        console.log(types.toString());
     })();
 }
