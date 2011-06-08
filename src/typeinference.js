@@ -207,14 +207,16 @@ var analyse = function(node, env, nonGeneric) {
 	    if(prune(funType) instanceof t.TagType) {
 		var nameType = new t.TagNameType(prune(funType).name);
 		var tagTypes = [nameType];
-		types.forEach(function(t) {
-		    tagTypes.push(t);
-		});
-
 		types.forEach(function(t, i) {
-		    unify(t, data[node.func.value][i]);
+		    tagTypes.push(t);
+		    var tagType;
+		    if(data[node.func.value][i].type) {
+			tagType = nodeToType(data[node.func.value][i].type);
+		    } else {
+			tagType = data[node.func.value][i];
+		    }
+		    unify(t, tagType);
 		});
-		
 		return funType;
 	    }
 
@@ -361,7 +363,7 @@ var nodeToType = function(type) {
     case 'Boolean':
 	return new t.BooleanType();
     default:
-	return type; // Shouldn't happen
+	throw new Error("Can't convert from explicit type: " + JSON.stringify(type));
     }
 };
 
