@@ -126,8 +126,8 @@ var grammar = {
             ["keyPairs", "$$ = $1;"]
         ],
         "keyPairs": [
-            ["STRING : expression", "$$ = {}; $$[$1] = $3;"],
-            ["keyPairs , STRING : expression", "$$ = $1; $1[$3] = $5;"]
+            ["IDENTIFIER : expression", "$$ = {}; $$[$1] = $3;"],
+            ["keyPairs , IDENTIFIER : expression", "$$ = $1; $1[$3] = $5;"]
         ],
         "accessor": [
             ["IDENTIFIER", "$$ = new yy.Identifier($1);"],

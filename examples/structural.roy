@@ -1,0 +1,22 @@
+let obj = {x: 1, y: 2, t: "test"}
+
+let getX a = a.x + 2
+
+console.log (getX obj)
+console.log (obj.x + obj.y)
+
+let plusXY a = a.x + a.y
+console.log (plusXY obj)
+console.log (plusXY {x: 2, y: 1})
+
+let makeXY x y = {x: x, y: y}
+console.log (plusXY (makeXY 1 2))
+console.log (makeXY 1 2)
+
+// Won't compile
+// plusXY {x: 1, z: 2}
+
+console.log ((fn obj = obj.a.a + obj.a.b) {a: {a: 1, b: 2}})
+
+let makeFun a = {f: fn b = a.x + b.y}
+console.log ((makeFun {x: 1}).f {y: 2})

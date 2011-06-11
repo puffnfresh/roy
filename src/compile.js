@@ -165,16 +165,14 @@ var main = function() {
         return;
     }
 
-    (function() {
-        var fs = require('fs');
+    var fs = require('fs');
 
-        // Read the file content.
-        var filename = process.argv[2];
-        var source = fs.readFileSync(filename, 'utf8');
+    // Read the file content.
+    var filename = process.argv[2];
+    var source = fs.readFileSync(filename, 'utf8');
 
-        // Write the JavaScript output.
-        fs.writeFile(filename.replace(/roy$/, 'js'), compile(source), 'utf8');
-    })();
+    // Write the JavaScript output.
+    fs.writeFile(filename.replace(/roy$/, 'js'), compile(source), 'utf8');
 };
 exports.main = main;
 

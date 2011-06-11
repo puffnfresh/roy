@@ -40,6 +40,14 @@ var unify = function(t1, t2) {
         if(t1.name != t2.name || t1.types.length != t2.types.length) {
             throw new Error("Type error: " + t1.toString() + " is not " + t2.toString());
         }
+        if(t1 instanceof t.ObjectType) {
+            for(i in t2.props) {
+                if(!(i in t1.props)) {
+                    throw new Error("Type error: " + t1.toString() + " is not " + t2.toString());
+                }
+                unify(t1.props[i], t2.props[i]);
+            }
+        }
         for(i = 0; i < Math.min(t1.types.length, t2.types.length); i++) {
             unify(t1.types[i], t2.types[i]);
         }
@@ -99,6 +107,12 @@ var occursInType = function(t1, t2) {
     t2 = prune(t2);
     if(t2 == t1) {
         return true;
+    } else if(t2 instanceof t.ObjectType) {
+        var types = [];
+        for(var prop in t2.props) {
+            types.push(t2.props[prop]);
+        }
+        return occursInTypeArray(t1, types);
     } else if(t2 instanceof t.BaseType) {
         return occursInTypeArray(t1, t2.types);
     }
@@ -249,15 +263,17 @@ var analyse = function(node, env, nonGeneric) {
                 return new t.NativeType();
             }
 
-            unify(new t.ObjectType({}), valueType);
-
-            var property = prune(valueType).getPropertyType(node.property);
-
-            if(property) {
-                return property;
+            if(valueType instanceof t.ObjectType) {
+                if(!valueType.props[node.property]) {
+                    valueType.props[node.property] = new t.Variable();
+                }
             } else {
-                return new t.NativeType();
+                var propObj = {};
+                propObj[node.property] = new t.Variable();
+                unify(valueType, new t.ObjectType(propObj));
             }
+
+            return prune(valueType).getPropertyType(node.property);
         },
         visitBinaryGenericOperator: function() {
             var leftType = analyse(node.left, env, nonGeneric);
@@ -270,8 +286,8 @@ var analyse = function(node, env, nonGeneric) {
             var resultType = new t.NumberType();
             var leftType = analyse(node.left, env, nonGeneric);
             var rightType = analyse(node.right, env, nonGeneric);
-            unify(resultType, rightType);
             unify(resultType, leftType);
+            unify(resultType, rightType);
 
             return resultType;
         },
@@ -347,7 +363,12 @@ var analyse = function(node, env, nonGeneric) {
             return new t.ArrayType();
         },
         visitObject: function() {
-            return new t.ObjectType({});
+            var propTypes = {};
+            var prop;
+            for(prop in node.values) {
+                propTypes[prop] = analyse(node.values[prop], env, nonGeneric);
+            }
+            return new t.ObjectType(propTypes);
         }
     });
 };

@@ -97,6 +97,14 @@ ObjectType.prototype.map = function(f) {
 ObjectType.prototype.getPropertyType = function(prop) {
     return this.props[prop];
 };
+ObjectType.prototype.toString = function() {
+    var strs = [];
+    var p;
+    for(p in this.props) {
+        strs.push(p + ': ' + this.props[p].toString());
+    }
+    return '{' + strs.join(', ') + '}';
+};
 exports.ObjectType = ObjectType;
 
 var TagNameType = function(name) {
