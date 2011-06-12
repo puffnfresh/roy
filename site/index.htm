@@ -67,15 +67,15 @@
         parent: true
     };
     </script>
-    <script src="../src/parser.js"></script>
+    <script src="src/parser.js"></script>
     <script>
     this['./parser'] = {parser: parser};
     </script>
-    <script src="../src/lexer.js"></script>
-    <script src="../src/types.js"></script>
-    <script src="../src/nodes.js"></script>
-    <script src="../src/typeinference.js"></script>
-    <script src="../src/compile.js"></script>
+    <script src="src/lexer.js"></script>
+    <script src="src/types.js"></script>
+    <script src="src/nodes.js"></script>
+    <script src="src/typeinference.js"></script>
+    <script src="src/compile.js"></script>
     <link href="http://fonts.googleapis.com/css?family=Droid+Sans:bold,Droid+Sans+Mono" rel="stylesheet" type="text/css" />
     <link href="http://fonts.googleapis.com/css?family=Pacifico" rel="stylesheet" type="text/css" />
   </head>
@@ -157,17 +157,17 @@
             if(!value) return;
             if(examples[value]) {
                 document.getElementById("roycode").value = examples[value];
-	    } else {
-		var request = new XMLHttpRequest();
-		request.onreadystatechange = function() {
-		    if(request.readyState == 4) {
+            } else {
+                var request = new XMLHttpRequest();
+                request.onreadystatechange = function() {
+                    if(request.readyState == 4) {
                          examples[value] = request.responseText;
                          document.getElementById("roycode").value = examples[value];
-		    }
-		};
-		request.open("GET", "../examples/" + value + ".roy", true);
-	        request.send();
-	    }
+                    }
+                };
+                request.open("GET", "examples/" + value + ".roy", true);
+                request.send();
+            }
         });
         document.getElementById("roycompile").addEventListener('click', royCompile);
         document.getElementById("jsrun").addEventListener('click', function() {
