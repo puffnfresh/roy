@@ -1,0 +1,184 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <title>Roy</title>
+    <meta charset="UTF-8" />
+    <style>
+    body {
+        font-family: 'Droid Sans', sans-serif;
+        font-size: 1.1em;
+        margin: 0;
+        padding: 0em;
+        color: #111;
+        background: #FFFFEE;
+    }
+    textarea, pre {
+        font-size: 0.8em;
+        font-family: 'Droid Sans Mono', monospace;
+    }
+    .header div {
+        width: 33em;
+        margin: 0 auto;
+    }
+    h1 {
+        font-family: 'Pacifico', serif;
+        margin: 0;
+        font-size: 5em;
+        line-height: 1.4em;
+        height: 1.4em;
+        background: transparent url("logo.png") no-repeat 25% 10%;
+    }
+    a {
+        color: #88CC66;
+    }
+    a:hover {
+        text-decoration: none;
+    }
+    .header, .footer {
+        background: #111;
+        color: #FFFFEE;
+        text-align: center;
+    }
+    .footer {
+        padding: 1em;
+    }
+    h2 {
+        font-size: 1.5em;
+        color: #226644;
+    }
+    h3 {
+        font-size: 1.1em;
+        color: #88CC66;
+    }
+    pre {
+        overflow: auto;
+    }
+    .content {
+        padding: 1em;
+        width: 33em;
+        margin: 0 auto;
+    }
+    </style>
+    <script>
+    var require = function(module) {
+        return this[module];
+    };
+    var module = {
+        parent: true
+    };
+    </script>
+    <script src="../src/parser.js"></script>
+    <script>
+    this['./parser'] = {parser: parser};
+    </script>
+    <script src="../src/lexer.js"></script>
+    <script src="../src/types.js"></script>
+    <script src="../src/nodes.js"></script>
+    <script src="../src/typeinference.js"></script>
+    <script src="../src/compile.js"></script>
+    <link href="http://fonts.googleapis.com/css?family=Droid+Sans:bold,Droid+Sans+Mono" rel="stylesheet" type="text/css" />
+    <link href="http://fonts.googleapis.com/css?family=Pacifico" rel="stylesheet" type="text/css" />
+  </head>
+
+  <body>
+    <div class="header">
+      <div>
+        <h1>Roy</h1>
+      </div>
+    </div>
+    <div class="content">
+      <h2>About</h2>
+      <p>Roy is an experimental programming language that targets JavaScript. It
+        tries to meld JavaScript semantics with some features common in static
+        functional languages:</p>
+      <ul>
+        <li><a href="http://en.wikipedia.org/wiki/Type_inference#Hindley.E2.80.93Milner_type_inference_algorithm">Damas-Hindley-Milner type inference</a></li>
+        <li><a href="http://jashkenas.github.com/coffee-script/">Whitespace</a> <a href="http://www.haskell.org/haskellwiki/Haskell">significant</a> <a href="http://www.python.org/">syntax</a></li>
+        <li><a href="http://en.wikipedia.org/wiki/Tagged_union">Simple tagged unions</a></li>
+        <li><a href="http://en.wikipedia.org/wiki/Pattern_matching">Pattern matching</a></li>
+        <li><a href="http://en.wikipedia.org/wiki/Structural_type_system">Structural typing</a></li>
+      </ul>
+      <p>You can try out the current version below. The <a href="https://bitbucket.org/puffnfresh/roy">code is on Bitbucket</a>.</p>
+      <h2>Try</h2>
+      <h3>Roy input</h3>
+      <div>
+        <select id="exampleselect">
+          <option value="">Custom</option>
+          <option value="helloworld">Hello world</option>
+          <option value="types">Types</option>
+          <option value="funcs">Functions</option>
+          <option value="gcd">Greatest common divisor</option>
+          <option value="data">Tagged unions</option>
+          <option value="structural">Structural</option>
+        </select>
+      </div>
+      <textarea id="roycode" rows="15" cols="60"></textarea>
+      <div>
+        <input id="jsrun" type="button" value="Run" />
+        <input id="roycompile" type="button" value="Compile" />
+      </div>
+      <h3>JavaScript</h3>
+      <pre id="jscode"></pre>
+      <h3>Output</h3>
+      <pre id="output"></pre>
+    </div>
+    <div class="footer">
+      &copy; 2011 <a href="http://brianmckenna.org/">Brian McKenna</a>
+    </div>
+    <script>
+    var log = function() {
+        var i, args = [];
+        for(i = 0; i < arguments.length; i++) {
+            args.push(arguments[i]);
+        }
+        document.getElementById('output').innerText += args.join(' ') + '\n';
+    };
+    var newConsole = {};
+    ['log', 'info', 'warn', 'error', 'trace', 'assert'].forEach(function(f) {
+        newConsole[f] = function() {
+            log.apply(null, arguments);
+            if(typeof console != 'undefined' && console[f]) console[f].apply(console, arguments);
+        };
+    });
+    (function() {
+        var compile = require("./compile").compile;
+        var examples = {};
+        var royCompile = function() {
+            var jscode;
+            try {
+                jscode = compile(document.getElementById("roycode").value);
+            } catch(e) {
+                jscode = e;
+            }
+            document.getElementById("jscode").innerText = jscode;
+        };
+        document.getElementById("exampleselect").addEventListener('change', function() {
+            var value = document.getElementById("exampleselect").value;
+            if(!value) return;
+            if(examples[value]) {
+                document.getElementById("roycode").value = examples[value];
+	    } else {
+		var request = new XMLHttpRequest();
+		request.onreadystatechange = function() {
+		    if(request.readyState == 4) {
+                         examples[value] = request.responseText;
+                         document.getElementById("roycode").value = examples[value];
+		    }
+		};
+		request.open("GET", "../examples/" + value + ".roy", true);
+	        request.send();
+	    }
+        });
+        document.getElementById("roycompile").addEventListener('click', royCompile);
+        document.getElementById("jsrun").addEventListener('click', function() {
+            royCompile();
+            document.getElementById("output").innerText = "";
+            var script = document.createElement("script");
+            var code = document.getElementById("jscode").innerText;
+            script.innerHTML = "(function() {try {var console = newConsole;(function(){\n" + code + "\n})()} catch(e) {log(e);}})();";
+            document.body.appendChild(script);
+        });
+    })();
+    </script>
+  </body>
+</html>
