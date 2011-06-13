@@ -131,7 +131,7 @@
         for(i = 0; i < arguments.length; i++) {
             args.push(arguments[i]);
         }
-        document.getElementById('output').innerText += args.join(' ') + '\n';
+        document.getElementById('output').innerHTML += args.join(' ') + '\n';
     };
     var newConsole = {};
     ['log', 'info', 'warn', 'error', 'trace', 'assert'].forEach(function(f) {
@@ -150,7 +150,7 @@
             } catch(e) {
                 jscode = e;
             }
-            document.getElementById("jscode").innerText = jscode;
+            document.getElementById("jscode").innerHTML = jscode;
         };
         document.getElementById("exampleselect").addEventListener('change', function() {
             var value = document.getElementById("exampleselect").value;
@@ -166,18 +166,18 @@
                     }
                 };
                 request.open("GET", "examples/" + value + ".roy", true);
-                request.send();
+                request.send(null);
             }
-        });
-        document.getElementById("roycompile").addEventListener('click', royCompile);
+        }, false);
+        document.getElementById("roycompile").addEventListener('click', royCompile, false);
         document.getElementById("jsrun").addEventListener('click', function() {
             royCompile();
-            document.getElementById("output").innerText = "";
+            document.getElementById("output").innerHTML = "";
             var script = document.createElement("script");
-            var code = document.getElementById("jscode").innerText;
+            var code = document.getElementById("jscode").innerHTML;
             script.innerHTML = "(function() {try {var console = newConsole;(function(){\n" + code + "\n})()} catch(e) {log(e);}})();";
             document.body.appendChild(script);
-        });
+        }, false);
     })();
     </script>
   </body>
