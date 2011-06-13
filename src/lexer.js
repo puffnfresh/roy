@@ -9,6 +9,7 @@
     var indent;
     var indents;
     var tokens;
+    var lineno;
 
     var identifierToken = function() {
         var value,
@@ -29,7 +30,6 @@
             case 'data':
             case 'match':
             case 'case':
-            case 'bind':
             case 'return':
                 name = value.toUpperCase();
                 break;
@@ -37,7 +37,7 @@
                 name = 'IDENTIFIER'
                 break;
             }
-            tokens.push([name, value]);
+            tokens.push([name, value, lineno]);
             return token[0].length;
         }
 
@@ -47,7 +47,7 @@
     var numberToken = function() {
         var token = NUMBER.exec(chunk);
         if(token) {
-            tokens.push(['NUMBER', token[0]]);
+            tokens.push(['NUMBER', token[0], lineno]);
             return token[0].length;
         }
 
@@ -65,7 +65,7 @@
                     if(nextChar == "\\") {
                         quoted = true;
                     } else if(nextChar == firstChar) {
-                        tokens.push(['STRING', chunk.substring(0, i + 1)]);
+                        tokens.push(['STRING', chunk.substring(0, i + 1), lineno]);
                         return i + 1;
                     }
                 } else {
@@ -80,7 +80,7 @@
     var commentToken = function() {
         var token = COMMENT.exec(chunk);
         if(token) {
-            tokens.push(['COMMENT', token[0]]);
+            tokens.push(['COMMENT', token[0], lineno]);
             return token[0].length;
         }
 
@@ -103,12 +103,12 @@
             var size = token[0].length - lastNewline;
             if(size > indent) {
                 indents.push(size);
-                tokens.push(['INDENT', size - indent]);
+                tokens.push(['INDENT', size - indent, lineno]);
             } else {
                 if(size < indent) {
                     var last = indents[indents.length - 1];
                     while(size < last) {
-                        tokens.push(['OUTDENT', last - size]);
+                        tokens.push(['OUTDENT', last - size, lineno]);
                         indents.pop();
                         last = indents[indents.length - 1];
                     }
@@ -119,7 +119,7 @@
                     tokens.push(t[0]);
                     tokens.push(t[1]);
                 } else {
-                    tokens.push(['TERMINATOR', token[0].substring(0, lastNewline)]);
+                    tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
                 }
             }
             indent = size;
@@ -137,10 +137,10 @@
             var next = chunk.slice(0, 2);
             switch(next) {
             case '==':
-                tokens.push([next, next]);
+                tokens.push([next, next, lineno]);
                 return 2;
             }
-            tokens.push([tag, tag]);
+            tokens.push([tag, tag, lineno]);
             return 1;
         case ':':
         case '.':
@@ -157,7 +157,7 @@
         case '}':
         case '(':
         case ')':
-            tokens.push([tag, tag]);
+            tokens.push([tag, tag, lineno]);
             return 1;
         }
 
@@ -168,16 +168,18 @@
         indent = 0;
         indents = [];
         tokens = [];
+        lineno = 1;
         var i = 0;
         while(chunk = source.slice(i)) {
             var diff = identifierToken() || numberToken() || stringToken() || commentToken() || whitespaceToken() || lineToken() || literalToken();
             if(!diff) {
                 throw "Couldn't tokenise: " + chunk.substring(0, chunk.indexOf("\n"));;
             }
+            lineno += source.slice(i, i + diff).split('\n').length - 1;
             i += diff;
         }
 
-        tokens.push(['EOF', '']);
+        tokens.push(['EOF', '', lineno]);
 
         return tokens;
     };
