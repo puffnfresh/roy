@@ -36,12 +36,12 @@
                         return v.name;
                     }).join(", ");
                 };
-                var compileNodedBody = n.body.map(compileNode);
+                var compiledNodeBody = n.body.map(compileNode);
                 var initString = '';;
-                if(compileNodedBody.length > 1) {
-                    initString = compileNodedBody.slice(0, compileNodedBody.length - 1).join(';') + ';';
+                if(compiledNodeBody.length > 1) {
+                    initString = compiledNodeBody.slice(0, compiledNodeBody.length - 1).join(';') + ';';
                 }
-                var lastString = compileNodedBody[compileNodedBody.length - 1];
+                var lastString = compiledNodeBody[compiledNodeBody.length - 1];
                 var varEquals = "";
                 if(n.name) {
                     varEquals = "var " + n.name + " = ";
@@ -49,10 +49,10 @@
                 return varEquals + "function(" + getArgs(n.args) + ") {" + initString + "return " + lastString + ";}";
             },
             visitIfThenElse: function() {
-                var compileNodedCondition = compileNode(n.condition);
-                var compileNodedIfTrue = n.ifTrue.map(compileNode).join('');
-                var compileNodedIfFalse = n.ifFalse.map(compileNode).join('');
-                return "(function(){if(" + compileNodedCondition + "){return " + compileNodedIfTrue + "}else{return " + compileNodedIfFalse + "}})();";
+                var compiledNodeCondition = compileNode(n.condition);
+                var compiledNodeIfTrue = n.ifTrue.map(compileNode).join('');
+                var compiledNodeIfFalse = n.ifFalse.map(compileNode).join('');
+                return "(function(){if(" + compiledNodeCondition + "){return " + compiledNodeIfTrue + "}else{return " + compiledNodeIfFalse + "}})();";
             },
             // Let binding to JavaScript variable.
             visitLet: function() {
