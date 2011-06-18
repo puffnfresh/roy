@@ -1,10 +1,6 @@
 data Option a =
   Some a | None
 
-let printOption x = match x
-  case (Some a) = "Some(" ++ (a.toString _) ++ ")"
-  case None = "None"
-
 let optionMonad = {
   return: fn x =
     Some x
