@@ -28,10 +28,13 @@
     // Compile an abstract syntax tree (AST) node to JavaScript.
     var data = {};
     var indent = 0;
-    var getIndent = function() {
+    var getIndent = function(thisIndent) {
+        if(!thisIndent) {
+            thisIndent = indent;
+        }
         var spacing = "";
         var i;
-        for(i = 0; i < indent; i++) {
+        for(i = 0; i < thisIndent; i++) {
             spacing += "    ";
         }
         return spacing;
@@ -70,7 +73,7 @@
                 var compiledNodeCondition = compileNode(n.condition);
                 var compiledNodeIfTrue = n.ifTrue.map(compileNode).join('');
                 var compiledNodeIfFalse = n.ifFalse.map(compileNode).join('');
-                return "(function(){if(" + compiledNodeCondition + "){return " + compiledNodeIfTrue + "}else{return " + compiledNodeIfFalse + "}})();";
+                return "(function() {\n" + pushIndent() + "if(" + compiledNodeCondition + ") {\n" + pushIndent() + "return " + compiledNodeIfTrue + "\n" + popIndent() + "} else {\n" + pushIndent() + "return " + compiledNodeIfFalse + "\n" + popIndent() + "}})();";
             },
             // Let binding to JavaScript variable.
             visitLet: function() {
@@ -122,13 +125,17 @@
                 return "var " + n.name + " = function(" + args.join(", ") + "){" + setters.join(";") + "};";
             },
             visitMatch: function() {
+                pushIndent();
+                pushIndent();
                 var cases = n.cases.map(function(c) {
                     var assignments = c.pattern.vars.map(function(a, i) {
                         return "var " + a + " = " + compileNode(n.value) + "._" + i + ";";
                     });
-                    return "if(" + compileNode(n.value) + " instanceof " + c.pattern.tag + "){" +  assignments.join("") + "return " + compileNode(c.value) + "}";
+                    return "if(" + compileNode(n.value) + " instanceof " + c.pattern.tag + ") {\n" + pushIndent() + assignments.join("\n" + getIndent()) + "\n" + getIndent() + "return " + compileNode(c.value) + "\n" + popIndent() + "}";
                 });
-                return "(function() {" + cases.join(" else ") + "})()";
+                popIndent();
+                popIndent();
+                return "(function() {\n" + getIndent(indent + 2) + cases.join(" else ") + "\n" + getIndent(indent + 1) + "})()";
             },
             // Call to JavaScript call.
             visitCall: function() {
