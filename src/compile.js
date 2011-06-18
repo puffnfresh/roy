@@ -27,6 +27,23 @@
 
     // Compile an abstract syntax tree (AST) node to JavaScript.
     var data = {};
+    var indent = 0;
+    var getIndent = function() {
+        var spacing = "";
+        var i;
+        for(i = 0; i < indent; i++) {
+            spacing += "    ";
+        }
+        return spacing;
+    };
+    var pushIndent = function() {
+        indent++;
+        return getIndent();
+    };
+    var popIndent = function() {
+        indent--;
+        return getIndent();
+    };
     var compileNode = function(n) {
         return n.accept({
             // Function definition to JavaScript function.
@@ -38,15 +55,16 @@
                 };
                 var compiledNodeBody = n.body.map(compileNode);
                 var initString = '';;
+                pushIndent();
                 if(compiledNodeBody.length > 1) {
-                    initString = compiledNodeBody.slice(0, compiledNodeBody.length - 1).join(';') + ';';
+                    initString = getIndent() + compiledNodeBody.slice(0, compiledNodeBody.length - 1).join(';\n' + getIndent()) + ';';
                 }
                 var lastString = compiledNodeBody[compiledNodeBody.length - 1];
                 var varEquals = "";
                 if(n.name) {
                     varEquals = "var " + n.name + " = ";
                 }
-                return varEquals + "function(" + getArgs(n.args) + ") {" + initString + "return " + lastString + ";}";
+                return varEquals + "function(" + getArgs(n.args) + ") {\n" + initString + "\n" + getIndent() + "return " + lastString + ";\n" + popIndent() + "}";
             },
             visitIfThenElse: function() {
                 var compiledNodeCondition = compileNode(n.condition);
@@ -69,8 +87,7 @@
                 return "return __monad__[\"return\"](" + compileNode(n.value) + ");";
             },
             visitBind: function() {
-                var compiledNodeRest = n.rest.map(compileNode);
-                return "return __monad__[\"bind\"](" + compileNode(n.value) + ", function(" + n.name + "){" + compiledNodeRest.join('') + "});";
+                return "return __monad__[\"bind\"](" + compileNode(n.value) + ", function(" + n.name + ") {\n" + pushIndent() + n.rest.map(compileNode).join("\n" + getIndent()) + "\n" + popIndent() + "});";
             },
             visitDo: function() {
                 var compiledInit = [];
@@ -93,7 +110,7 @@
                     }
                 });
                 lastBind.rest = n.body.slice(lastBindIndex + 1);
-                return "(function(){var __monad__ = " + compileNode(n.value) + ";" + compiledInit.join('') + compileNode(firstBind) + "})()";
+                return "(function(){\n" + pushIndent() + "var __monad__ = " + compileNode(n.value) + ";\n" + getIndent() + compiledInit.join('\n' + getIndent()) + compileNode(firstBind) + "\n" + popIndent() + "})()";
             },
             visitTag: function() {
                 var args = n.vars.map(function(v) {
@@ -160,10 +177,11 @@
             visitObject: function() {
                 var key;
                 var pairs = [];
+                pushIndent();
                 for(key in n.values) {
                     pairs.push("\"" + key + "\": " + compileNode(n.values[key]));
                 }
-                return "{" + pairs.join(", ") + "}";
+                return "{\n" + getIndent() + pairs.join(",\n" + getIndent()) + "\n" + popIndent() + "}";
             }
         });
     };
