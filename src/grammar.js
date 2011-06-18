@@ -30,6 +30,19 @@ var grammar = {
             ["INDENT body OUTDENT", "$$ = $2;"],
             ["INDENT OUTDENT", "$$ = $1;"]
         ],
+        "doBody": [
+            ["doLine", "$$ = [$1];"],
+            ["doBody TERMINATOR doLine", "$$ = $1; $1.push($3);"],
+            ["doBody TERMINATOR", "$$ = $1;"]
+        ],
+        "doLine": [
+            ["line", "$$ = $1;"],
+            ["BIND IDENTIFIER = expression", "$$ = new yy.Bind($2, $4);"],
+            ["RETURN expression", "$$ = new yy.Return($2);"]
+        ],
+        "doBlock": [
+            ["INDENT doBody OUTDENT", "$$ = $2;"],
+        ],
         "statement": [
             ["letFunction", "$$ = $1;"],
             ["letBinding", "$$ = $1;"],
@@ -40,6 +53,7 @@ var grammar = {
             ["FN paramList optType = expression", "$$ = new yy.Function(undefined, $2, [$5], $3);"],
             ["FN paramList optType = block", "$$ = new yy.Function(undefined, $2, $5, $3);"],
             ["MATCH innerExpression INDENT caseList OUTDENT", "$$ = new yy.Match($2, $4);"],
+            ["DO innerExpression doBlock TERMINATOR", "$$ = new yy.Do($2, $3);"],
             ["call", "$$ = $1;"]
         ],
         "innerExpression": [
@@ -56,8 +70,12 @@ var grammar = {
             ["caseList TERMINATOR CASE pattern = expression", "$$ = $1; $1.push(new yy.Case($4, $6));"]
         ],
         "pattern": [
-            ["( IDENTIFIER IDENTIFIER )", "$$ = new yy.Pattern($2, [$3]);"],
+            ["( IDENTIFIER patternIdentifiers )", "$$ = new yy.Pattern($2, $3);"],
             ["IDENTIFIER", "$$ = new yy.Pattern($1, []);"]
+        ],
+        "patternIdentifiers": [
+            ["IDENTIFIER", "$$ = [$1];"],
+            ["patternIdentifiers IDENTIFIER", "$$ = $1; $1.push($2);"]
         ],
         "ifThenElse": [
             ["IF innerExpression THEN block TERMINATOR ELSE block", "$$ = new yy.IfThenElse($2, $4, $7);"]
@@ -123,16 +141,27 @@ var grammar = {
         ],
         "optPairs": [
             ["", "$$ = {};"],
+            ["INDENT keyPairs OUTDENT TERMINATOR", "$$ = $2;"],
             ["keyPairs", "$$ = $1;"]
         ],
         "keyPairs": [
-            ["IDENTIFIER : expression", "$$ = {}; $$[$1] = $3;"],
-            ["keyPairs , IDENTIFIER : expression", "$$ = $1; $1[$3] = $5;"]
+            ["keywordOrIdentifier : expression", "$$ = {}; $$[$1] = $3;"],
+            ["keyPairs , keywordOrIdentifier : expression", "$$ = $1; $1[$3] = $5;"],
+            ["keyPairs TERMINATOR optTerm keywordOrIdentifier : expression TERMINATOR", "$$ = $1; $1[$4] = $6;"]
+        ],
+        "optTerm": [
+            ["", ""],
+            ["TERMINATOR", ""]
         ],
         "accessor": [
             ["IDENTIFIER", "$$ = new yy.Identifier($1);"],
-            ["accessor . IDENTIFIER", "$$ = new yy.Access($1, $3);"],
-            ["( expression ) . IDENTIFIER", "$$ = new yy.Access($2, $5);"]
+            ["accessor . keywordOrIdentifier", "$$ = new yy.Access($1, $3);"],
+            ["( expression ) . keywordOrIdentifier", "$$ = new yy.Access($2, $5);"]
+        ],
+        "keywordOrIdentifier": [
+            ["RETURN", "$$ = $1;"],
+            ["BIND", "$$ = $1;"],
+            ["IDENTIFIER", "$$ = $1;"]
         ],
         "identifier": [
             ["IDENTIFIER", "$$ = new yy.Identifier($1);"]

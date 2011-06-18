@@ -30,6 +30,8 @@
             case 'data':
             case 'match':
             case 'case':
+            case 'do':
+            case 'bind':
             case 'return':
                 name = value.toUpperCase();
                 break;
@@ -40,7 +42,6 @@
             tokens.push([name, value, lineno]);
             return token[0].length;
         }
-
         return 0;
     };
 
@@ -50,7 +51,6 @@
             tokens.push(['NUMBER', token[0], lineno]);
             return token[0].length;
         }
-
         return 0;
     };
 
@@ -73,7 +73,6 @@
                 }
             }
         }
-
         return 0;
     };
 
@@ -83,7 +82,6 @@
             tokens.push(['COMMENT', token[0], lineno]);
             return token[0].length;
         }
-
         return 0;
     };
 
@@ -92,7 +90,6 @@
         if(token) {
             return token[0].length;
         }
-
         return 0;
     };
 
@@ -101,6 +98,7 @@
         if(token) {
             var lastNewline = token[0].lastIndexOf("\n") + 1;
             var size = token[0].length - lastNewline;
+            var terminated = false;
             if(size > indent) {
                 indents.push(size);
                 tokens.push(['INDENT', size - indent, lineno]);
@@ -109,23 +107,19 @@
                     var last = indents[indents.length - 1];
                     while(size < last) {
                         tokens.push(['OUTDENT', last - size, lineno]);
+                        tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
                         indents.pop();
                         last = indents[indents.length - 1];
+                        terminated = true;
                     }
                 }
-                if(tokens.length >= 2 && tokens[tokens.length - 2][0] == 'TERMINATOR' && tokens[tokens.length - 1][0] == ')') {
-                    /* Swap TERMINATOR and ')' */
-                    var t = [tokens.pop(), tokens.pop()];
-                    tokens.push(t[0]);
-                    tokens.push(t[1]);
-                } else {
+                if(!terminated) {
                     tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
                 }
             }
             indent = size;
             return token[0].length;
         }
-
         return 0;
     };
 
@@ -160,7 +154,6 @@
             tokens.push([tag, tag, lineno]);
             return 1;
         }
-
         return 0;
     };
 
@@ -178,9 +171,7 @@
             lineno += source.slice(i, i + diff).split('\n').length - 1;
             i += diff;
         }
-
         tokens.push(['EOF', '', lineno]);
-
         return tokens;
     };
 

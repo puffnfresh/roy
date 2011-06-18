@@ -1,0 +1,21 @@
+data Option a =
+  Some a | None
+
+let printOption x = match x
+  case (Some a) = "Some(" ++ (a.toString _) ++ ")"
+  case None = "None"
+
+let optionMonad = {
+  return: fn x =
+    Some x
+  bind: fn x f = match x
+    case (Some a) = f a
+    case None = None
+}
+
+console.log (do optionMonad
+  bind x = Some 1
+  let y = 2
+  bind z = Some 3
+  return x + y + z
+)

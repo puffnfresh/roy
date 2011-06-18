@@ -65,6 +65,36 @@
                 var defs = n.tags.map(compileNode);
                 return defs.join("\n");
             },
+            visitReturn: function() {
+                return "return __monad__[\"return\"](" + compileNode(n.value) + ");";
+            },
+            visitBind: function() {
+                var compiledNodeRest = n.rest.map(compileNode);
+                return "return __monad__[\"bind\"](" + compileNode(n.value) + ", function(" + n.name + "){" + compiledNodeRest.join('') + "});";
+            },
+            visitDo: function() {
+                var compiledInit = [];
+                var firstBind;
+                var lastBind;
+                var lastBindIndex = 0;
+                n.body.forEach(function(node, i) {
+                    if(node instanceof nodes.Bind) {
+                        if(!lastBind) {
+                            firstBind = node;
+                        } else {
+                            lastBind.rest = n.body.slice(lastBindIndex + 1, i + 1);
+                        }
+                        lastBindIndex = i;
+                        lastBind = node;
+                    } else {
+                        if(!lastBind) {
+                            compiledInit.push(compileNode(node));
+                        }
+                    }
+                });
+                lastBind.rest = n.body.slice(lastBindIndex + 1);
+                return "(function(){var __monad__ = " + compileNode(n.value) + ";" + compiledInit.join('') + compileNode(firstBind) + "})()";
+            },
             visitTag: function() {
                 var args = n.vars.map(function(v) {
                     return v.name;
@@ -131,7 +161,7 @@
                 var key;
                 var pairs = [];
                 for(key in n.values) {
-                    pairs.push(key + ": " + compileNode(n.values[key]));
+                    pairs.push("\"" + key + "\": " + compileNode(n.values[key]));
                 }
                 return "{" + pairs.join(", ") + "}";
             }
