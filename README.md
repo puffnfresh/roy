@@ -9,6 +9,7 @@ Roy rhymes with "toy" and that's what it is. This is a small functional language
 * Pattern matching
 * Structural typing
 * Monad syntax
+* Not-horrible JS output
 
 It is mainly limited to being a toy because it can't interface with JS completely. Gluing JS semantics with static typing is a hard problem that I'm working on.
 
@@ -33,4 +34,5 @@ Calling `addTwo "test"` will result in a compile-time error.
 TODO
 ---
 * Tail recursion
-* Prettify output
+* Standard libary
+* Types in modules
