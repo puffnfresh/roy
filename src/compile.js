@@ -226,7 +226,9 @@
         var source = fs.readFileSync(filename, 'utf8');
 
         // Write the JavaScript output.
-        fs.writeFile(filename.replace(/roy$/, 'js'), compile(source), 'utf8');
+        var extension = /\.roy$/;
+        console.assert(filename.match(extension), 'Filename must end with ".roy"');
+        fs.writeFile(filename.replace(extension, '.js'), compile(source), 'utf8');
     };
     exports.main = main;
 
