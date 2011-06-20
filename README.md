@@ -26,7 +26,9 @@ Input (test.roy):
 Output (test.js):
 
     "use strict";
-    var addTwo = function(n) {return n + 2;};
+    var addTwo = function(n) {
+	return n + 2;
+    }
     console.log(addTwo(40))
 
 Calling `addTwo "test"` will result in a compile-time error.
