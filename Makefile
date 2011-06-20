@@ -1,7 +1,7 @@
 all:
 	node src/grammar.js
 
-website:
+website: all
 	[ -e roy.brianmckenna.org ] || mkdir roy.brianmckenna.org
 	cp -r site/* roy.brianmckenna.org
 	cp -r examples roy.brianmckenna.org
