@@ -1,0 +1,6 @@
+console.log (id 1)
+console.log (odd 2)
+
+console.log (maybe 0 id None)
+
+console.log (head (tail (replicate 10 'a')))

@@ -128,9 +128,18 @@
         var next;
         switch(tag) {
         case '=':
-            var next = chunk.slice(0, 2);
+            next = chunk.slice(0, 2);
             switch(next) {
             case '==':
+                tokens.push([next, next, lineno]);
+                return 2;
+            }
+            tokens.push([tag, tag, lineno]);
+            return 1;
+        case '!':
+            next = chunk.slice(0, 2);
+            switch(next) {
+            case '!=':
                 tokens.push([next, next, lineno]);
                 return 2;
             }

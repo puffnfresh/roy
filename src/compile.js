@@ -197,7 +197,7 @@
         });
     };
 
-    var compile = function(source) {
+    var compile = function(source, env) {
         // Parse the file to an AST.
         var tokens = lexer.tokenise(source);
         var ast = parser.parse(tokens);
@@ -205,7 +205,12 @@
         // Typecheck the AST. Any type errors will throw an exception.
         var typeA = new types.Variable();
         var typeB = new types.Variable();
-        typecheck(ast, {});
+        var sourceTypes = typecheck(ast, env);
+
+        var name;
+        for(name in sourceTypes) {
+            console.log(name, sourceTypes[name].toString());
+        }
 
         // Output strict JavaScript.
         var output = ['"use strict";'];
@@ -224,15 +229,18 @@
         }
 
         var fs = require('fs');
+        var filenames = process.argv.slice(2);
 
-        // Read the file content.
-        var filename = process.argv[2];
-        var source = fs.readFileSync(filename, 'utf8');
+        var env = {};
+        filenames.forEach(function(filename) {
+            // Read the file content.
+            var source = fs.readFileSync(filename, 'utf8');
 
-        // Write the JavaScript output.
-        var extension = /\.roy$/;
-        console.assert(filename.match(extension), 'Filename must end with ".roy"');
-        fs.writeFile(filename.replace(extension, '.js'), compile(source), 'utf8');
+            // Write the JavaScript output.
+            var extension = /\.roy$/;
+            console.assert(filename.match(extension), 'Filename must end with ".roy"');
+            fs.writeFile(filename.replace(extension, '.js'), compile(source, env), 'utf8');
+        });
     };
     exports.main = main;
 
