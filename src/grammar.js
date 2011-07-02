@@ -7,7 +7,7 @@ var grammar = {
     "operators": [
         ["left", "=="],
         ["left", "+", "-"],
-        ["left", "%"],
+        ["left", "MATH"],
         ["left", "."]
     ],
 
@@ -60,9 +60,9 @@ var grammar = {
             ["ifThenElse", "$$ = $1;"],
             ["( expression )", "$$ = $2;"],
             ["accessor", "$$ = $1;"],
+            ["innerExpression MATH innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
             ["innerExpression + innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
             ["innerExpression - innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
-            ["innerExpression % innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
             ["innerExpression == innerExpression", "$$ = new yy.BinaryGenericOperator($2, $1, $3);"],
             ["literal", "$$ = $1;"]
         ],

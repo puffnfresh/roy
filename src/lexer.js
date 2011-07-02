@@ -145,14 +145,16 @@
             }
             tokens.push([tag, tag, lineno]);
             return 1;
+        case '*':
+        case '/':
+        case '%':
+            tokens.push(['MATH', tag, lineno]);
+            return 1;
         case ':':
         case '.':
         case ',':
         case '+':
         case '-':
-        case '*':
-        case '/':
-        case '%':
         case '|':
         case '[':
         case ']':
