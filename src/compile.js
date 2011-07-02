@@ -75,13 +75,19 @@
                 if(n.name) {
                     varEquals = "var " + n.name + " = ";
                 }
-                return varEquals + "function(" + getArgs(n.args) + ") {\n" + getIndent() + joinIndent(init) + "return " + lastString + ";\n" + popIndent() + "}";
+                return varEquals + "function(" + getArgs(n.args) + ") {\n" +
+                    getIndent() + joinIndent(init) + "return " + lastString +
+                    ";\n" + popIndent() + "}";
             },
             visitIfThenElse: function() {
                 var compiledNodeCondition = compileNode(n.condition);
                 var compiledNodeIfTrue = n.ifTrue.map(compileNode).join('');
                 var compiledNodeIfFalse = n.ifFalse.map(compileNode).join('');
-                return "(function() {\n" + pushIndent() + "if(" + compiledNodeCondition + ") {\n" + pushIndent() + "return " + compiledNodeIfTrue + "\n" + popIndent() + "} else {\n" + pushIndent() + "return " + compiledNodeIfFalse + "\n" + popIndent() + "}})();";
+                return "(function() {\n" + pushIndent() + "if(" +
+                    compiledNodeCondition + ") {\n" + pushIndent() + "return " +
+                    compiledNodeIfTrue + "\n" + popIndent() + "} else {\n" +
+                    pushIndent() + "return " + compiledNodeIfFalse + "\n" +
+                    popIndent() + "}})();";
             },
             // Let binding to JavaScript variable.
             visitLet: function() {
@@ -98,7 +104,10 @@
                 return "return __monad__[\"return\"](" + compileNode(n.value) + ");";
             },
             visitBind: function() {
-                return "return __monad__[\"bind\"](" + compileNode(n.value) + ", function(" + n.name + ") {\n" + pushIndent() + n.rest.map(compileNode).join("\n" + getIndent()) + "\n" + popIndent() + "});";
+                return "return __monad__[\"bind\"](" + compileNode(n.value) +
+                    ", function(" + n.name + ") {\n" + pushIndent() +
+                    n.rest.map(compileNode).join("\n" + getIndent()) + "\n" +
+                    popIndent() + "});";
             },
             visitDo: function() {
                 var compiledInit = [];
@@ -121,7 +130,10 @@
                     }
                 });
                 lastBind.rest = n.body.slice(lastBindIndex + 1);
-                return "(function(){\n" + pushIndent() + "var __monad__ = " + compileNode(n.value) + ";\n" + getIndent() + compiledInit.join('\n' + getIndent()) + compileNode(firstBind) + "\n" + popIndent() + "})()";
+                return "(function(){\n" + pushIndent() + "var __monad__ = " +
+                    compileNode(n.value) + ";\n" + getIndent() +
+                    compiledInit.join('\n' + getIndent()) +
+                    compileNode(firstBind) + "\n" + popIndent() + "})()";
             },
             visitTag: function() {
                 var args = n.vars.map(function(v) {
@@ -137,7 +149,9 @@
                     var assignments = c.pattern.vars.map(function(a, i) {
                         return "var " + a + " = " + compileNode(n.value) + "._" + i + ";";
                     });
-                    return "if(" + compileNode(n.value) + " instanceof " + c.pattern.tag + ") {\n" + getIndent(3) + joinIndent(assignments, 3) + "return " + compileNode(c.value) + "\n" + getIndent(2) + "}";
+                    return "if(" + compileNode(n.value) + " instanceof " + c.pattern.tag +
+                        ") {\n" + getIndent(3) + joinIndent(assignments, 3) + "return " +
+                        compileNode(c.value) + "\n" + getIndent(2) + "}";
                 });
                 return "(function() {\n" + getIndent(2) + cases.join(" else ") + "\n" + getIndent(1) + "})()";
             },
