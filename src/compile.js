@@ -207,7 +207,7 @@
         // Typecheck the AST. Any type errors will throw an exception.
         var typeA = new types.Variable();
         var typeB = new types.Variable();
-        var sourceTypes = typecheck(ast, env);
+        var resultType = typecheck(ast, env);
 
         // Output strict JavaScript.
         var output = [];
@@ -218,7 +218,7 @@
             output.push(compileNode(v));
         });
 
-        return output.join('\n');
+        return {type: resultType, output: output.join('\n')};
     };
     exports.compile = compile;
 
@@ -246,8 +246,8 @@
             var output;
             try {
                 compiled = compile(line, env);
-                output = vm.runInNewContext(compiled, sandbox, 'eval');
-                console.log(output);
+                output = vm.runInNewContext(compiled.output, sandbox, 'eval');
+                console.log(output + " : " + compiled.type);
             } catch(e) {
                 console.log((e.stack || e.toString()) + '\n\n');
             }

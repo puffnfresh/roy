@@ -401,11 +401,10 @@
 
     // Run inference on an array of AST nodes.
     var typecheck = function(ast, env) {
-        ast.map(function(node) {
+        var types = ast.map(function(node) {
             return analyse(node, env);
         });
-
-        return env;
+        return types && types[0];
     };
     exports.typecheck = typecheck;
 })(typeof exports == 'undefined' ? this['./typeinference'] = {} : exports);
