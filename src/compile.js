@@ -247,7 +247,7 @@
             try {
                 compiled = compile(line, env);
                 output = vm.runInNewContext(compiled.output, sandbox, 'eval');
-                console.log(output + " : " + compiled.type);
+                if(typeof output != 'undefined') console.log(output + " : " + compiled.type);
             } catch(e) {
                 console.log((e.stack || e.toString()) + '\n\n');
             }
