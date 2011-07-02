@@ -197,7 +197,9 @@
         });
     };
 
-    var compile = function(source, env) {
+    var compile = function(source, env, opts) {
+        if(!opts) opts = {};
+
         // Parse the file to an AST.
         var tokens = lexer.tokenise(source);
         var ast = parser.parse(tokens);
@@ -207,13 +209,11 @@
         var typeB = new types.Variable();
         var sourceTypes = typecheck(ast, env);
 
-        var name;
-        for(name in sourceTypes) {
-            console.log(name, sourceTypes[name].toString());
-        }
-
         // Output strict JavaScript.
-        var output = ['"use strict";'];
+        var output = [];
+        if(opts.strict) {
+            output.push('"use strict";');
+        }
         ast.forEach(function(v) {
             output.push(compileNode(v));
         });
@@ -222,10 +222,43 @@
     };
     exports.compile = compile;
 
+    var nodeRepl = function() {
+        var readline = require('readline');
+        var vm = require('vm');
+        var stdout = process.stdout;
+        var stdin = process.openStdin();
+        var repl = readline.createInterface(stdin, stdout);
+
+        var env = {};
+        var sandbox = {};
+
+        var name;
+        for(name in global) {
+            sandbox[name] = global[name];
+        }
+
+        repl.setPrompt('roy> ');
+        repl.on('close', function() {
+            stdin.destroy();
+        });
+        repl.on('line', function(line) {
+            var compiled;
+            var output;
+            try {
+                compiled = compile(line, env);
+                output = vm.runInNewContext(compiled, sandbox, 'eval');
+                console.log(output);
+            } catch(e) {
+                console.log((e.stack || e.toString()) + '\n\n');
+            }
+            repl.prompt();
+        });
+        repl.prompt();
+    };
+
     var main = function() {
         if(process.argv.length < 3) {
-            console.log('You must give a .roy file as an argument.');
-            return;
+            nodeRepl();
         }
 
         var fs = require('fs');
