@@ -272,7 +272,7 @@
             // Write the JavaScript output.
             var extension = /\.roy$/;
             console.assert(filename.match(extension), 'Filename must end with ".roy"');
-            fs.writeFile(filename.replace(extension, '.js'), compile(source, env), 'utf8');
+            fs.writeFile(filename.replace(extension, '.js'), compile(source, env).output, 'utf8');
         });
     };
     exports.main = main;
