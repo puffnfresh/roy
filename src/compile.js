@@ -269,6 +269,8 @@
         ast.forEach(function(v) {
             output.push(compileNode(v));
         });
+        // Add a newline at the end
+        output.push("");
 
         return {type: resultType, output: output.join('\n')};
     };
