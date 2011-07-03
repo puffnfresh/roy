@@ -13,6 +13,23 @@ Roy rhymes with "toy" and that's what it is. This is a small functional language
 
 It is mainly limited to being a toy because it can't interface with JS completely. Gluing JS semantics with static typing is a hard problem that I'm working on.
 
+Usage
+---
+
+To compile:
+
+    make deps
+    make
+
+To enter a REPL:
+
+    ./roy
+
+To compile and run a `.roy` file:
+
+    ./roy examples/helloworld.roy
+    node examples/helloworld.js
+
 Example
 ---
 

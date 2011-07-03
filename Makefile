@@ -1,6 +1,9 @@
 all:
 	node src/grammar.js
 
+deps:
+	npm install jison
+
 website: all
 	[ -e roy.brianmckenna.org ] || mkdir roy.brianmckenna.org
 	cp -r site/* roy.brianmckenna.org
