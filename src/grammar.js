@@ -46,7 +46,8 @@ var grammar = {
         "statement": [
             ["letFunction", "$$ = $1;"],
             ["letBinding", "$$ = $1;"],
-            ["dataDecl", "$$ = $1;"]
+            ["dataDecl", "$$ = $1;"],
+            ["macro", "$$ = $1;"]
         ],
         "expression": [
             ["innerExpression", "$$ = $1;"],
@@ -59,6 +60,8 @@ var grammar = {
         "innerExpression": [
             ["ifThenElse", "$$ = $1;"],
             ["( expression )", "$$ = $2;"],
+            ["& ( expression )", "$$ = new yy.Replacement($3);"],
+            ["[| expression |]", "$$ = new yy.Quoted($2);"],
             ["accessor", "$$ = $1;"],
             ["innerExpression MATH innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
             ["innerExpression + innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
@@ -92,6 +95,10 @@ var grammar = {
         "optParamList": [
             ["", "$$ = [];"],
             ["paramList", "$$ = $1;"]
+        ],
+        "macro": [
+            ["MACRO IDENTIFIER = expression", "$$ = new yy.Macro($2, [$4]);"],
+            ["MACRO IDENTIFIER = block", "$$ = new yy.Macro($2, $4);"]
         ],
         "letFunction": [
             ["LET IDENTIFIER paramList optType = block", "$$ = new yy.Function($2, $3, $6, $4);"],

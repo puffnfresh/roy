@@ -33,6 +33,7 @@
             case 'do':
             case 'bind':
             case 'return':
+            case 'macro':
                 name = value.toUpperCase();
                 break;
             default:
@@ -150,14 +151,25 @@
         case '%':
             tokens.push(['MATH', tag, lineno]);
             return 1;
+        case '[':
+        case '|':
+            next = chunk.slice(0, 2);
+            switch(next) {
+            case '[|':
+            case '|]':
+                tokens.push([next, next, lineno]);
+                return 2;
+            }
+            tokens.push([tag, tag, lineno]);
+            return 1;
+        case ']':
         case ':':
         case '.':
         case ',':
         case '+':
         case '-':
+        case '&':
         case '|':
-        case '[':
-        case ']':
         case '{':
         case '}':
         case '(':

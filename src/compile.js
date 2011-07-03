@@ -27,6 +27,7 @@
 
     // Compile an abstract syntax tree (AST) node to JavaScript.
     var data = {};
+    var macros = {};
     var indent = 0;
     var getIndent = function(extra) {
         if(!extra) {
@@ -100,6 +101,35 @@
                 var defs = n.tags.map(compileNode);
                 return defs.join("\n");
             },
+            visitReplacement: function() {
+                return n.value;
+            },
+            visitQuoted: function() {
+                var serializeNode = {
+                    visitReplacement: function(v) {
+                        return "new nodes.Replacement(" + compileNode(v.value) + ")";
+                    },
+                    visitIdentifier: function(v) {
+                        return "new nodes.Identifier(" + JSON.stringify(v.value) + ")";
+                    },
+                    visitAccess: function(v) {
+                        return "new nodes.Access(" + serialize(v.value) + ", " + JSON.stringify(v.property) + ")";
+                    },
+                    visitCall: function(v) {
+                        return "new nodes.Call(" + serialize(v.func) + ", [" + v.args.map(serialize).join(', ') + "])";
+                    }
+                };
+                var serialize = function(v) {
+                    return v.accept(serializeNode);
+                };
+                return serialize(n.value);
+            },
+            visitMacro: function() {
+                var init = n.body.slice(0, n.body.length - 1);
+                var last = n.body[n.body.length - 1];
+                var code = init.map(compileNode).join('\n') + '\nreturn ' + compileNode(last) + ';';
+                macros[n.name] = 'var nodes = this.nodes; ' + code;
+            },
             visitReturn: function() {
                 return "return __monad__[\"return\"](" + compileNode(n.value) + ");";
             },
@@ -157,7 +187,15 @@
             },
             // Call to JavaScript call.
             visitCall: function() {
-                if(data[n.func.value]) {
+                if(macros[n.func.value]) {
+                    // Is a macro
+                    var f = new Function(macros[n.func.value]);
+                    var tree = f.apply({nodes: nodes}, n.args);
+                    // TODO: Give an actual env
+                    typecheck([tree], {});
+                    return compileNode(tree);
+                } else if(data[n.func.value]) {
+                    // Is a tag
                     return 'new ' + n.func.value + "(" + n.args.map(compileNode).join(", ") + ")";
                 }
                 return compileNode(n.func) + "(" + n.args.map(compileNode).join(", ") + ")";
