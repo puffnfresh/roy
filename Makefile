@@ -4,11 +4,14 @@ all:
 deps:
 	npm install jison
 
-website: all
+bundle:
+	node make-bundle.js
+
+website: all bundle
 	[ -e roy.brianmckenna.org ] || mkdir roy.brianmckenna.org
 	cp -r site/* roy.brianmckenna.org
 	cp -r examples roy.brianmckenna.org
-	cp -r src roy.brianmckenna.org
+	cp bundled-roy.js roy.brianmckenna.org
 
 # Tests
 

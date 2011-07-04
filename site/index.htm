@@ -67,15 +67,7 @@
         parent: true
     };
     </script>
-    <script src="src/parser.js"></script>
-    <script>
-    this['./parser'] = {parser: parser};
-    </script>
-    <script src="src/lexer.js"></script>
-    <script src="src/types.js"></script>
-    <script src="src/nodes.js"></script>
-    <script src="src/typeinference.js"></script>
-    <script src="src/compile.js"></script>
+    <script src="bundled-roy.js"></script>
     <link href="http://fonts.googleapis.com/css?family=Droid+Sans:bold,Droid+Sans+Mono" rel="stylesheet" type="text/css" />
     <link href="http://fonts.googleapis.com/css?family=Pacifico" rel="stylesheet" type="text/css" />
   </head>
@@ -143,12 +135,11 @@
         };
     });
     (function() {
-        var compile = require("./compile").compile;
         var examples = {};
         var royCompile = function() {
             var jscode;
             try {
-                jscode = compile(document.getElementById("roycode").value);
+                jscode = roy.compile(document.getElementById("roycode").value, {}).output;
             } catch(e) {
                 jscode = e;
             }
