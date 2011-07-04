@@ -41,7 +41,7 @@ var grammar = {
             ["RETURN expression", "$$ = new yy.Return($2);"]
         ],
         "doBlock": [
-            ["INDENT doBody OUTDENT", "$$ = $2;"],
+            ["INDENT doBody OUTDENT", "$$ = $2;"]
         ],
         "statement": [
             ["letFunction", "$$ = $1;"],
