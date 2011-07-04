@@ -1,10 +1,11 @@
 #!/usr/bin/env node
 
+require.paths.unshift('src');
 try {
-    require('./src/parser');
+    require('parser');
 } catch(e) {
     console.log('parser module not found. Must run `make` first.');
     return;
 }
 
-require('./src/compile').main();
+require('compile').main();

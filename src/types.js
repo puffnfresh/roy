@@ -146,4 +146,4 @@
     NativeType.prototype.constructor = NativeType;
     NativeType.prototype.name = "Native";
     exports.NativeType = NativeType;
-})(typeof exports == 'undefined' ? this['./types'] = {} : exports);
+})(typeof exports == 'undefined' ? this['types'] = {} : exports);

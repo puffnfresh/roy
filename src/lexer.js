@@ -217,4 +217,4 @@
         ].join("\n"));
         console.log(tokens);
     }
-})(typeof exports == 'undefined' ? this['./lexer'] = {} : exports);
+})(typeof exports == 'undefined' ? this['lexer'] = {} : exports);

@@ -1,9 +1,9 @@
 (function(exports) {
-    var typecheck = require('./typeinference').typecheck,
-        nodes = require('./nodes').nodes,
-        types = require('./types'),
-        parser = require('./parser').parser,
-        lexer = require('./lexer');
+    var typecheck = require('typeinference').typecheck,
+        nodes = require('nodes').nodes,
+        types = require('types'),
+        parser = require('parser').parser,
+        lexer = require('lexer');
 
     // Assigning the nodes to `parser.yy` allows the grammar to access the nodes from
     // the `yy` namespace.
@@ -331,7 +331,7 @@
     };
     exports.main = main;
 
-    if(!module.parent) {
+    if(exports && !module.parent) {
         main();
     }
-})(typeof exports == 'undefined' ? this['./compile'] = {} : exports);
+})(typeof exports == 'undefined' ? this['compile'] = {} : exports);

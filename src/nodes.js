@@ -267,4 +267,4 @@
             };
         }
     };
-})(typeof exports == 'undefined' ? this['./nodes'] = {} : exports);
+})(typeof exports == 'undefined' ? this['nodes'] = {} : exports);

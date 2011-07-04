@@ -7,7 +7,7 @@
     // Cardelli's [Modula-2 code](http://bit.ly/Hjpvb). Wow.
 
     // Type variable and built-in types are defined in the `types` module.
-    var t = require('./types');
+    var t = require('types');
 
     // ### Unification
     //
@@ -407,4 +407,4 @@
         return types && types[0];
     };
     exports.typecheck = typecheck;
-})(typeof exports == 'undefined' ? this['./typeinference'] = {} : exports);
+})(typeof exports == 'undefined' ? this['typeinference'] = {} : exports);
