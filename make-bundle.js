@@ -2,7 +2,7 @@ var fs = require('fs');
 var path = require('path');
 
 var dir = 'src';
-var files = fs.readdirSync('src');
+var files = fs.readdirSync(dir);
 
 var output = 'var roy;(function(){var module={parent:true};var modules={};var load={};var require=function(x){if(!modules[x]){load[x](modules[x] = {})};return modules[x]}\n';
 files.forEach(function(file) {
