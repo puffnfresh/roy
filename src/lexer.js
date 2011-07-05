@@ -131,7 +131,7 @@ var literalToken = function() {
         next = chunk.slice(0, 2);
         switch(next) {
         case '==':
-            tokens.push([next, next, lineno]);
+            tokens.push(['COMPARE', next, lineno]);
             return 2;
         }
         tokens.push([tag, tag, lineno]);
@@ -140,7 +140,7 @@ var literalToken = function() {
         next = chunk.slice(0, 2);
         switch(next) {
         case '!=':
-            tokens.push([next, next, lineno]);
+            tokens.push(['COMPARE', next, lineno]);
             return 2;
         }
         tokens.push([tag, tag, lineno]);

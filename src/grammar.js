@@ -5,7 +5,7 @@ var grammar = {
     "startSymbol": "program",
 
     "operators": [
-        ["left", "=="],
+        ["left", "COMPARE"],
         ["left", "+", "-"],
         ["left", "MATH"],
         ["left", "."]
@@ -66,7 +66,7 @@ var grammar = {
             ["innerExpression MATH innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
             ["innerExpression + innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
             ["innerExpression - innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
-            ["innerExpression == innerExpression", "$$ = new yy.BinaryGenericOperator($2, $1, $3);"],
+            ["innerExpression COMPARE innerExpression", "$$ = new yy.BinaryGenericOperator($2, $1, $3);"],
             ["literal", "$$ = $1;"]
         ],
         "caseList": [
