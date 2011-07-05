@@ -249,6 +249,7 @@ var compileNode = function(n) {
 };
 
 var compile = function(source, env, opts) {
+    if(!env) env = {};
     if(!opts) opts = {};
 
     // Parse the file to an AST.

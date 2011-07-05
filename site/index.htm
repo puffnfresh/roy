@@ -131,7 +131,7 @@
         var royCompile = function() {
             var jscode;
             try {
-                jscode = roy.compile(document.getElementById("roycode").value, {}).output;
+                jscode = roy.compile(document.getElementById("roycode").value).output;
             } catch(e) {
                 jscode = e;
             }
