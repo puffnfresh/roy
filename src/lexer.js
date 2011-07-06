@@ -161,11 +161,17 @@ var literalToken = function() {
         }
         tokens.push([tag, tag, lineno]);
         return 1;
+    case '+':
+        next = chunk.slice(0, 2);
+        switch(next) {
+        case '++':
+            tokens.push(['CONCAT', tag, lineno]);
+            return 2;
+        }
     case ']':
     case ':':
     case '.':
     case ',':
-    case '+':
     case '-':
     case '&':
     case '|':

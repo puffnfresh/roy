@@ -208,6 +208,9 @@ var compileNode = function(n) {
         visitBinaryNumberOperator: function() {
             return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
         },
+        visitBinaryStringOperator: function() {
+            return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
+        },
         // Print all other nodes directly.
         visitComment: function() {
             return n.value;

@@ -183,6 +183,17 @@ exports.nodes = {
             }
         };
     },
+    BinaryStringOperator: function(name, left, right) {
+        this.name = name;
+        this.left = left;
+        this.right = right;
+
+        this.accept = function(a) {
+            if(a.visitBinaryStringOperator) {
+                return a.visitBinaryStringOperator(this);
+            }
+        };
+    },
     Replacement: function(value) {
         this.value = value;
 

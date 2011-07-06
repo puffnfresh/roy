@@ -296,8 +296,25 @@ var analyse = function(node, env, nonGeneric) {
             var resultType = new t.NumberType();
             var leftType = analyse(node.left, env, nonGeneric);
             var rightType = analyse(node.right, env, nonGeneric);
-            unify(resultType, leftType);
-            unify(resultType, rightType);
+            if(!(prune(leftType) instanceof t.NativeType)) {
+                unify(resultType, leftType);
+            }
+            if(!(prune(rightType) instanceof t.NativeType)) {
+                unify(resultType, rightType);
+            }
+
+            return resultType;
+        },
+        visitBinaryStringOperator: function() {
+            var resultType = new t.StringType();
+            var leftType = analyse(node.left, env, nonGeneric);
+            var rightType = analyse(node.right, env, nonGeneric);
+            if(!(prune(leftType) instanceof t.NativeType)) {
+                unify(resultType, leftType);
+            }
+            if(!(prune(rightType) instanceof t.NativeType)) {
+                unify(resultType, rightType);
+            }
 
             return resultType;
         },

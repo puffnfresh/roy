@@ -7,7 +7,7 @@ var grammar = {
     "operators": [
         ["left", "COMPARE"],
         ["left", "+", "-"],
-        ["left", "MATH"],
+        ["left", "MATH", "CONCAT"],
         ["left", "."]
     ],
 
@@ -64,6 +64,7 @@ var grammar = {
             ["[| expression |]", "$$ = new yy.Quoted($2);"],
             ["accessor", "$$ = $1;"],
             ["innerExpression MATH innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
+            ["innerExpression CONCAT innerExpression", "$$ = new yy.BinaryStringOperator($2, $1, $3);"],
             ["innerExpression + innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
             ["innerExpression - innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
             ["innerExpression COMPARE innerExpression", "$$ = new yy.BinaryGenericOperator($2, $1, $3);"],
