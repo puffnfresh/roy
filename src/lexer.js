@@ -107,15 +107,11 @@ var lineToken = function() {
                 var last = indents[indents.length - 1];
                 while(size < last) {
                     tokens.push(['OUTDENT', last - size, lineno]);
-                    tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
                     indents.pop();
                     last = indents[indents.length - 1];
-                    terminated = true;
                 }
             }
-            if(!terminated) {
-                tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
-            }
+            tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
         }
         indent = size;
         return token[0].length;
@@ -165,6 +161,12 @@ var literalToken = function() {
         }
         tokens.push([tag, tag, lineno]);
         return 1;
+    case ')':
+        if(tokens[tokens.length-1][0] == 'TERMINATOR') {
+            tokens.pop();
+        }
+        tokens.push([tag, tag, lineno]);
+        return 1;
     case '+':
         next = chunk.slice(0, 2);
         switch(next) {
@@ -182,7 +184,6 @@ var literalToken = function() {
     case '{':
     case '}':
     case '(':
-    case ')':
         tokens.push([tag, tag, lineno]);
         return 1;
     }
