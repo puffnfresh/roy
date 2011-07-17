@@ -21,7 +21,7 @@ tests.forEach (fn t =
     else
       let expected = fs.readFileSync outFile 'utf8'
       let actual = stdout.toString ()
-      console.assert actual == expected "Output of " ++ t ++ ": " ++ (JSON.stringify (stdout.toString ())) ++ " does not match " ++ (JSON.stringify (expected.toString ()))
+      console.assert actual == expected "Output of " ++ t ++ ": " ++ (JSON.stringify actual) ++ " does not match " ++ (JSON.stringify expected)
       console.log "Pass:" name
   )
 )
