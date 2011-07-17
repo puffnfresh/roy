@@ -81,12 +81,15 @@ var compileNode = function(n) {
         },
         visitIfThenElse: function() {
             var compiledNodeCondition = compileNode(n.condition);
-            var compiledNodeIfTrue = n.ifTrue.map(compileNode).join('');
-            var compiledNodeIfFalse = n.ifFalse.map(compileNode).join('');
+            var compiledNodeIfTrueInit = n.ifTrue.slice(0, n.ifTrue.length - 1).map(compileNode).join(';') + ';';
+            var compiledNodeIfTrueLast = compileNode(n.ifTrue[n.ifTrue.length - 1]);
+            var compiledNodeIfFalseInit = n.ifFalse.slice(0, n.ifFalse.length - 1).map(compileNode).join(';') + ';';
+            var compiledNodeIfFalseLast = compileNode(n.ifFalse[n.ifFalse.length - 1]);
             return "(function() {\n" + pushIndent() + "if(" +
-                compiledNodeCondition + ") {\n" + pushIndent() + "return " +
-                compiledNodeIfTrue + "\n" + popIndent() + "} else {\n" +
-                pushIndent() + "return " + compiledNodeIfFalse + "\n" +
+                compiledNodeCondition + ") {\n" + compiledNodeIfTrueInit +
+                pushIndent() + "return " + compiledNodeIfTrueLast + "\n" +
+                popIndent() + "} else {\n" + compiledNodeIfFalseInit +
+                pushIndent() + "return " + compiledNodeIfFalseLast + "\n" +
                 popIndent() + "}})();";
         },
         // Let binding to JavaScript variable.
