@@ -279,6 +279,17 @@ var compile = function(source, env, opts) {
 };
 exports.compile = compile;
 
+var getSandbox = function() {
+    var sandbox = {require: require};
+
+    var name;
+    for(name in global) {
+        sandbox[name] = global[name];
+    }
+
+    return sandbox;
+};
+
 var nodeRepl = function() {
     var readline = require('readline');
     var vm = require('vm');
@@ -287,12 +298,7 @@ var nodeRepl = function() {
     var repl = readline.createInterface(stdin, stdout);
 
     var env = {};
-    var sandbox = {};
-
-    var name;
-    for(name in global) {
-        sandbox[name] = global[name];
-    }
+    var sandbox = getSandbox();
 
     repl.setPrompt('roy> ');
     repl.on('close', function() {
@@ -321,6 +327,14 @@ var main = function() {
     var fs = require('fs');
     var filenames = process.argv.slice(2);
 
+    var vm;
+    var run = false;
+    if(filenames[0] == '-r') {
+        vm = require('vm');
+        run = true;
+        filenames.shift();
+    }
+
     var env = {};
     filenames.forEach(function(filename) {
         // Read the file content.
@@ -329,7 +343,12 @@ var main = function() {
         // Write the JavaScript output.
         var extension = /\.roy$/;
         console.assert(filename.match(extension), 'Filename must end with ".roy"');
-        fs.writeFile(filename.replace(extension, '.js'), compile(source, env).output, 'utf8');
+        var compiled = compile(source, env);
+        if(run) {
+            output = vm.runInNewContext(compiled.output, getSandbox(), 'eval');
+        } else {
+            fs.writeFile(filename.replace(extension, '.js'), compiled.output, 'utf8');
+        }
     });
 };
 exports.main = main;
