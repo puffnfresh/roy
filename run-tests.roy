@@ -5,9 +5,9 @@ let child_process = require 'child_process'
 let dir = "test"
 let files = fs.readdirSync dir
 
-let tests = (files.filter (fn x =
+let tests = files.filter (fn x =
   (x.lastIndexOf '.roy') == (x.length - 4)
-))
+)
 
 tests.forEach (fn t =
   let name = path.join dir t
