@@ -1,0 +1,27 @@
+let fs = require 'fs'
+let path = require 'path'
+let child_process = require 'child_process'
+
+let dir = "test"
+let files = fs.readdirSync dir
+
+let tests = (files.filter (fn x =
+  if (x.lastIndexOf '.roy') == (x.length - 4) then
+    true
+  else
+    false
+))
+
+tests.forEach (fn t =
+  let name = path.join dir t
+  let outFile = (path.join dir (path.basename t '.roy')) ++ '.out'
+  child_process.exec './roy -r ' ++ name (fn error stdout stderr =
+    if error then
+      console.log "Error:" error.message
+    else
+      let expected = fs.readFileSync outFile 'utf8'
+      let actual = stdout.toString ()
+      console.assert actual == expected "Output of " ++ t ++ ": " ++ (JSON.stringify (stdout.toString ())) ++ " does not match " ++ (JSON.stringify (expected.toString ()))
+      console.log "Pass:" name
+  )
+)

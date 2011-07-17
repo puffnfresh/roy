@@ -16,12 +16,5 @@ website: all bundle
 
 # Tests
 
-test/%.js: test/%.roy
-	./roy $<
-
-test/%.out: test/%.js
-	node $< > $@
-
-test: all \
-      test/primitive_types.out \
-      test/tagged_unions.out
+test: all
+	./roy -r run-tests.roy

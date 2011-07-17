@@ -1,0 +1,8 @@
+let named x = x
+let anon = fn x = x
+
+let multiArgs x y z = x
+let anonMultiArgs = fn x y z = x
+
+console.log (named "Hello") (anon "world")
+console.log (multiArgs "Hello" "world" "!") (anonMultiArgs "world" "!" "Hello")
