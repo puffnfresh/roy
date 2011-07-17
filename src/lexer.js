@@ -127,6 +127,10 @@ var literalToken = function() {
     var tag = chunk.slice(0, 1);
     var next;
     switch(tag) {
+    case '<':
+    case '>':
+        tokens.push(['COMPARE', tag, lineno]);
+        return 1;
     case '=':
         next = chunk.slice(0, 2);
         switch(next) {
