@@ -339,6 +339,7 @@ var main = function() {
     }
 
     var env = {};
+    var sandbox = getSandbox();
     filenames.forEach(function(filename) {
         // Read the file content.
         var source = fs.readFileSync(filename, 'utf8');
@@ -348,7 +349,7 @@ var main = function() {
         console.assert(filename.match(extension), 'Filename must end with ".roy"');
         var compiled = compile(source, env);
         if(run) {
-            output = vm.runInNewContext(compiled.output, getSandbox(), 'eval');
+            output = vm.runInNewContext(compiled.output, sandbox, 'eval');
         } else {
             fs.writeFile(filename.replace(extension, '.js'), compiled.output, 'utf8');
         }
