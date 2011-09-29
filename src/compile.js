@@ -295,6 +295,7 @@ var getSandbox = function() {
 
 var nodeRepl = function() {
     var readline = require('readline');
+    var fs = require('fs');
     var vm = require('vm');
     var stdout = process.stdout;
     var stdin = process.openStdin();
@@ -302,6 +303,10 @@ var nodeRepl = function() {
 
     var env = {};
     var sandbox = getSandbox();
+
+    // Include the standard library
+    var stdlib = fs.readFileSync('lib/std.roy', 'utf8');
+    vm.runInNewContext(compile(stdlib, env).output, sandbox, 'eval');
 
     repl.setPrompt('roy> ');
     repl.on('close', function() {
@@ -337,6 +342,9 @@ var main = function() {
         run = true;
         filenames.shift();
     }
+
+    // Include the standard library
+    filenames.unshift('lib/std.roy');
 
     var env = {};
     var sandbox = getSandbox();
