@@ -214,6 +214,13 @@ var compileNode = function(n) {
         visitBinaryStringOperator: function() {
             return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
         },
+        visitWith: function() {
+            var args = compileNode(n.left) + ', ' + compileNode(n.right);
+            var inner = ['__l__', '__r__'].map(function(name) {
+                return 'for(__n__ in ' + name + ') {\n' + getIndent(2) + '__o__[__n__] = ' + name + '[__n__];\n' + getIndent(1) + '}\n';
+            }).join(getIndent(1));
+            return ['(function(__l__, __r__) {\n', 'var __o__ = {}, __n__;\n', inner, 'return __o__;\n'].join(getIndent(1)) + getIndent() + '})(' + args + ')';
+        },
         // Print all other nodes directly.
         visitComment: function() {
             return n.value;

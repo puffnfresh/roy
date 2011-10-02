@@ -318,6 +318,25 @@ var analyse = function(node, env, nonGeneric) {
 
             return resultType;
         },
+        visitWith: function() {
+            var leftType = analyse(node.left, env, nonGeneric);
+            var rightType = analyse(node.right, env, nonGeneric);
+            var combinedTypes = {};
+
+            var emptyObjectType = new t.ObjectType({});
+            unify(leftType, emptyObjectType);
+            unify(rightType, emptyObjectType);
+
+            var name;
+            for(name in leftType.props) {
+                combinedTypes[name] = leftType.props[name];
+            }
+            for(name in rightType.props) {
+                combinedTypes[name] = rightType.props[name];
+            }
+
+            return new t.ObjectType(combinedTypes);
+        },
         visitData: function() {
             var nameType = new t.TagNameType(node.name);
             var types = [nameType];

@@ -194,6 +194,16 @@ exports.nodes = {
             }
         };
     },
+    With: function(left, right) {
+        this.left = left;
+        this.right = right;
+
+        this.accept = function(a) {
+            if(a.visitWith) {
+                return a.visitWith(this);
+            }
+        };
+    },
     Replacement: function(value) {
         this.value = value;
 

@@ -33,6 +33,7 @@ var identifierToken = function() {
         case 'bind':
         case 'return':
         case 'macro':
+        case 'with':
             name = value.toUpperCase();
             break;
         default:
