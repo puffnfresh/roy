@@ -73,9 +73,6 @@ var prune = function(type) {
 // Getting a "fresh" type will create a recursive copy. When a generic type
 // variable is encountered, a new variable is generated and substituted in.
 //
-// *Note*: Copied types are instantiated through the BaseType constructor, this
-// means `instanceof` can't be used for determining a subtype.
-//
 // A fresh type is only returned when an identifier is found during analysis.
 // See `analyse` for some context.
 var fresh = function(type, nonGeneric, mappings) {
@@ -229,15 +226,12 @@ var analyse = function(node, env, nonGeneric) {
             }
 
             if(prune(funType) instanceof t.TagType) {
-                var nameType = new t.TagNameType(prune(funType).name);
-                var tagTypes = [nameType];
                 types.forEach(function(t, i) {
-                    tagTypes.push(t);
                     var tagType;
                     if(data[node.func.value][i].type) {
                         tagType = nodeToType(data[node.func.value][i].type);
                     } else {
-                        tagType = data[node.func.value][i];
+                        tagType = fresh(prune(data[node.func.value][i]), nonGeneric);
                     }
                     unify(t, tagType);
                 });
