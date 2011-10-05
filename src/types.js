@@ -132,6 +132,11 @@ TagType.prototype.constructor = TagType;
 TagType.prototype.map = function(f) {
     return this.types.map(f);
 };
+TagType.prototype.toString = function() {
+    return this.types.map(function(t) {
+        return t.toString();
+    }).join(' ');
+};
 exports.TagType = TagType;
 
 var UnitType = function() {};
