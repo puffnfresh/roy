@@ -1,3 +1,5 @@
+// Simple tagged unions
+
 data A = B | C
 
 let x = B
@@ -6,3 +8,11 @@ console.log (match x
   case B = "x is B"
   case C = "x is C"
 )
+
+// Multiple argument unions
+
+data XYZ a b c = Z a b c | X b c | Y c
+
+Z 1 true "three"
+X 1 true
+Y 1

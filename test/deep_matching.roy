@@ -1,0 +1,10 @@
+let xor e = match e
+  case (Left (Left n)) = 0
+  case (Left (Right n)) = n
+  case (Right (Left n)) = n
+  case (Right (Right n)) = 0
+
+console.log (xor (Left (Left 100)))
+console.log (xor (Left (Right 100)))
+console.log (xor (Right (Left 100)))
+console.log (xor (Right (Right 100)))

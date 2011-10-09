@@ -226,14 +226,11 @@ var analyse = function(node, env, nonGeneric) {
             }
 
             if(prune(funType) instanceof t.TagType) {
-                types.forEach(function(t, i) {
-                    var tagType;
-                    if(data[node.func.value][i].type) {
-                        tagType = nodeToType(data[node.func.value][i].type);
-                    } else {
-                        tagType = fresh(prune(data[node.func.value][i]), nonGeneric);
-                    }
-                    unify(t, tagType);
+                var tagType = env[node.func.value];
+                data[node.func.value].forEach(function(x, i) {
+                    var index = tagType.types.indexOf(x);
+                    if(!types[i]) throw new Error("Not enough arguments to " + node.func.value);
+                    unify(funType.types[index], types[i]);
                 });
                 return funType;
             }
@@ -349,16 +346,13 @@ var analyse = function(node, env, nonGeneric) {
             node.tags.forEach(function(tag) {
                 data[tag.name] = [];
                 tag.vars.forEach(function(v, i) {
-                    var varType;
-                    if(v.type) {
-                        varType = nodeToType(v);
-                    } else {
-                        varType = new t.Variable();
-                    }
+                    var type;
                     if(dataTypes[v.name]) {
-                        unify(dataTypes[v.name], varType);
+                        type = dataTypes[v.name];
+                    } else {
+                        type = nodeToType({value: v.name});
                     }
-                    data[tag.name][i] = varType;
+                    data[tag.name][i] = type;
                 });
                 env[tag.name] = type;
             });
@@ -367,13 +361,48 @@ var analyse = function(node, env, nonGeneric) {
         visitMatch: function() {
             var resultType = new t.Variable();
             var value = analyse(node.value, env, nonGeneric);
+
+            var newEnv = {};
+            var name;
+            for(name in env) {
+                newEnv[name] = env[name];
+            }
+
             node.cases.forEach(function(nodeCase) {
-                var tagTypes = data[nodeCase.pattern.tag];
-                unify(value, env[nodeCase.pattern.tag]);
-                nodeCase.pattern.vars.forEach(function(v, i) {
-                    env[v] = tagTypes[i];
-                });
-                var caseType = analyse(nodeCase.value, env, nonGeneric);
+                var newNonGeneric = nonGeneric.slice();
+
+                var tagType = fresh(prune(newEnv[nodeCase.pattern.tag]), newNonGeneric);
+                unify(value, tagType);
+
+                var addVarsToEnv = function(p, lastPath) {
+                    p.vars.forEach(function(v, i) {
+                        var path = lastPath.slice();
+                        path.push(i);
+
+                        var currentValue = value;
+                        for(var x = 0; x < path.length; x++) {
+                            currentValue = prune(currentValue).types[path[x] + 1];
+                        }
+
+                        if(v.accept) {
+                            v.accept({
+                                visitPattern: function() {
+                                    unify(currentValue, fresh(prune(newEnv[v.tag]), newNonGeneric));
+
+                                    addVarsToEnv(v, path);
+                                }
+                            });
+                        } else if(v in data) {
+                            unify(currentValue, fresh(prune(newEnv[v]), newNonGeneric));
+                        } else {
+                            newEnv[v] = currentValue;
+                            newNonGeneric.push(newEnv[v]);
+                        }
+                    });
+                };
+                addVarsToEnv(nodeCase.pattern, []);
+
+                var caseType = analyse(nodeCase.value, newEnv, newNonGeneric);
                 unify(resultType, caseType);
             });
             return resultType;

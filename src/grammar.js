@@ -76,11 +76,16 @@ var grammar = {
             ["caseList TERMINATOR CASE pattern = expression", "$$ = $1; $1.push(new yy.Case($4, $6));"]
         ],
         "pattern": [
-            ["( IDENTIFIER patternIdentifiers )", "$$ = new yy.Pattern($2, $3);"],
+            ["innerPattern", "$$ = $1;"],
             ["IDENTIFIER", "$$ = new yy.Pattern($1, []);"]
+        ],
+        "innerPattern": [
+            ["( IDENTIFIER patternIdentifiers )", "$$ = new yy.Pattern($2, $3);"],
         ],
         "patternIdentifiers": [
             ["IDENTIFIER", "$$ = [$1];"],
+            ["innerPattern", "$$ = [$1];"],
+            ["patternIdentifiers innerPattern", "$$ = $1; $1.push($2);"],
             ["patternIdentifiers IDENTIFIER", "$$ = $1; $1.push($2);"]
         ],
         "ifThenElse": [

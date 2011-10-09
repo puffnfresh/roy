@@ -177,13 +177,81 @@ var compileNode = function(n) {
             return "var " + n.name + " = function(" + args.join(", ") + "){" + setters.join(";") + "};";
         },
         visitMatch: function() {
+            var pathSort = function(x, y) {
+                return y.path.length - x.path.length;
+            };
+            var flatten = function(a) {
+                return [].concat.apply([], a);
+            };
+            var flatMap = function(a, f) {
+                return flatten(a.map(f));
+            };
+
             var cases = n.cases.map(function(c) {
-                var assignments = c.pattern.vars.map(function(a, i) {
-                    return "var " + a + " = " + compileNode(n.value) + "._" + i + ";";
-                });
-                return "if(" + compileNode(n.value) + " instanceof " + c.pattern.tag +
-                    ") {\n" + getIndent(3) + joinIndent(assignments, 3) + "return " +
-                    compileNode(c.value) + "\n" + getIndent(2) + "}";
+                var getVars = function(pattern, varPath) {
+                    return flatMap(pattern.vars, function(a, i) {
+                        var nextVarPath = varPath.slice();
+                        nextVarPath.push(i);
+
+                        if(a.accept) {
+                            return a.accept({
+                                visitPattern: function() {
+                                    return getVars(a, nextVarPath);
+                                }
+                            });
+                        }
+
+                        if(a in data) return [];
+
+                        var accessors = nextVarPath.map(function(x) {
+                            return "._" + x;
+                        }).join('');
+                        return ["var " + a + " = " + compileNode(n.value) + accessors + ";"];
+                    });
+                };
+                var vars = getVars(c.pattern, []);
+
+                var getTagPaths = function(pattern, patternPath) {
+                    return flatMap(pattern.vars, function(a, i) {
+                        var nextPatternPath = patternPath.slice();
+
+                        if(!a.accept) {
+                            if(a in data) {
+                                nextPatternPath.push(i);
+                                return [{path: nextPatternPath, tag: a}];
+                            }
+                            return [];
+                        }
+
+                        nextPatternPath.push(i);
+                        return a.accept({
+                            visitPattern: function() {
+                                var inner = getTagPaths(a, nextPatternPath);
+                                inner.unshift({path: nextPatternPath, tag: a.tag});
+                                return inner;
+                            }
+                        });
+                    });
+                };
+                var tagPaths = getTagPaths(c.pattern, []);
+                var compiledValue = compileNode(n.value);
+                var extraConditions = tagPaths.map(function(e) {
+                    return ' && ' + compiledValue + '._' + e.path.join('._') + ' instanceof ' + e.tag;
+                }).join('');
+
+                // More specific patterns need to appear first
+                // Need to sort by the length of the path
+                var maxPath = tagPaths.length ? tagPaths.sort(pathSort)[0].path : [];
+
+                return {
+                    path: maxPath,
+                    condition: "if(" + compiledValue + " instanceof " + c.pattern.tag +
+                        extraConditions + ") {\n" + getIndent(3) +
+                        joinIndent(vars, 3) + "return " + compileNode(c.value) +
+                        "\n" + getIndent(2) + "}"
+                };
+            }).sort(pathSort).map(function(e) {
+                return e.condition;
             });
             return "(function() {\n" + getIndent(2) + cases.join(" else ") + "\n" + getIndent(1) + "})()";
         },
@@ -218,8 +286,8 @@ var compileNode = function(n) {
             var args = compileNode(n.left) + ', ' + compileNode(n.right);
             var inner = ['__l__', '__r__'].map(function(name) {
                 return 'for(__n__ in ' + name + ') {\n' + getIndent(2) + '__o__[__n__] = ' + name + '[__n__];\n' + getIndent(1) + '}\n';
-            }).join(getIndent(1));
-            return ['(function(__l__, __r__) {\n', 'var __o__ = {}, __n__;\n', inner, 'return __o__;\n'].join(getIndent(1)) + getIndent() + '})(' + args + ')';
+            });
+            return joinIndent(['(function(__l__, __r__) {\n', 'var __o__ = {}, __n__;\n', joinIndent(inner, 1), 'return __o__;\n'], 1) + getIndent() + '})(' + args + ')';
         },
         // Print all other nodes directly.
         visitComment: function() {
