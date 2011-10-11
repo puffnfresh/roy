@@ -17,4 +17,4 @@ website: all bundle
 # Tests
 
 test: all
-	./roy -r run-tests.roy
+	NODE_PATH=src ./roy -r run-tests.roy
