@@ -371,17 +371,18 @@ var analyse = function(node, env, nonGeneric) {
             node.cases.forEach(function(nodeCase) {
                 var newNonGeneric = nonGeneric.slice();
 
-                var tagType = fresh(prune(newEnv[nodeCase.pattern.tag.value]), newNonGeneric);
-                unify(value, tagType);
+                var tagType = newEnv[nodeCase.pattern.tag.value];
+                unify(value, fresh(prune(tagType), newNonGeneric));
 
                 var addVarsToEnv = function(p, lastPath) {
                     p.vars.forEach(function(v, i) {
+                        var index = tagType.types.indexOf(data[p.tag.value][i]);
                         var path = lastPath.slice();
-                        path.push(i);
+                        path.push(index);
 
                         var currentValue = value;
                         for(var x = 0; x < path.length; x++) {
-                            currentValue = prune(currentValue).types[path[x] + 1];
+                            currentValue = prune(currentValue).types[path[x]];
                         }
 
                         v.accept({
