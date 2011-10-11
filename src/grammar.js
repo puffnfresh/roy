@@ -77,16 +77,16 @@ var grammar = {
         ],
         "pattern": [
             ["innerPattern", "$$ = $1;"],
-            ["IDENTIFIER", "$$ = new yy.Pattern($1, []);"]
+            ["identifier", "$$ = new yy.Pattern($1, []);"]
         ],
         "innerPattern": [
-            ["( IDENTIFIER patternIdentifiers )", "$$ = new yy.Pattern($2, $3);"]
+            ["( identifier patternIdentifiers )", "$$ = new yy.Pattern($2, $3);"]
         ],
         "patternIdentifiers": [
-            ["IDENTIFIER", "$$ = [$1];"],
+            ["identifier", "$$ = [$1];"],
             ["innerPattern", "$$ = [$1];"],
             ["patternIdentifiers innerPattern", "$$ = $1; $1.push($2);"],
-            ["patternIdentifiers IDENTIFIER", "$$ = $1; $1.push($2);"]
+            ["patternIdentifiers identifier", "$$ = $1; $1.push($2);"]
         ],
         "ifThenElse": [
             ["IF innerExpression THEN block TERMINATOR ELSE block", "$$ = new yy.IfThenElse($2, $4, $7);"]

@@ -371,7 +371,7 @@ var analyse = function(node, env, nonGeneric) {
             node.cases.forEach(function(nodeCase) {
                 var newNonGeneric = nonGeneric.slice();
 
-                var tagType = fresh(prune(newEnv[nodeCase.pattern.tag]), newNonGeneric);
+                var tagType = fresh(prune(newEnv[nodeCase.pattern.tag.value]), newNonGeneric);
                 unify(value, tagType);
 
                 var addVarsToEnv = function(p, lastPath) {
@@ -384,20 +384,21 @@ var analyse = function(node, env, nonGeneric) {
                             currentValue = prune(currentValue).types[path[x] + 1];
                         }
 
-                        if(v.accept) {
-                            v.accept({
-                                visitPattern: function() {
-                                    unify(currentValue, fresh(prune(newEnv[v.tag]), newNonGeneric));
-
-                                    addVarsToEnv(v, path);
+                        v.accept({
+                            visitIdentifier: function() {
+                                if(v.value in data) {
+                                    unify(currentValue, fresh(prune(newEnv[v.value]), newNonGeneric));
+                                } else {
+                                    newEnv[v.value] = currentValue;
+                                    newNonGeneric.push(newEnv[v.value]);
                                 }
-                            });
-                        } else if(v in data) {
-                            unify(currentValue, fresh(prune(newEnv[v]), newNonGeneric));
-                        } else {
-                            newEnv[v] = currentValue;
-                            newNonGeneric.push(newEnv[v]);
-                        }
+                            },
+                            visitPattern: function() {
+                                unify(currentValue, fresh(prune(newEnv[v.tag.value]), newNonGeneric));
+
+                                addVarsToEnv(v, path);
+                            }
+                        });
                     });
                 };
                 addVarsToEnv(nodeCase.pattern, []);

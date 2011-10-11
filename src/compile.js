@@ -193,20 +193,19 @@ var compileNode = function(n) {
                         var nextVarPath = varPath.slice();
                         nextVarPath.push(i);
 
-                        if(a.accept) {
-                            return a.accept({
-                                visitPattern: function() {
-                                    return getVars(a, nextVarPath);
-                                }
-                            });
-                        }
+                        return a.accept({
+                            visitIdentifier: function() {
+                                if(a.value in data) return [];
 
-                        if(a in data) return [];
-
-                        var accessors = nextVarPath.map(function(x) {
-                            return "._" + x;
-                        }).join('');
-                        return ["var " + a + " = " + compileNode(n.value) + accessors + ";"];
+                                var accessors = nextVarPath.map(function(x) {
+                                    return "._" + x;
+                                }).join('');
+                                return ["var " + a.value + " = " + compileNode(n.value) + accessors + ";"];
+                            },
+                            visitPattern: function() {
+                                return getVars(a, nextVarPath);
+                            }
+                        });
                     });
                 };
                 var vars = getVars(c.pattern, []);
@@ -215,16 +214,15 @@ var compileNode = function(n) {
                     return flatMap(pattern.vars, function(a, i) {
                         var nextPatternPath = patternPath.slice();
 
-                        if(!a.accept) {
-                            if(a in data) {
-                                nextPatternPath.push(i);
-                                return [{path: nextPatternPath, tag: a}];
-                            }
-                            return [];
-                        }
-
                         nextPatternPath.push(i);
                         return a.accept({
+                            visitIdentifier: function() {
+                                if(a.value in data) {
+                                    nextPatternPath.push(i);
+                                    return [{path: nextPatternPath, tag: a.value}];
+                                }
+                                return [];
+                            },
                             visitPattern: function() {
                                 var inner = getTagPaths(a, nextPatternPath);
                                 inner.unshift({path: nextPatternPath, tag: a.tag});
@@ -236,7 +234,7 @@ var compileNode = function(n) {
                 var tagPaths = getTagPaths(c.pattern, []);
                 var compiledValue = compileNode(n.value);
                 var extraConditions = tagPaths.map(function(e) {
-                    return ' && ' + compiledValue + '._' + e.path.join('._') + ' instanceof ' + e.tag;
+                    return ' && ' + compiledValue + '._' + e.path.join('._') + ' instanceof ' + e.tag.value;
                 }).join('');
 
                 // More specific patterns need to appear first
@@ -245,7 +243,7 @@ var compileNode = function(n) {
 
                 return {
                     path: maxPath,
-                    condition: "if(" + compiledValue + " instanceof " + c.pattern.tag +
+                    condition: "if(" + compiledValue + " instanceof " + c.pattern.tag.value +
                         extraConditions + ") {\n" + getIndent(3) +
                         joinIndent(vars, 3) + "return " + compileNode(c.value) +
                         "\n" + getIndent(2) + "}"
