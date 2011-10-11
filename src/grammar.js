@@ -80,7 +80,7 @@ var grammar = {
             ["IDENTIFIER", "$$ = new yy.Pattern($1, []);"]
         ],
         "innerPattern": [
-            ["( IDENTIFIER patternIdentifiers )", "$$ = new yy.Pattern($2, $3);"],
+            ["( IDENTIFIER patternIdentifiers )", "$$ = new yy.Pattern($2, $3);"]
         ],
         "patternIdentifiers": [
             ["IDENTIFIER", "$$ = [$1];"],
