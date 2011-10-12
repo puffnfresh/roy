@@ -218,7 +218,6 @@ var compileNode = function(n) {
                         return a.accept({
                             visitIdentifier: function() {
                                 if(a.value in data) {
-                                    nextPatternPath.push(i);
                                     return [{path: nextPatternPath, tag: a.value}];
                                 }
                                 return [];
