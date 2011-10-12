@@ -137,6 +137,7 @@
                 jscode = e;
             }
             document.getElementById("jscode").innerHTML = jscode;
+            return jscode;
         };
         document.getElementById("exampleselect").addEventListener('change', function() {
             var value = document.getElementById("exampleselect").value;
@@ -157,10 +158,9 @@
         }, false);
         document.getElementById("roycompile").addEventListener('click', royCompile, false);
         document.getElementById("jsrun").addEventListener('click', function() {
-            royCompile();
             document.getElementById("output").innerHTML = "";
+            var code = royCompile();
             var script = document.createElement("script");
-            var code = document.getElementById("jscode").innerHTML;
             script.innerHTML = "(function() {try {var console = newConsole;(function(){\n" + code + "\n})()} catch(e) {log(e);}})();";
             document.body.appendChild(script);
         }, false);
