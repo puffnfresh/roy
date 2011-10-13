@@ -1,7 +1,7 @@
 Roy
 ===
 
-Roy rhymes with "toy" and that's what it is. This is a small functional language that compiles to JavaScript. It has a few main features:
+Roy is a small functional language that compiles to JavaScript. It has a few main features:
 
 * Damas-Hindley-Milner type inference
 * Whitespace significant syntax
@@ -11,8 +11,6 @@ Roy rhymes with "toy" and that's what it is. This is a small functional language
 * Structural typing
 * Monad syntax
 * Not-horrible JS output
-
-It is mainly limited to being a toy because it can't interface with JS completely. Gluing JS semantics with static typing is a hard problem that I'm working on.
 
 Usage
 ---
@@ -28,8 +26,12 @@ To enter a REPL:
 
 To compile and run a `.roy` file:
 
+    ./roy -r examples/helloworld.roy
+
+To compile a `.roy` file to `.js`:
+
     ./roy examples/helloworld.roy
-    node examples/helloworld.js
+    cat examples/helloworld.js
 
 Example
 ---
@@ -43,7 +45,6 @@ Input (test.roy):
 
 Output (test.js):
 
-    "use strict";
     var addTwo = function(n) {
 	return n + 2;
     }
@@ -51,8 +52,14 @@ Output (test.js):
 
 Calling `addTwo "test"` will result in a compile-time error.
 
+See the examples directory for more.
+
 TODO
 ---
-* Tail recursion
+* Mutable types
+* Type aliases
+* Types across modules
+* Allow explicit types that have type parameters
 * Standard libary
-* Types in modules
+* Tail recursion
+* Use Interleave instead of hacking up a bundler: https://github.com/DamonOehlman/interleave
