@@ -100,12 +100,9 @@
         </select>
       </div>
       <textarea id="roycode" rows="15" cols="60"></textarea>
-      <div>
-        <input id="jsrun" type="button" value="Run" />
-        <input id="roycompile" type="button" value="Compile" />
-      </div>
       <h3>JavaScript</h3>
       <pre id="jscode"></pre>
+      <input id="jsrun" type="button" value="Run" />
       <h3>Output</h3>
       <pre id="output"></pre>
     </div>
@@ -156,7 +153,8 @@
                 request.send(null);
             }
         }, false);
-        document.getElementById("roycompile").addEventListener('click', royCompile, false);
+        document.getElementById("roycode").addEventListener('change', royCompile, false);
+        document.getElementById("roycode").addEventListener('keyup', royCompile, false);
         document.getElementById("jsrun").addEventListener('click', function() {
             document.getElementById("output").innerHTML = "";
             var code = royCompile();
