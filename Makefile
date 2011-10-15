@@ -2,10 +2,10 @@ all:
 	node src/grammar.js
 
 deps:
-	npm install jison underscore
+	npm install jison underscore interleave
 
 bundle:
-	node make-bundle.js
+	./node_modules/interleave/bin/interleave -o bundled-roy.js interleaved-roy.js
 
 website: all bundle
 	[ -e roy.brianmckenna.org ] || mkdir roy.brianmckenna.org

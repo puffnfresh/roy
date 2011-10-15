@@ -62,4 +62,3 @@ TODO
 * Allow explicit types that have type parameters
 * Standard libary
 * Tail recursion
-* Use Interleave instead of hacking up a bundler: https://github.com/DamonOehlman/interleave
