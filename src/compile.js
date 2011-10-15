@@ -293,9 +293,9 @@ var compileNode = function(n) {
         visitWith: function() {
             var args = compileNode(n.left) + ', ' + compileNode(n.right);
             var inner = ['__l__', '__r__'].map(function(name) {
-                return 'for(__n__ in ' + name + ') {\n' + getIndent(2) + '__o__[__n__] = ' + name + '[__n__];\n' + getIndent(1) + '}\n';
+                return 'for(__n__ in ' + name + ') {\n' + getIndent(2) + '__o__[__n__] = ' + name + '[__n__];\n' + getIndent(1) + '}';
             });
-            return joinIndent(['(function(__l__, __r__) {\n', 'var __o__ = {}, __n__;\n', joinIndent(inner, 1), 'return __o__;\n'], 1) + getIndent() + '})(' + args + ')';
+            return joinIndent(['(function(__l__, __r__) {', 'var __o__ = {}, __n__;'], 1) + joinIndent(inner, 1) + 'return __o__;\n' + getIndent() + '})(' + args + ')';
         },
         // Print all other nodes directly.
         visitComment: function() {
