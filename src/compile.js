@@ -64,9 +64,9 @@ var compileNode = function(n) {
                     return v.name;
                 }).join(", ");
             };
+            pushIndent();
             var compiledNodeBody = n.body.map(compileNode);
             var init = [];
-            pushIndent();
             if(compiledNodeBody.length > 1) {
                 init.push(compiledNodeBody.slice(0, compiledNodeBody.length - 1).join(';\n' + getIndent()) + ';');
             }
@@ -81,16 +81,27 @@ var compileNode = function(n) {
         },
         visitIfThenElse: function() {
             var compiledNodeCondition = compileNode(n.condition);
-            var compiledNodeIfTrueInit = n.ifTrue.slice(0, n.ifTrue.length - 1).map(compileNode).join(';') + ';';
+
+            var compileAppendSemicolon = function(n) {
+                return compileNode(n) + ';';
+            };
+
+            pushIndent();
+            pushIndent();
+            var compiledNodeIfTrueInit = joinIndent(n.ifTrue.slice(0, n.ifTrue.length - 1).map(compileAppendSemicolon));
             var compiledNodeIfTrueLast = compileNode(n.ifTrue[n.ifTrue.length - 1]);
-            var compiledNodeIfFalseInit = n.ifFalse.slice(0, n.ifFalse.length - 1).map(compileNode).join(';') + ';';
+            var compiledNodeIfFalseInit = joinIndent(n.ifFalse.slice(0, n.ifFalse.length - 1).map(compileAppendSemicolon));
             var compiledNodeIfFalseLast = compileNode(n.ifFalse[n.ifFalse.length - 1]);
-            return "(function() {\n" + pushIndent() + "if(" +
-                compiledNodeCondition + ") {\n" + compiledNodeIfTrueInit +
-                pushIndent() + "return " + compiledNodeIfTrueLast + "\n" +
-                popIndent() + "} else {\n" + compiledNodeIfFalseInit +
-                pushIndent() + "return " + compiledNodeIfFalseLast + "\n" +
-                popIndent() + "}})();";
+            popIndent();
+            popIndent();
+
+            return "(function() {\n" +
+                getIndent(1) + "if(" + compiledNodeCondition + ") {\n" +
+                getIndent(2) + compiledNodeIfTrueInit + "return " + compiledNodeIfTrueLast + ";\n" +
+                getIndent(1) + "} else {\n" +
+                getIndent(2) + compiledNodeIfFalseInit + "return " + compiledNodeIfFalseLast + ";\n" +
+                getIndent(1) + "}\n" +
+                getIndent() + "})()";
         },
         // Let binding to JavaScript variable.
         visitLet: function() {
@@ -243,14 +254,14 @@ var compileNode = function(n) {
                 return {
                     path: maxPath,
                     condition: "if(" + compiledValue + " instanceof " + c.pattern.tag.value +
-                        extraConditions + ") {\n" + getIndent(3) +
-                        joinIndent(vars, 3) + "return " + compileNode(c.value) +
-                        "\n" + getIndent(2) + "}"
+                        extraConditions + ") {\n" + getIndent(2) +
+                        joinIndent(vars, 2) + "return " + compileNode(c.value) +
+                        ";\n" + getIndent(1) + "}"
                 };
             }).sort(pathSort).map(function(e) {
                 return e.condition;
             });
-            return "(function() {\n" + getIndent(2) + cases.join(" else ") + "\n" + getIndent(1) + "})()";
+            return "(function() {\n" + getIndent(1) + cases.join(" else ") + "\n" + getIndent() + "})()";
         },
         // Call to JavaScript call.
         visitCall: function() {
