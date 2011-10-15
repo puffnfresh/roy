@@ -16,9 +16,6 @@ var roy;
     load["compile"] = function(exports) {
         //= src/compile.js
     };
-    load["grammar"] = function(exports) {
-        //= src/grammar.js
-    };
     load["lexer"] = function(exports) {
         //= src/lexer.js
     };
