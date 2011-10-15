@@ -2,7 +2,8 @@ var typecheck = require('typeinference').typecheck,
     nodes = require('nodes').nodes,
     types = require('types'),
     parser = require('parser').parser,
-    lexer = require('lexer');
+    lexer = require('lexer'),
+    _ = require('underscore');
 
 // Assigning the nodes to `parser.yy` allows the grammar to access the nodes from
 // the `yy` namespace.
@@ -60,12 +61,12 @@ var compileNode = function(n) {
         // Function definition to JavaScript function.
         visitFunction: function() {
             var getArgs = function(a) {
-                return a.map(function(v) {
+                return _.map(a, function(v) {
                     return v.name;
                 }).join(", ");
             };
             pushIndent();
-            var compiledNodeBody = n.body.map(compileNode);
+            var compiledNodeBody = _.map(n.body, compileNode);
             var init = [];
             if(compiledNodeBody.length > 1) {
                 init.push(compiledNodeBody.slice(0, compiledNodeBody.length - 1).join(';\n' + getIndent()) + ';');
@@ -88,9 +89,9 @@ var compileNode = function(n) {
 
             pushIndent();
             pushIndent();
-            var compiledNodeIfTrueInit = joinIndent(n.ifTrue.slice(0, n.ifTrue.length - 1).map(compileAppendSemicolon));
+            var compiledNodeIfTrueInit = joinIndent(_.map(n.ifTrue.slice(0, n.ifTrue.length - 1), compileAppendSemicolon));
             var compiledNodeIfTrueLast = compileNode(n.ifTrue[n.ifTrue.length - 1]);
-            var compiledNodeIfFalseInit = joinIndent(n.ifFalse.slice(0, n.ifFalse.length - 1).map(compileAppendSemicolon));
+            var compiledNodeIfFalseInit = joinIndent(_.map(n.ifFalse.slice(0, n.ifFalse.length - 1), compileAppendSemicolon));
             var compiledNodeIfFalseLast = compileNode(n.ifFalse[n.ifFalse.length - 1]);
             popIndent();
             popIndent();
@@ -108,10 +109,10 @@ var compileNode = function(n) {
             return "var " + n.name + " = " + compileNode(n.value) + ";";
         },
         visitData: function() {
-            n.tags.forEach(function(tag) {
+            _.each(n.tags, function(tag) {
                 data[tag.name] = n.name;
             });
-            var defs = n.tags.map(compileNode);
+            var defs = _.map(n.tags, compileNode);
             return defs.join("\n");
         },
         visitReplacement: function() {
@@ -129,7 +130,7 @@ var compileNode = function(n) {
                     return "new nodes.Access(" + serialize(v.value) + ", " + JSON.stringify(v.property) + ")";
                 },
                 visitCall: function(v) {
-                    return "new nodes.Call(" + serialize(v.func) + ", [" + v.args.map(serialize).join(', ') + "])";
+                    return "new nodes.Call(" + serialize(v.func) + ", [" + _.map(v.args, serialize).join(', ') + "])";
                 }
             };
             var serialize = function(v) {
@@ -140,7 +141,7 @@ var compileNode = function(n) {
         visitMacro: function() {
             var init = n.body.slice(0, n.body.length - 1);
             var last = n.body[n.body.length - 1];
-            var code = init.map(compileNode).join('\n') + '\nreturn ' + compileNode(last) + ';';
+            var code = _.map(init, compileNode).join('\n') + '\nreturn ' + compileNode(last) + ';';
             macros[n.name] = 'var nodes = this.nodes; ' + code;
         },
         visitReturn: function() {
@@ -149,7 +150,7 @@ var compileNode = function(n) {
         visitBind: function() {
             return "return __monad__[\"bind\"](" + compileNode(n.value) +
                 ", function(" + n.name + ") {\n" + pushIndent() +
-                n.rest.map(compileNode).join("\n" + getIndent()) + "\n" +
+                _.map(n.rest, compileNode).join("\n" + getIndent()) + "\n" +
                 popIndent() + "});";
         },
         visitDo: function() {
@@ -157,7 +158,7 @@ var compileNode = function(n) {
             var firstBind;
             var lastBind;
             var lastBindIndex = 0;
-            n.body.forEach(function(node, i) {
+            _.each(n.body, function(node, i) {
                 if(node instanceof nodes.Bind) {
                     if(!lastBind) {
                         firstBind = node;
@@ -179,10 +180,10 @@ var compileNode = function(n) {
                 compileNode(firstBind) + "\n" + popIndent() + "})()";
         },
         visitTag: function() {
-            var args = n.vars.map(function(v) {
+            var args = _.map(n.vars, function(v) {
                 return v.name;
             });
-            var setters = n.vars.map(function(v, i) {
+            var setters = _.map(n.vars, function(v, i) {
                 return "this._" + i + " = " + v.name;
             });
             return "var " + n.name + " = function(" + args.join(", ") + "){" + setters.join(";") + "};";
@@ -191,14 +192,11 @@ var compileNode = function(n) {
             var pathSort = function(x, y) {
                 return y.path.length - x.path.length;
             };
-            var flatten = function(a) {
-                return [].concat.apply([], a);
-            };
             var flatMap = function(a, f) {
-                return flatten(a.map(f));
+                return _.flatten(_.map(a, f));
             };
 
-            var cases = n.cases.map(function(c) {
+            var cases = _.map(_.map(n.cases, function(c) {
                 var getVars = function(pattern, varPath) {
                     return flatMap(pattern.vars, function(a, i) {
                         var nextVarPath = varPath.slice();
@@ -208,7 +206,7 @@ var compileNode = function(n) {
                             visitIdentifier: function() {
                                 if(a.value in data) return [];
 
-                                var accessors = nextVarPath.map(function(x) {
+                                var accessors = _.map(nextVarPath, function(x) {
                                     return "._" + x;
                                 }).join('');
                                 return ["var " + a.value + " = " + compileNode(n.value) + accessors + ";"];
@@ -243,7 +241,7 @@ var compileNode = function(n) {
                 };
                 var tagPaths = getTagPaths(c.pattern, []);
                 var compiledValue = compileNode(n.value);
-                var extraConditions = tagPaths.map(function(e) {
+                var extraConditions = _.map(tagPaths, function(e) {
                     return ' && ' + compiledValue + '._' + e.path.join('._') + ' instanceof ' + e.tag.value;
                 }).join('');
 
@@ -258,7 +256,7 @@ var compileNode = function(n) {
                         joinIndent(vars, 2) + "return " + compileNode(c.value) +
                         ";\n" + getIndent(1) + "}"
                 };
-            }).sort(pathSort).map(function(e) {
+            }).sort(pathSort), function(e) {
                 return e.condition;
             });
             return "(function() {\n" + getIndent(1) + cases.join(" else ") + "\n" + getIndent() + "})()";
@@ -274,9 +272,9 @@ var compileNode = function(n) {
                 return compileNode(tree);
             } else if(data[n.func.value]) {
                 // Is a tag
-                return 'new ' + n.func.value + "(" + n.args.map(compileNode).join(", ") + ")";
+                return 'new ' + n.func.value + "(" + _.map(n.args, compileNode).join(", ") + ")";
             }
-            return compileNode(n.func) + "(" + n.args.map(compileNode).join(", ") + ")";
+            return compileNode(n.func) + "(" + _.map(n.args, compileNode).join(", ") + ")";
         },
         visitAccess: function() {
             return compileNode(n.value) + "." + n.property;
@@ -292,7 +290,7 @@ var compileNode = function(n) {
         },
         visitWith: function() {
             var args = compileNode(n.left) + ', ' + compileNode(n.right);
-            var inner = ['__l__', '__r__'].map(function(name) {
+            var inner = _.map(['__l__', '__r__'], function(name) {
                 return 'for(__n__ in ' + name + ') {\n' + getIndent(2) + '__o__[__n__] = ' + name + '[__n__];\n' + getIndent(1) + '}';
             });
             return joinIndent(['(function(__l__, __r__) {', 'var __o__ = {}, __n__;'], 1) + joinIndent(inner, 1) + 'return __o__;\n' + getIndent() + '})(' + args + ')';
@@ -323,7 +321,7 @@ var compileNode = function(n) {
             return "null";
         },
         visitArray: function() {
-            return '[' + n.values.map(compileNode).join(', ') + ']';
+            return '[' + _.map(n.values, compileNode).join(', ') + ']';
         },
         visitObject: function() {
             var key;
@@ -355,7 +353,7 @@ var compile = function(source, env, opts) {
     if(opts.strict) {
         output.push('"use strict";');
     }
-    ast.forEach(function(v) {
+    _.each(ast, function(v) {
         output.push(compileNode(v));
     });
     // Add a newline at the end
@@ -431,7 +429,7 @@ var main = function() {
 
     var env = {};
     var sandbox = getSandbox();
-    filenames.forEach(function(filename) {
+    _.each(filenames, function(filename) {
         // Read the file content.
         var source = fs.readFileSync(filename, 'utf8');
 

@@ -2,7 +2,7 @@ all:
 	node src/grammar.js
 
 deps:
-	npm install jison
+	npm install jison underscore
 
 bundle:
 	node make-bundle.js

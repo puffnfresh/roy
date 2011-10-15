@@ -6,7 +6,8 @@
 // Cardelli's [Modula-2 code](http://bit.ly/Hjpvb). Wow.
 
 // Type variable and built-in types are defined in the `types` module.
-var t = require('types');
+var t = require('types'),
+    _ = require('underscore');
 
 // ### Unification
 //
@@ -117,7 +118,7 @@ var occursInType = function(t1, t2) {
 };
 
 var occursInTypeArray = function(t1, types) {
-    return types.map(function(t2) {
+    return _.map(types, function(t2) {
         return occursInType(t1, t2);
     }).indexOf(true) >= 0;
 };
@@ -161,7 +162,7 @@ var analyse = function(node, env, nonGeneric) {
                 newEnv[node.name] = new t.FunctionType(tempTypes);
             }
 
-            node.args.forEach(function(arg, i) {
+            _.each(node.args, function(arg, i) {
                 var argType;
                 if(arg.type) {
                     argType = nodeToType(arg.type);
@@ -173,7 +174,7 @@ var analyse = function(node, env, nonGeneric) {
                 types.push(argType);
             });
 
-            var scopeTypes = node.body.map(function(expression) {
+            var scopeTypes = _.map(node.body, function(expression) {
                 return analyse(expression, newEnv, newNonGeneric);
             });
 
@@ -194,12 +195,12 @@ var analyse = function(node, env, nonGeneric) {
             return functionType;
         },
         visitIfThenElse: function() {
-            var ifTrueScopeTypes = node.ifTrue.map(function(expression) {
+            var ifTrueScopeTypes = _.map(node.ifTrue, function(expression) {
                 return analyse(expression, env, nonGeneric);
             });
             var ifTrueType = ifTrueScopeTypes[ifTrueScopeTypes.length - 1];
 
-            var ifFalseScopeTypes = node.ifFalse.map(function(expression) {
+            var ifFalseScopeTypes = _.map(node.ifFalse, function(expression) {
                 return analyse(expression, env, nonGeneric);
             });
             var ifFalseType = ifFalseScopeTypes[ifFalseScopeTypes.length - 1];
@@ -215,7 +216,7 @@ var analyse = function(node, env, nonGeneric) {
         visitCall: function() {
             var types = [];
 
-            node.args.forEach(function(arg) {
+            _.each(node.args, function(arg) {
                 var argType = analyse(arg, env, nonGeneric);
                 types.push(argType);
             });
@@ -227,7 +228,7 @@ var analyse = function(node, env, nonGeneric) {
 
             if(prune(funType) instanceof t.TagType) {
                 var tagType = env[node.func.value];
-                data[node.func.value].forEach(function(x, i) {
+                _.each(data[node.func.value], function(x, i) {
                     var index = tagType.types.indexOf(x);
                     if(!types[i]) throw new Error("Not enough arguments to " + node.func.value);
                     unify(funType.types[index], types[i]);
@@ -332,7 +333,7 @@ var analyse = function(node, env, nonGeneric) {
             var nameType = new t.TagNameType(node.name);
             var types = [nameType];
             var dataTypes = {};
-            node.args.map(function(arg) {
+            _.map(node.args, function(arg) {
                 var argType;
                 if(arg.type) {
                     argType = nodeToType(arg);
@@ -343,9 +344,9 @@ var analyse = function(node, env, nonGeneric) {
                 types.push(argType);
             });
             var type = new t.TagType(types);
-            node.tags.forEach(function(tag) {
+            _.each(node.tags, function(tag) {
                 data[tag.name] = [];
-                tag.vars.forEach(function(v, i) {
+                _.each(tag.vars, function(v, i) {
                     var type;
                     if(dataTypes[v.name]) {
                         type = dataTypes[v.name];
@@ -368,14 +369,14 @@ var analyse = function(node, env, nonGeneric) {
                 newEnv[name] = env[name];
             }
 
-            node.cases.forEach(function(nodeCase) {
+            _.each(node.cases, function(nodeCase) {
                 var newNonGeneric = nonGeneric.slice();
 
                 var tagType = newEnv[nodeCase.pattern.tag.value];
                 unify(value, fresh(prune(tagType), newNonGeneric));
 
                 var addVarsToEnv = function(p, lastPath) {
-                    p.vars.forEach(function(v, i) {
+                    _.each(p.vars, function(v, i) {
                         var index = tagType.types.indexOf(data[p.tag.value][i]);
                         var path = lastPath.slice();
                         path.push(index);
@@ -432,7 +433,7 @@ var analyse = function(node, env, nonGeneric) {
         },
         visitArray: function() {
             var valueType = new t.Variable();
-            node.values.forEach(function(v) {
+            _.each(node.values, function(v) {
                 unify(valueType, analyse(v, env, nonGeneric));
             });
             return new t.ArrayType(valueType);
@@ -465,7 +466,7 @@ var nodeToType = function(type) {
 
 // Run inference on an array of AST nodes.
 var typecheck = function(ast, env) {
-    var types = ast.map(function(node) {
+    var types = _.map(ast, function(node) {
         return analyse(node, env);
     });
     return types && types[0];
