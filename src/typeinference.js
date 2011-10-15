@@ -431,7 +431,11 @@ var analyse = function(node, env, nonGeneric) {
             return new t.BooleanType();
         },
         visitArray: function() {
-            return new t.ArrayType();
+            var valueType = new t.Variable();
+            node.values.forEach(function(v) {
+                unify(valueType, analyse(v, env, nonGeneric));
+            });
+            return new t.ArrayType(valueType);
         },
         visitObject: function() {
             var propTypes = {};

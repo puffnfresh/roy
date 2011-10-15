@@ -80,10 +80,19 @@ BooleanType.prototype.constructor = BooleanType;
 BooleanType.prototype.name = "Boolean";
 exports.BooleanType = BooleanType;
 
-var ArrayType = function() {};
+var ArrayType = function(type) {
+    this.type = type;
+    this.types = [type];
+};
 ArrayType.prototype = new BaseType();
 ArrayType.prototype.constructor = ArrayType;
 ArrayType.prototype.name = "Array";
+ArrayType.prototype.map = function(f) {
+    return f(this.type);
+};
+ArrayType.prototype.toString = function() {
+    return '[' + this.type.toString() + ']';
+};
 exports.ArrayType = ArrayType;
 
 var ObjectType = function(props) {
