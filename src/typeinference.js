@@ -297,6 +297,19 @@ var analyse = function(node, env, nonGeneric) {
 
             return resultType;
         },
+        visitBinaryBooleanOperator: function() {
+            var resultType = new t.BooleanType();
+            var leftType = analyse(node.left, env, nonGeneric);
+            var rightType = analyse(node.right, env, nonGeneric);
+            if(!(prune(leftType) instanceof t.NativeType)) {
+                unify(resultType, leftType);
+            }
+            if(!(prune(rightType) instanceof t.NativeType)) {
+                unify(resultType, rightType);
+            }
+
+            return resultType;
+        },
         visitBinaryStringOperator: function() {
             var resultType = new t.StringType();
             var leftType = analyse(node.left, env, nonGeneric);

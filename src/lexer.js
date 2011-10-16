@@ -130,8 +130,7 @@ var literalToken = function() {
         return 1;
     case '=':
         next = chunk.slice(0, 2);
-        switch(next) {
-        case '==':
+        if(next == '==') {
             tokens.push(['COMPARE', next, lineno]);
             return 2;
         }
@@ -139,8 +138,7 @@ var literalToken = function() {
         return 1;
     case '!':
         next = chunk.slice(0, 2);
-        switch(next) {
-        case '!=':
+        if(next == '!=') {
             tokens.push(['COMPARE', next, lineno]);
             return 2;
         }
@@ -170,18 +168,33 @@ var literalToken = function() {
         return 1;
     case '+':
         next = chunk.slice(0, 2);
-        switch(next) {
-        case '++':
+        if(next == '++') {
             tokens.push(['CONCAT', tag, lineno]);
             return 2;
         }
+        tokens.push([tag, tag, lineno]);
+        return 1;
+    case '&':
+        next = chunk.slice(0, 2);
+        if(next == '&&') {
+            tokens.push(['BOOLOP', next, lineno]);
+            return 2;
+        }
+        tokens.push([tag, tag, lineno]);
+        return 1;
+    case '|':
+        next = chunk.slice(0, 2);
+        if(next == '||') {
+            tokens.push(['BOOLOP', next, lineno]);
+            return 2;
+        }
+        tokens.push([tag, tag, lineno]);
+        return 1;
     case ']':
     case ':':
     case '.':
     case ',':
     case '-':
-    case '&':
-    case '|':
     case '{':
     case '}':
     case '(':

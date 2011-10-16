@@ -285,6 +285,9 @@ var compileNode = function(n) {
         visitBinaryNumberOperator: function() {
             return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
         },
+        visitBinaryBooleanOperator: function() {
+            return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
+        },
         visitBinaryStringOperator: function() {
             return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
         },
