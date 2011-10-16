@@ -323,6 +323,9 @@ var compileNode = function(n) {
         visitArray: function() {
             return '[' + _.map(n.values, compileNode).join(', ') + ']';
         },
+        visitTuple: function() {
+            return '[' + _.map(n.values, compileNode).join(', ') + ']';
+        },
         visitObject: function() {
             var key;
             var pairs = [];

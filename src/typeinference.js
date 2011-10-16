@@ -438,6 +438,13 @@ var analyse = function(node, env, nonGeneric) {
             });
             return new t.ArrayType(valueType);
         },
+        visitTuple: function() {
+            var propTypes = {};
+            _.each(node.values, function(v, i) {
+                propTypes[i] = analyse(v, env, nonGeneric);
+            });
+            return new t.ObjectType(propTypes);
+        },
         visitObject: function() {
             var propTypes = {};
             var prop;

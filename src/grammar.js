@@ -139,10 +139,18 @@ var grammar = {
             ["argList ( )", "$$ = $1;"],
             ["argList innerExpression", "$$ = $1; $1.push($2);"]
         ],
+        "tuple": [
+            ["( innerExpression , tupleList )", "$4.unshift($2); $$ = new yy.Tuple($4);"]
+        ],
+        "tupleList": [
+            ["innerExpression", "$$ = [$1];"],
+            ["tupleList , innerExpression", "$$ = $1; $1.push($3);"]
+        ],
         "literal": [
             ["NUMBER", "$$ = new yy.Number($1);"],
             ["STRING", "$$ = new yy.String($1);"],
             ["BOOLEAN", "$$ = new yy.Boolean($1);"],
+            ["tuple", "$$ = $1;"],
             ["[ optValues ]", "$$ = new yy.Array($2);"],
             ["{ optPairs }", "$$ = new yy.Object($2);"]
         ],

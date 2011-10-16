@@ -241,6 +241,15 @@ exports.nodes = {
             }
         };
     },
+    Tuple: function(values) {
+        this.values= values;
+
+        this.accept = function(a) {
+            if(a.visitTuple) {
+                return a.visitTuple(this);
+            }
+        };
+    },
     Number: function(value) {
         this.value = value;
 
