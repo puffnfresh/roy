@@ -189,14 +189,11 @@ var compileNode = function(n) {
             return "var " + n.name + " = function(" + args.join(", ") + "){" + setters.join(";") + "};";
         },
         visitMatch: function() {
-            var pathSort = function(x, y) {
-                return y.path.length - x.path.length;
-            };
             var flatMap = function(a, f) {
                 return _.flatten(_.map(a, f));
             };
 
-            var cases = _.map(_.map(n.cases, function(c) {
+            var pathConditions = _.map(n.cases, function(c) {
                 var getVars = function(pattern, varPath) {
                     return flatMap(pattern.vars, function(a, i) {
                         var nextVarPath = varPath.slice();
@@ -247,7 +244,10 @@ var compileNode = function(n) {
 
                 // More specific patterns need to appear first
                 // Need to sort by the length of the path
-                var maxPath = tagPaths.length ? tagPaths.sort(pathSort)[0].path : [];
+                var maxTagPath = _.max(tagPaths, function(t) {
+                    return t.path.length;
+                });
+                var maxPath = maxTagPath ? maxTagPath.path : [];
 
                 return {
                     path: maxPath,
@@ -256,9 +256,14 @@ var compileNode = function(n) {
                         joinIndent(vars, 2) + "return " + compileNode(c.value) +
                         ";\n" + getIndent(1) + "}"
                 };
-            }).sort(pathSort), function(e) {
+            });
+
+            var cases = _.map(_.sortBy(pathConditions, function(t) {
+                return -t.path.length;
+            }), function(e) {
                 return e.condition;
             });
+
             return "(function() {\n" + getIndent(1) + cases.join(" else ") + "\n" + getIndent() + "})()";
         },
         // Call to JavaScript call.
