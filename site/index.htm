@@ -118,13 +118,29 @@
         document.getElementById('output').innerHTML += args.join(' ') + '\n';
     };
     var newConsole = {};
-    ['log', 'info', 'warn', 'error', 'trace', 'assert'].forEach(function(f) {
+    // TODO: Properly include Underscore
+    _.each(['log', 'info', 'warn', 'error', 'trace', 'assert'], function(f) {
         newConsole[f] = function() {
             log.apply(null, arguments);
-            if(typeof console != 'undefined' && console[f]) console[f].apply(console, arguments);
+            if(typeof console != 'undefined' && console[f]) {
+                if(console[f].apply) {
+                    console[f].apply(console, arguments);
+                } else {
+                    // IE
+                    console[f]([].slice.call(arguments).join(" "));
+                }
+            }
         };
     });
     (function() {
+        var addEvent = function(s, e, c) {
+            var el = document.getElementById(s);
+            if(el.addEventListener) {
+                el.addEventListener(e, c, false);
+            } else {
+                el.attachEvent('on' + e, c);
+            }
+        };
         var examples = {};
         var royCompile = function() {
             var jscode;
@@ -133,35 +149,42 @@
             } catch(e) {
                 jscode = e;
             }
+
+            // Works in Firefox
             document.getElementById("jscode").innerHTML = jscode;
+            // Works in IE
+            document.getElementById("jscode").innerText = jscode;
+
             return jscode;
         };
-        document.getElementById("exampleselect").addEventListener('change', function() {
+        addEvent("exampleselect", 'change', function() {
             var value = document.getElementById("exampleselect").value;
             if(!value) return;
             if(examples[value]) {
                 document.getElementById("roycode").value = examples[value];
+                royCompile();
             } else {
                 var request = new XMLHttpRequest();
                 request.onreadystatechange = function() {
                     if(request.readyState == 4) {
                          examples[value] = request.responseText;
                          document.getElementById("roycode").value = examples[value];
+                         royCompile();
                     }
                 };
                 request.open("GET", "examples/" + value + ".roy", true);
                 request.send(null);
             }
-        }, false);
-        document.getElementById("roycode").addEventListener('change', royCompile, false);
-        document.getElementById("roycode").addEventListener('keyup', royCompile, false);
-        document.getElementById("jsrun").addEventListener('click', function() {
+        });
+        addEvent("roycode", 'change', royCompile);
+        addEvent("roycode", 'keyup', royCompile);
+        addEvent("jsrun", 'click', function() {
             document.getElementById("output").innerHTML = "";
             var code = royCompile();
             var script = document.createElement("script");
-            script.innerHTML = "(function() {try {var console = newConsole;(function(){\n" + code + "\n})()} catch(e) {log(e);}})();";
+            script.text = "(function() {try {var console = newConsole;(function(){\n" + code + "\n})()} catch(e) {log(e);}})();";
             document.body.appendChild(script);
-        }, false);
+        });
     })();
     </script>
   </body>
