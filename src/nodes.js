@@ -36,6 +36,34 @@ exports.nodes = {
             }
         };
     },
+    Type: function(name, value) {
+        this.name = name;
+        this.value = value;
+
+        this.accept = function(a) {
+            if(a.visitType) {
+                return a.visitType(this);
+            }
+        };
+    },
+    TypeName: function(value) {
+        this.value = value;
+
+        this.accept = function(a) {
+            if(a.visitTypeName) {
+                return a.visitTypeName(this);
+            }
+        };
+    },
+    TypeObject: function(values) {
+        this.values = values;
+
+        this.accept = function(a) {
+            if(a.visitTypeObject) {
+                return a.visitTypeObject(this);
+            }
+        };
+    },
     Return: function(value) {
         this.value = value;
 

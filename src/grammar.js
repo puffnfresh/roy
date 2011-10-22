@@ -48,6 +48,7 @@ var grammar = {
             ["letFunction", "$$ = $1;"],
             ["letBinding", "$$ = $1;"],
             ["dataDecl", "$$ = $1;"],
+            ["typeDecl", "$$ = $1;"],
             ["macro", "$$ = $1;"]
         ],
         "expression": [
@@ -100,6 +101,18 @@ var grammar = {
         "dataList": [
             ["IDENTIFIER optParamList", "$$ = [new yy.Tag($1, $2)];"],
             ["dataList | IDENTIFIER optParamList", "$$ = $1; $1.push(new yy.Tag($3, $4));"]
+        ],
+        "typeDecl": [
+            ["TYPE IDENTIFIER = type", "$$ = new yy.Type($2, $4);"]
+        ],
+        "type": [
+            ["IDENTIFIER", "$$ = new yy.TypeName($1);"],
+            ["{ optTypePairs }", "$$ = new yy.TypeObject($2);"]
+        ],
+        "optTypePairs": [
+            ["", "$$ = {}"],
+            ["keywordOrIdentifier : type", "$$ = {}; $$[$1] = $3;"],
+            ["optTypePairs , keywordOrIdentifier : type", "$$ = $1; $1[$3] = $5;"]
         ],
         "optParamList": [
             ["", "$$ = [];"],

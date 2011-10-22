@@ -27,6 +27,7 @@ var identifierToken = function() {
         case 'then':
         case 'else':
         case 'data':
+        case 'type':
         case 'match':
         case 'case':
         case 'do':

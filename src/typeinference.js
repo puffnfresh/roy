@@ -25,6 +25,7 @@ var t = require('types'),
 //
 // If neither constraint can be met, the process will throw an error message.
 var unify = function(t1, t2) {
+    var alias = t1.aliased || t2.aliased;
     var i;
     t1 = prune(t1);
     t2 = prune(t2);
@@ -38,6 +39,8 @@ var unify = function(t1, t2) {
     } else if(t1 instanceof t.BaseType && t2 instanceof t.Variable) {
         unify(t2, t1);
     } else if(t1 instanceof t.BaseType && t2 instanceof t.BaseType) {
+        var t1str = t1.aliased || t1.toString();
+        var t2str = t2.aliased || t2.toString();
         if(t1.name != t2.name || t1.types.length != t2.types.length) {
             throw new Error("Type error: " + t1.toString() + " is not " + t2.toString());
         }
@@ -52,6 +55,7 @@ var unify = function(t1, t2) {
         for(i = 0; i < Math.min(t1.types.length, t2.types.length); i++) {
             unify(t1.types[i], t2.types[i]);
         }
+        if(alias) t1.aliased = t2.aliased = alias;
     } else {
         throw new Error("Not unified: " + t1 + ", " + t2);
     }
@@ -91,9 +95,11 @@ var fresh = function(type, nonGeneric, mappings) {
         }
     }
 
-    return new type.constructor(type.map(function(type) {
+    var freshed = new type.constructor(type.map(function(type) {
         return fresh(type, nonGeneric, mappings);
     }));
+    if(type.aliased) freshed.aliased = type.aliased;
+    return freshed;
 };
 
 // ### Occurs check
@@ -128,6 +134,7 @@ var occursInTypeArray = function(t1, types) {
 // `analyse` is the core inference function. It takes an AST node and returns
 // the infered type.
 var data = {};
+var aliases = {};
 var analyse = function(node, env, nonGeneric) {
     if(!nonGeneric) nonGeneric = [];
 
@@ -248,10 +255,10 @@ var analyse = function(node, env, nonGeneric) {
         visitLet: function() {
             var valueType = analyse(node.value, env, nonGeneric);
 
-            var annotionType;
+            var annotationType;
             if(node.type) {
-                annotionType = nodeToType(node.type);
-                unify(valueType, annotionType);
+                annotationType = nodeToType(node.type);
+                unify(valueType, annotationType);
             }
 
             env[node.name] = valueType;
@@ -423,6 +430,26 @@ var analyse = function(node, env, nonGeneric) {
             });
             return resultType;
         },
+        // Type alias
+        visitType: function() {
+            var unalias = function(n) {
+                return n.accept({
+                    visitTypeName: function(v) {
+                        return nodeToType(v);
+                    },
+                    visitTypeObject: function(v) {
+                        var types = {};
+                        _.forEach(v.values, function(v, k) {
+                            types[k] = unalias(v);
+                        });
+                        return new t.ObjectType(types);
+                    }
+                });
+            };
+            aliases[node.name] = unalias(node.value);
+            aliases[node.name].aliased = node.name;
+            return new t.NativeType();
+        },
         // #### Identifier
         //
         // Creates a `fresh` copy of a type if the name is found in an
@@ -472,6 +499,10 @@ var analyse = function(node, env, nonGeneric) {
 
 // Converts an AST node to type system type.
 var nodeToType = function(type) {
+    if(type.value in aliases) {
+        return aliases[type.value];
+    }
+
     switch(type.value) {
     case 'Number':
         return new t.NumberType();
@@ -479,9 +510,9 @@ var nodeToType = function(type) {
         return new t.StringType();
     case 'Boolean':
         return new t.BooleanType();
-    default:
-        throw new Error("Can't convert from explicit type: " + JSON.stringify(type));
     }
+
+    throw new Error("Can't convert from explicit type: " + JSON.stringify(type));
 };
 
 // Run inference on an array of AST nodes.
