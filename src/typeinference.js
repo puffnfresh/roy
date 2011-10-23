@@ -42,12 +42,12 @@ var unify = function(t1, t2) {
         var t1str = t1.aliased || t1.toString();
         var t2str = t2.aliased || t2.toString();
         if(t1.name != t2.name || t1.types.length != t2.types.length) {
-            throw new Error("Type error: " + t1.toString() + " is not " + t2.toString());
+            throw new Error("Type error: " + t1str + " is not " + t2str);
         }
         if(t1 instanceof t.ObjectType) {
             for(i in t2.props) {
                 if(!(i in t1.props)) {
-                    throw new Error("Type error: " + t1.toString() + " is not " + t2.toString());
+                    throw new Error("Type error: " + t1str + " is not " + t2str);
                 }
                 unify(t1.props[i], t2.props[i]);
             }
