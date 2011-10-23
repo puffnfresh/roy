@@ -432,21 +432,7 @@ var analyse = function(node, env, nonGeneric) {
         },
         // Type alias
         visitType: function() {
-            var unalias = function(n) {
-                return n.accept({
-                    visitTypeName: function(v) {
-                        return nodeToType(v);
-                    },
-                    visitTypeObject: function(v) {
-                        var types = {};
-                        _.forEach(v.values, function(v, k) {
-                            types[k] = unalias(v);
-                        });
-                        return new t.ObjectType(types);
-                    }
-                });
-            };
-            aliases[node.name] = unalias(node.value);
+            aliases[node.name] = nodeToType(node.value);
             aliases[node.name].aliased = node.name;
             return new t.NativeType();
         },
@@ -498,21 +484,32 @@ var analyse = function(node, env, nonGeneric) {
 
 
 // Converts an AST node to type system type.
-var nodeToType = function(type) {
-    if(type.value in aliases) {
-        return aliases[type.value];
-    }
+var nodeToType = function(n) {
+    return n.accept({
+        visitTypeName: function(tn) {
+            if(tn.value in aliases) {
+                return aliases[tn.value];
+            }
 
-    switch(type.value) {
-    case 'Number':
-        return new t.NumberType();
-    case 'String':
-        return new t.StringType();
-    case 'Boolean':
-        return new t.BooleanType();
-    }
+            switch(tn.value) {
+            case 'Number':
+                return new t.NumberType();
+            case 'String':
+                return new t.StringType();
+            case 'Boolean':
+                return new t.BooleanType();
+            }
 
-    throw new Error("Can't convert from explicit type: " + JSON.stringify(type));
+            throw new Error("Can't convert from explicit type: " + JSON.stringify(tn));
+        },
+        visitTypeObject: function(to) {
+            var types = {};
+            _.forEach(to.values, function(v, k) {
+                types[k] = nodeToType(v);
+            });
+            return new t.ObjectType(types);
+        }
+    });
 };
 
 // Run inference on an array of AST nodes.

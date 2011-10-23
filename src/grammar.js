@@ -138,11 +138,11 @@ var grammar = {
         ],
         "param": [
             ["IDENTIFIER", "$$ = new yy.Arg($1);"],
-            ["( IDENTIFIER : identifier )", "$$ = new yy.Arg($2, $4);"]
+            ["( IDENTIFIER : type )", "$$ = new yy.Arg($2, $4);"]
         ],
         "optType": [
             ["", ""],
-            [": identifier", "$$ = $2"]
+            [": type", "$$ = $2"]
         ],
         "call": [
             ["accessor argList", "$$ = new yy.Call($1, $2);"],
