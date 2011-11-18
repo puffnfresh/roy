@@ -17,14 +17,14 @@
     "roy": "./roy"
   },
   "scripts": {
-    "preinstall": "node src/grammar.js"
+    "install": "node src/grammar.js"
   },
   "homepage": "http://roy.brianmckenna.org/",
   "dependencies": {
-    "jison": "0.2.11",
-    "underscore": "1.2.0"
+    "jison": ">= 0.2.11",
+    "underscore": ">= 1.2.0"
   },
   "devDependencies": {
-    "interleave": "0.0.6"
+    "interleave": ">= 0.0.6"
   }
 }
