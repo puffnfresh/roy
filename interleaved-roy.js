@@ -1,4 +1,4 @@
-var roy;
+var roy = {};
 
 //= node_modules/underscore/underscore.js
 
@@ -13,24 +13,25 @@ var roy;
         return modules[x];
     }
 
-    load["compile"] = function(exports) {
+    load["./compile"] = function(exports) {
         //= src/compile.js
     };
-    load["lexer"] = function(exports) {
+    load["./lexer"] = function(exports) {
         //= src/lexer.js
     };
-    load["nodes"] = function(exports) {
+    load["./nodes"] = function(exports) {
         //= src/nodes.js
     };
-    load["parser"] = function(exports) {
+    load["./parser"] = function(exports) {
         //= src/parser.js
     };
-    load["typeinference"] = function(exports) {
+    load["./typeinference"] = function(exports) {
         //= src/typeinference.js
     };
-    load["types"] = function(exports) {
+    load["./types"] = function(exports) {
         //= src/types.js
     };
 
-    roy = require("compile");
+    roy.lexer = require("./lexer");
+    roy.compile = require("./compile").compile;
 })();

@@ -1,23 +1,2 @@
 #!/usr/bin/env node
-
-var requireUnshift = true;
-
-try {
-    require.paths.unshift('src');
-} catch(e) {
-    requireUnshift = false;
-}
-
-try {
-    require('parser');
-} catch(e) {
-    if(!requireUnshift) {
-        console.log('require.paths is removed. Execute like:');
-        console.log('NODE_PATH=src ./roy');
-    } else {
-        console.log('parser module not found. Must run `make` first.');
-    }
-    return;
-}
-
-require('compile').main();
+require('./src/compile').main();

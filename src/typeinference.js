@@ -6,7 +6,7 @@
 // Cardelli's [Modula-2 code](http://bit.ly/Hjpvb). Wow.
 
 // Type variable and built-in types are defined in the `types` module.
-var t = require('types'),
+var t = require('./types'),
     _ = require('underscore');
 
 // ### Unification

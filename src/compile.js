@@ -1,8 +1,8 @@
-var typecheck = require('typeinference').typecheck,
-    nodes = require('nodes').nodes,
-    types = require('types'),
-    parser = require('parser').parser,
-    lexer = require('lexer'),
+var typecheck = require('./typeinference').typecheck,
+    nodes = require('./nodes').nodes,
+    types = require('./types'),
+    parser = require('./parser').parser,
+    lexer = require('./lexer'),
     _ = require('underscore');
 
 // Assigning the nodes to `parser.yy` allows the grammar to access the nodes from
