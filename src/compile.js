@@ -423,6 +423,7 @@ var nodeRepl = function() {
 var main = function() {
     if(process.argv.length < 3) {
         nodeRepl();
+        return;
     }
 
     var fs = require('fs');
