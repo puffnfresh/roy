@@ -57,7 +57,6 @@ See the examples directory for more.
 TODO
 ---
 * Mutable types
-* Type aliases
 * Types across modules
 * Allow explicit types that have type parameters
 * Standard libary

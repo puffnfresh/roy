@@ -11,3 +11,7 @@ console.log (f 100)
 
 // Won't compile:
 // console.log (f "100")
+
+type Person = {firstName: String, lastName: String}
+let getName (x: Person) = x.firstName ++ x.lastName
+console.log (getName {})
