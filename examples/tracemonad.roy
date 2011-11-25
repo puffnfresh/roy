@@ -1,0 +1,16 @@
+let traceMonad = {
+  return: fn x =
+    console.log "Return:" x
+    x
+  bind: fn x f =
+    console.log "Binding:" x
+    f x
+}
+
+console.log (do traceMonad
+  bind w = 1
+  let x = 2
+  bind y = 3
+  bind z = 4
+  return w + x + y + z
+)
