@@ -46,18 +46,25 @@ Input (test.roy):
 Output (test.js):
 
     var addTwo = function(n) {
-	return n + 2;
+        return n + 2;
     }
     console.log(addTwo(40))
 
-Calling `addTwo "test"` will result in a compile-time error.
+Calling `addTwo "test"` will result in a compile-time error (`addTwo` can only take a Number).
 
 See the examples directory for more.
 
-TODO
+License
 ---
-* Mutable types
-* Types across modules
-* Allow explicit types that have type parameters
-* Standard libary
-* Tail recursion
+
+MIT
+
+Resources
+---
+
+* Roy website: http://roy.brianmckenna.org/
+* Bitbucket repo: https://bitbucket.org/puffnfresh/roy
+* GitHub repo: https://github.com/pufuwozu/roy
+* Brian's blog: http://brianmckenna.org/
+* altJS Google Group: http://groups.google.com/group/altjs
+* #altJS on Freenode: irc://irc.freenode.net/altJS
