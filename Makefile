@@ -2,7 +2,7 @@ all:
 	node src/grammar.js
 
 deps:
-	npm install jison underscore interleave
+	npm install
 
 bundle:
 	./node_modules/interleave/bin/interleave -o bundled-roy.js interleaved-roy.js
@@ -17,4 +17,4 @@ website: all bundle
 # Tests
 
 test: all
-	NODE_PATH=src ./roy -r run-tests.roy
+	./roy -r run-tests.roy
