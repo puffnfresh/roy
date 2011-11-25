@@ -67,4 +67,4 @@ Resources
 * GitHub repo: https://github.com/pufuwozu/roy
 * Brian's blog: http://brianmckenna.org/
 * altJS Google Group: http://groups.google.com/group/altjs
-* #altJS on Freenode: irc://irc.freenode.net/altJS
+* altJS channel: irc://irc.freenode.net/altJS
