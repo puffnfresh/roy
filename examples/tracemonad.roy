@@ -1,3 +1,7 @@
+// Caution: this example horribly breaks the monad laws.
+// See Hacker News for more details:
+// http://news.ycombinator.com/item?id=3277360
+
 let traceMonad = {
   return: fn x =
     console.log "Return:" x
