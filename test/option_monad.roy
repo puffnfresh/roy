@@ -1,0 +1,20 @@
+data Option a =
+  Some a | None
+
+let optionMonad = {
+  return: fn x =
+    Some x
+  bind: fn x f = match x
+    case (Some a) = f a
+    case None = None
+}
+
+let m = (do optionMonad
+  bind x = Some 1
+  let y = 2
+  bind z = Some 3
+  return x + y + z
+)
+
+match m
+  case (Some x) = console.log x

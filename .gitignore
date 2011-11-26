@@ -2,7 +2,6 @@ node_modules
 src/parser.js
 examples/*.js
 test/*.js
-test/*.out
 lib/*.js
 roy.brianmckenna.org
 bundled-roy.js

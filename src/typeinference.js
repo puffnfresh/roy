@@ -265,6 +265,10 @@ var analyse = function(node, env, nonGeneric) {
 
             return valueType;
         },
+        visitDo: function() {
+            // TODO: Make cleaner
+            return env[node.value.value].props['return'].types[1];
+        },
         visitAccess: function() {
             var valueType = analyse(node.value, env, nonGeneric);
 
