@@ -181,10 +181,10 @@ var compileNode = function(n) {
         },
         visitTag: function() {
             var args = _.map(n.vars, function(v) {
-                return v.name;
+                return v.value;
             });
             var setters = _.map(n.vars, function(v, i) {
-                return "this._" + i + " = " + v.name;
+                return "this._" + i + " = " + v.value;
             });
             return "var " + n.name + " = function(" + args.join(", ") + "){" + setters.join(";") + "};";
         },

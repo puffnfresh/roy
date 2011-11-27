@@ -46,8 +46,9 @@ exports.nodes = {
             }
         };
     },
-    TypeName: function(value) {
+    TypeName: function(value, args) {
         this.value = value;
+        this.args = args;
 
         this.accept = function(a) {
             if(a.visitTypeName) {

@@ -94,30 +94,47 @@ var grammar = {
         "ifThenElse": [
             ["IF innerExpression THEN block TERMINATOR ELSE block", "$$ = new yy.IfThenElse($2, $4, $7);"]
         ],
+
+        // data Maybe a = Some a | None
         "dataDecl": [
             ["DATA IDENTIFIER optParamList = dataList", "$$ = new yy.Data($2, $3, $5);"],
             ["DATA IDENTIFIER optParamList = INDENT dataList OUTDENT", "$$ = new yy.Data($2, $3, $6);"]
-        ],
-        "dataList": [
-            ["IDENTIFIER optParamList", "$$ = [new yy.Tag($1, $2)];"],
-            ["dataList | IDENTIFIER optParamList", "$$ = $1; $1.push(new yy.Tag($3, $4));"]
-        ],
-        "typeDecl": [
-            ["TYPE IDENTIFIER = type", "$$ = new yy.Type($2, $4);"]
-        ],
-        "type": [
-            ["IDENTIFIER", "$$ = new yy.TypeName($1);"],
-            ["{ optTypePairs }", "$$ = new yy.TypeObject($2);"]
-        ],
-        "optTypePairs": [
-            ["", "$$ = {}"],
-            ["keywordOrIdentifier : type", "$$ = {}; $$[$1] = $3;"],
-            ["optTypePairs , keywordOrIdentifier : type", "$$ = $1; $1[$3] = $5;"]
         ],
         "optParamList": [
             ["", "$$ = [];"],
             ["paramList", "$$ = $1;"]
         ],
+        "dataList": [
+            ["IDENTIFIER optTypeParamList", "$$ = [new yy.Tag($1, $2)];"],
+            ["dataList | IDENTIFIER optTypeParamList", "$$ = $1; $1.push(new yy.Tag($3, $4));"]
+        ],
+
+        // type Person = {firstName: String, lastName: String}
+        "typeDecl": [
+            ["TYPE IDENTIFIER = type", "$$ = new yy.Type($2, $4);"]
+        ],
+
+        // For type annotations
+        "type": [
+            ["IDENTIFIER optTypeParamList", "$$ = new yy.TypeName($1, $2);"],
+            ["{ optTypePairs }", "$$ = new yy.TypeObject($2);"]
+        ],
+        "optTypeParamList": [
+            ["", "$$ = [];"],
+            ["typeParamList", "$$ = $1;"]
+        ],
+        "typeParamList": [
+            ["IDENTIFIER", "$$ = [new yy.TypeName($1, [])];"],
+            ["( type )", "$$ = [$1];"],
+            ["typeParamList IDENTIFIER", "$$ = $1; $1.push(new yy.TypeName($2, []));"],
+            ["typeParamList ( type )", "$$ = $1; $1.push($2);"]
+        ],
+        "optTypePairs": [
+            ["", "$$ = {};"],
+            ["keywordOrIdentifier : type", "$$ = {}; $$[$1] = $3;"],
+            ["optTypePairs , keywordOrIdentifier : type", "$$ = $1; $1[$3] = $5;"]
+        ],
+
         "macro": [
             ["MACRO IDENTIFIER = expression", "$$ = new yy.Macro($2, [$4]);"],
             ["MACRO IDENTIFIER = block", "$$ = new yy.Macro($2, $4);"]

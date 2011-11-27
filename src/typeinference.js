@@ -172,7 +172,7 @@ var analyse = function(node, env, nonGeneric) {
             _.each(node.args, function(arg, i) {
                 var argType;
                 if(arg.type) {
-                    argType = nodeToType(arg.type);
+                    argType = nodeToType(arg.type, env);
                 } else {
                     argType = tempTypes[i];
                     newNonGeneric.push(argType);
@@ -190,7 +190,7 @@ var analyse = function(node, env, nonGeneric) {
 
             var annotationType;
             if(node.type) {
-                annotationType = nodeToType(node.type);
+                annotationType = nodeToType(node.type, env);
                 unify(resultType, annotationType);
             }
 
@@ -236,9 +236,13 @@ var analyse = function(node, env, nonGeneric) {
             if(prune(funType) instanceof t.TagType) {
                 var tagType = env[node.func.value];
                 _.each(data[node.func.value], function(x, i) {
-                    var index = tagType.types.indexOf(x);
                     if(!types[i]) throw new Error("Not enough arguments to " + node.func.value);
-                    unify(funType.types[index], types[i]);
+                    var index = tagType.types.indexOf(x);
+                    if(index != -1) {
+                        unify(funType.types[index], types[i]);
+                    } else {
+                        unify(x, types[i]);
+                    }
                 });
                 return funType;
             }
@@ -257,7 +261,7 @@ var analyse = function(node, env, nonGeneric) {
 
             var annotationType;
             if(node.type) {
-                annotationType = nodeToType(node.type);
+                annotationType = nodeToType(node.type, env);
                 unify(valueType, annotationType);
             }
 
@@ -360,7 +364,7 @@ var analyse = function(node, env, nonGeneric) {
             _.map(node.args, function(arg) {
                 var argType;
                 if(arg.type) {
-                    argType = nodeToType(arg);
+                    argType = nodeToType(arg, env);
                 } else {
                     argType = new t.Variable();
                 }
@@ -372,15 +376,16 @@ var analyse = function(node, env, nonGeneric) {
                 data[tag.name] = [];
                 _.each(tag.vars, function(v, i) {
                     var type;
-                    if(dataTypes[v.name]) {
-                        type = dataTypes[v.name];
+                    if(dataTypes[v.value]) {
+                        type = dataTypes[v.value];
                     } else {
-                        type = nodeToType({value: v.name});
+                        type = nodeToType(v, env);
                     }
                     data[tag.name][i] = type;
                 });
                 env[tag.name] = type;
             });
+            env[node.name] = type;
             return new t.NativeType();
         },
         visitMatch: function() {
@@ -436,7 +441,7 @@ var analyse = function(node, env, nonGeneric) {
         },
         // Type alias
         visitType: function() {
-            aliases[node.name] = nodeToType(node.value);
+            aliases[node.name] = nodeToType(node.value, env);
             aliases[node.name].aliased = node.name;
             return new t.NativeType();
         },
@@ -486,22 +491,37 @@ var analyse = function(node, env, nonGeneric) {
     });
 };
 
-
 // Converts an AST node to type system type.
-var nodeToType = function(n) {
+var nodeToType = function(n, env) {
     return n.accept({
         visitTypeName: function(tn) {
             if(tn.value in aliases) {
                 return aliases[tn.value];
             }
 
-            switch(tn.value) {
-            case 'Number':
-                return new t.NumberType();
-            case 'String':
-                return new t.StringType();
-            case 'Boolean':
-                return new t.BooleanType();
+            var envType = env[tn.value];
+            if(envType) {
+                if(tn.args.length != envType.types.length - 1) {
+                    throw new Error("Type arg lengths differ: '" + tn.value + "' given " + tn.args.length + " but should be " + (envType.types.length - 1));
+                }
+
+                envType = fresh(prune(envType));
+                _.forEach(tn.args, function(v, k) {
+                    var argType = nodeToType(v, env);
+                    unify(envType.types[1 + k], argType);
+                });
+                return envType;
+            }
+
+            if(!tn.args.length) {
+                switch(tn.value) {
+                case 'Number':
+                    return new t.NumberType();
+                case 'String':
+                    return new t.StringType();
+                case 'Boolean':
+                    return new t.BooleanType();
+                }
             }
 
             throw new Error("Can't convert from explicit type: " + JSON.stringify(tn));
