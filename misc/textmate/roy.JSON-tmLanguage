@@ -1,0 +1,39 @@
+{ "name": "Roy",
+  "scopeName": "source.roy",
+  "fileTypes": ["roy"],
+  "patterns": [
+    { "match": "(//).*$\n?",
+      "name": "comment.line.double-slash.source.roy"
+    },
+
+    { "match": "(?x:-?(?:0|[1-9]\\d*)(?:\\.\\d+)?)",
+      "name": "constant.numeric.source.roy"
+    },
+
+    {
+      "begin": "\"",
+      "end": "\"",
+      "name": "string.quoted.double.source.roy"
+    },
+
+    { "match": "true|false",
+      "name": "constant.language.source.roy"
+    },
+
+    {
+      "begin": "'",
+      "end": "'",
+      "name": "string.quoted.single.source.roy"
+    },
+
+    { "match": "let|fn|if|then|else|data|type|match|case|do|bind|return|macro|with",
+      "name": "keyword.other.source.roy"
+    },
+
+    { "match": "\\b[A-Z][a-zA-Z0-9\\$\\_]*",
+      "name": "support.type.source.roy"
+    }
+  ],
+  "uuid": "c7be743b-5f91-41c4-bdba-c6ac7b540f30"
+}
+
