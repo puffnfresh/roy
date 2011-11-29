@@ -5,3 +5,6 @@ test/*.js
 lib/*.js
 roy.brianmckenna.org
 bundled-roy.js
+.DS_Store
+*~
+*.swp
