@@ -409,6 +409,9 @@ var nodeRepl = function() {
         var compiled;
         var output;
         try {
+            if (line.replace(/^\s+/g,"").replace(/\s+$/g,"") == ":q"){
+                process.exit();
+            }
             compiled = compile(line, env);
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
             if(typeof output != 'undefined') console.log(output + " : " + compiled.type);
