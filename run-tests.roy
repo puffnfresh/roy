@@ -14,7 +14,7 @@ tests.forEach (fn t =
   let outFile = (path.join dir (path.basename t '.roy')) ++ '.out'
   child_process.exec './roy -r ' ++ name (fn error stdout stderr =
     if error then
-      console.log "Error:" error.message
+      console.log "Error:" name error.message
     else
       let expected = fs.readFileSync outFile 'utf8'
       let actual = stdout.toString ()
