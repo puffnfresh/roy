@@ -3,10 +3,10 @@
 // http://news.ycombinator.com/item?id=3277360
 
 let traceMonad = {
-  return: fn x =
+  return: \x ->
     console.log "Return:" x
     x
-  bind: fn x f =
+  bind: \x f ->
     console.log "Binding:" x
     f x
 }

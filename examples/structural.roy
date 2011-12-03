@@ -16,9 +16,9 @@ console.log (makeXY 1 2)
 // Won't compile
 // plusXY {x: 1, z: 2}
 
-console.log ((fn obj = obj.a.a + obj.a.b) {a: {a: 1, b: 2}})
+console.log ((\obj -> obj.a.a + obj.a.b) {a: {a: 1, b: 2}})
 
-let makeFun a = {f: fn b = a.x + b.y}
+let makeFun a = {f: \b -> a.x + b.y}
 console.log ((makeFun {x: 1}).f {y: 2})
 
 // Example of 'with' keyword
