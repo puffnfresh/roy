@@ -2,9 +2,9 @@ data Option a =
   Some a | None
 
 let optionMonad = {
-  return: fn x =
+  return: \x ->
     Some x
-  bind: fn x f = match x
+  bind: \x f -> match x
     case (Some a) = f a
     case None = None
 }
