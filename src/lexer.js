@@ -113,7 +113,8 @@ var lineToken = function() {
                     last = indents[indents.length - 1];
                 }
             }
-            tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
+            if(tokens.length > 0)
+                tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
         }
         indent = size;
         return token[0].length;
