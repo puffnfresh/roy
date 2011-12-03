@@ -367,6 +367,10 @@ var analyse = function(node, env, nonGeneric) {
             var nameType = new t.TagNameType(node.name);
             var types = [nameType];
 
+            if(env[node.name]) {
+                throw new Error("Multiple declarations of type constructor: " + node.name);
+            }
+
             var newEnv = {};
             var name;
             for(name in env) {
@@ -385,7 +389,7 @@ var analyse = function(node, env, nonGeneric) {
             });
 
             var type = new t.TagType(types);
-            newEnv[node.name] = type;
+            env[node.name] = newEnv[node.name] = type;
             _.each(node.tags, function(tag) {
                 if(data[tag.name]) {
                     throw new Error("Multiple declarations for data constructor: " + tag.name);
