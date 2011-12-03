@@ -6,6 +6,7 @@ var grammar = {
 
     "operators": [
         ["left", "BOOLOP"],
+        ["left", "RIGHTARROW"],
         ["left", "COMPARE", "WITH"],
         ["left", "+", "-"],
         ["left", "MATH", "CONCAT"],
@@ -53,8 +54,8 @@ var grammar = {
         ],
         "expression": [
             ["innerExpression", "$$ = $1;"],
-            ["FN paramList optType = expression", "$$ = new yy.Function(undefined, $2, [$5], $3);"],
-            ["FN paramList optType = block", "$$ = new yy.Function(undefined, $2, $5, $3);"],
+            ["LAMBDA paramList optType RIGHTARROW expression", "$$ = new yy.Function(undefined, $2, [$5], $3);"],
+            ["LAMBDA paramList optType RIGHTARROW block", "$$ = new yy.Function(undefined, $2, $5, $3);"],
             ["MATCH innerExpression INDENT caseList OUTDENT", "$$ = new yy.Match($2, $4);"],
             ["DO innerExpression doBlock", "$$ = new yy.Do($2, $3);"],
             ["call", "$$ = $1;"]
