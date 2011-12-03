@@ -234,16 +234,22 @@ var analyse = function(node, env, nonGeneric) {
             }
 
             if(prune(funType) instanceof t.TagType) {
-                var tagType = env[node.func.value];
-                _.each(data[node.func.value], function(x, i) {
+                var mappings = {};
+                var tagType = fresh(env[node.func.value], nonGeneric, mappings);
+                var dataType = _.map(data[node.func.value], function(t) {
+                    return fresh(t, nonGeneric, mappings);
+                });
+
+                _.each(dataType, function(x, i) {
                     if(!types[i]) throw new Error("Not enough arguments to " + node.func.value);
+
                     var index = tagType.types.indexOf(x);
                     if(index != -1) {
                         unify(funType.types[index], types[i]);
-                    } else {
-                        unify(x, types[i]);
                     }
+                    unify(x, types[i]);
                 });
+
                 return funType;
             }
 
@@ -360,32 +366,34 @@ var analyse = function(node, env, nonGeneric) {
         visitData: function() {
             var nameType = new t.TagNameType(node.name);
             var types = [nameType];
-            var dataTypes = {};
+
+            var newEnv = {};
+            var name;
+            for(name in env) {
+                newEnv[name] = env[name];
+            }
+
             _.map(node.args, function(arg) {
                 var argType;
                 if(arg.type) {
-                    argType = nodeToType(arg, env);
+                    argType = nodeToType(arg, newEnv);
                 } else {
                     argType = new t.Variable();
                 }
-                dataTypes[arg.name] = argType;
+                newEnv[arg.name] = argType;
                 types.push(argType);
             });
+
             var type = new t.TagType(types);
+            newEnv[node.name] = type;
             _.each(node.tags, function(tag) {
                 data[tag.name] = [];
                 _.each(tag.vars, function(v, i) {
-                    var type;
-                    if(dataTypes[v.value]) {
-                        type = dataTypes[v.value];
-                    } else {
-                        type = nodeToType(v, env);
-                    }
-                    data[tag.name][i] = type;
+                    data[tag.name][i] = nodeToType(v, newEnv);
                 });
                 env[tag.name] = type;
             });
-            env[node.name] = type;
+
             return new t.NativeType();
         },
         visitMatch: function() {
@@ -501,6 +509,10 @@ var nodeToType = function(n, env) {
 
             var envType = env[tn.value];
             if(envType) {
+                if(prune(envType) instanceof t.Variable) {
+                    return envType;
+                }
+
                 if(tn.args.length != envType.types.length - 1) {
                     throw new Error("Type arg lengths differ: '" + tn.value + "' given " + tn.args.length + " but should be " + (envType.types.length - 1));
                 }

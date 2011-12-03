@@ -33,3 +33,9 @@ let getBool b ifTrue ifFalse = match b
 
 console.log (getBool True 1 2)
 console.log (getBool False 1 2)
+
+data MyList a = Empty | Many a (MyList a)
+
+console.log (Many true (Many true Empty))
+// Won't compile:
+// console.log (Many "TEST" (Many true Empty))

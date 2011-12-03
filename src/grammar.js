@@ -125,9 +125,9 @@ var grammar = {
         ],
         "typeParamList": [
             ["IDENTIFIER", "$$ = [new yy.TypeName($1, [])];"],
-            ["( type )", "$$ = [$1];"],
+            ["( type )", "$$ = [$2];"],
             ["typeParamList IDENTIFIER", "$$ = $1; $1.push(new yy.TypeName($2, []));"],
-            ["typeParamList ( type )", "$$ = $1; $1.push($2);"]
+            ["typeParamList ( type )", "$$ = $1; $1.push($3);"]
         ],
         "optTypePairs": [
             ["", "$$ = {};"],
