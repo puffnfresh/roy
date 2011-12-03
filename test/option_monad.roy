@@ -1,5 +1,4 @@
-data Option a =
-  Some a | None
+// Uses `Option a` from stdlib
 
 let optionMonad = {
   return: fn x =

@@ -387,6 +387,10 @@ var analyse = function(node, env, nonGeneric) {
             var type = new t.TagType(types);
             newEnv[node.name] = type;
             _.each(node.tags, function(tag) {
+                if(data[tag.name]) {
+                    throw new Error("Multiple declarations for data constructor: " + tag.name);
+                }
+
                 data[tag.name] = [];
                 _.each(tag.vars, function(v, i) {
                     data[tag.name][i] = nodeToType(v, newEnv);
