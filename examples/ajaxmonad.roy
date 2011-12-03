@@ -1,8 +1,8 @@
 type Request = {url: String, payload: String}
 
 let ajaxRequest = {
-  return: fn x = x
-  bind: fn (x : Request) f =
+  return: \x -> x
+  bind: \(x : Request) f ->
     $.ajax x.url x.payload f
 }
 
