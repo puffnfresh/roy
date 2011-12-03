@@ -63,6 +63,7 @@ Resources
 ---
 
 * Roy website: http://roy.brianmckenna.org/
+* Roy Twitter: http://twitter.com/roylangjs
 * Bitbucket repo: https://bitbucket.org/puffnfresh/roy
 * GitHub repo: https://github.com/pufuwozu/roy
 * Brian's blog: http://brianmckenna.org/
