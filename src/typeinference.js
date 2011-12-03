@@ -507,6 +507,17 @@ var nodeToType = function(n, env) {
                 return aliases[tn.value];
             }
 
+            if(!tn.args.length) {
+                switch(tn.value) {
+                case 'Number':
+                    return new t.NumberType();
+                case 'String':
+                    return new t.StringType();
+                case 'Boolean':
+                    return new t.BooleanType();
+                }
+            }
+
             var envType = env[tn.value];
             if(envType) {
                 if(prune(envType) instanceof t.Variable) {
@@ -523,17 +534,6 @@ var nodeToType = function(n, env) {
                     unify(envType.types[1 + k], argType);
                 });
                 return envType;
-            }
-
-            if(!tn.args.length) {
-                switch(tn.value) {
-                case 'Number':
-                    return new t.NumberType();
-                case 'String':
-                    return new t.StringType();
-                case 'Boolean':
-                    return new t.BooleanType();
-                }
             }
 
             throw new Error("Can't convert from explicit type: " + JSON.stringify(tn));
