@@ -12,4 +12,4 @@ log 100
 log [1, 2, 3]
 
 // Lambdas
-console.log ((fn x = x + 1) 100)
+console.log ((\x -> x + 1) 100)
