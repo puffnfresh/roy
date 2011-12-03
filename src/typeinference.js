@@ -558,6 +558,8 @@ var nodeToType = function(n, env) {
 
 // Run inference on an array of AST nodes.
 var typecheck = function(ast, env) {
+    data = {};
+    aliases = {};
     var types = _.map(ast, function(node) {
         return analyse(node, env);
     });
