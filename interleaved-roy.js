@@ -13,6 +13,10 @@ var roy = {};
         return modules[x];
     }
 
+    load["unicode-categories"] = function(exports) {
+        //= node_modules/unicode-categories/unicode-categories.js
+    };
+
     load["./compile"] = function(exports) {
         //= src/compile.js
     };
