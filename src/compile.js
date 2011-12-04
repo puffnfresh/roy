@@ -58,7 +58,7 @@ var popIndent = function() {
 };
 var compileNode = function(n) {
     return n.accept({
-        // Function definition to JavaScript function.
+        // Function definitioncd to JavaScript function.
         visitFunction: function() {
             var getArgs = function(a) {
                 return _.map(a, function(v) {
@@ -408,11 +408,24 @@ var nodeRepl = function() {
     repl.on('line', function(line) {
         var compiled;
         var output;
+        //Check Metacommand or none.
+        var fixline = line.replace(/^\s+/g,"").replace(/\s+$/g,"");
+        var metacommand = fixline.split(" ");
         try {
-            if (line.replace(/^\s+/g,"").replace(/\s+$/g,"") == ":q"){
+            //Exit Command ":q"
+            if (metacommand[0] === ":q"){
                 process.exit();
+            } else if (metacommand[0] === ":l"){
+            //Load Command ":l"
+            //Read the file content.
+            var fs = require('fs');
+            var filename = metacommand[1]
+            var source = fs.readFileSync(filename, 'utf8');
+            var compiled = compile(source, env); 
+            } else {
+            //If not metacommand, eval line.
+            compiled = compile(line, env); 
             }
-            compiled = compile(line, env);
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
             if(typeof output != 'undefined') console.log(output + " : " + compiled.type);
         } catch(e) {
