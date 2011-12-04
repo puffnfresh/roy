@@ -415,21 +415,34 @@ var nodeRepl = function() {
         // e.g. ":q" or ":l test.roy"
         var metacommand = line.replace(/^\s+/, '').split(' ');
         try {
-            if(metacommand[0] == ":q") {
-                // Exit command
+            switch(metacommand[0]) {
+            case ":q":
+                // Exit
                 process.exit();
-            } else if(metacommand[0] == ":l") {
-                // Load command
+                break;
+            case ":l":
+                // Load
                 var filename = metacommand[1];
                 var source = fs.readFileSync(filename, 'utf8');
                 compiled = compile(source, env, data, aliases);
-            } else {
+                break;
+            case ":?":
+                // Help
+                console.log("Command available from the prompt:");
+                console.log(":l -- load and run an external file");
+                console.log(":q -- exit Repl");
+                console.log(":? -- show help");
+                break;
+            default:
                 // If the line isn't a metacommand, just eval it.
                 compiled = compile(line, env, data, aliases);
+                break;
             }
 
-            output = vm.runInNewContext(compiled.output, sandbox, 'eval');
-            if(typeof output != 'undefined') console.log(output + " : " + compiled.type);
+            if(compiled) {
+                output = vm.runInNewContext(compiled.output, sandbox, 'eval');
+                if(typeof output != 'undefined') console.log(output + " : " + compiled.type);
+            }
         } catch(e) {
             console.log((e.stack || e.toString()) + '\n\n');
         }
@@ -439,31 +452,44 @@ var nodeRepl = function() {
 };
 
 var main = function() {
+    var argv = process.argv.slice(2);
+
+    // Get Roy infomation
+    var fs = require('fs');
+    var infofile = fs.readFileSync('package.json', 'utf8');
+    var info = JSON.parse(infofile);
     if(process.argv.length < 3) {
+        console.log("Roy: " + info.description);
+        console.log(info.author);
+        console.log(":? for help");
         nodeRepl();
         return;
     }
 
-    var fs = require('fs');
     var path = require('path');
-    var filenames = process.argv.slice(2);
-
     var vm;
     var run = false;
-    if(filenames[0] == '-r') {
+    switch(argv[0]) {
+    case "-v":
+    case "--version":
+        console.log(info.version);
+        process.exit();
+        break;
+    case "-r":
         vm = require('vm');
         run = true;
-        filenames.shift();
+        argv.shift();
+        break;
     }
 
     // Include the standard library
-    filenames.unshift(path.dirname(__dirname) + '/lib/std.roy');
+    argv.unshift(path.dirname(__dirname) + '/lib/std.roy');
 
     var env = {};
     var data = {};
     var aliases = {};
     var sandbox = getSandbox();
-    _.each(filenames, function(filename) {
+    _.each(argv, function(filename) {
         // Read the file content.
         var source = fs.readFileSync(filename, 'utf8');
 
