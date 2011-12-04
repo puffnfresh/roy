@@ -5,8 +5,9 @@ var grammar = {
     "startSymbol": "program",
 
     "operators": [
+        ["left", "RIGHTARROW", "LEFTARROW", "RIGHTFATARROW", "ELEM", "NOTELEM",
+          "FORALL", "COMPOSE"],
         ["left", "BOOLOP"],
-        ["left", "RIGHTARROW"],
         ["left", "COMPARE", "WITH"],
         ["left", "+", "-"],
         ["left", "MATH", "CONCAT"],
@@ -39,7 +40,7 @@ var grammar = {
         ],
         "doLine": [
             ["line", "$$ = $1;"],
-            ["BIND IDENTIFIER = expression", "$$ = new yy.Bind($2, $4);"],
+            ["IDENTIFIER LEFTARROW expression", "$$ = new yy.Bind($1, $3);"],
             ["RETURN expression", "$$ = new yy.Return($2);"]
         ],
         "doBlock": [
@@ -216,7 +217,6 @@ var grammar = {
         ],
         "keywordOrIdentifier": [
             ["RETURN", "$$ = $1;"],
-            ["BIND", "$$ = $1;"],
             ["IDENTIFIER", "$$ = $1;"]
         ],
         "identifier": [

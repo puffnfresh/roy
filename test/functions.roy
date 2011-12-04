@@ -1,8 +1,8 @@
 let named x = x
-let anon = \x -> x
+let anon = λx → x
 
 let multiArgs x y z = x
-let anonMultiArgs = \x y z -> x
+let anonMultiArgs = λx y z -> x
 
 console.log (named "Hello") (anon "world")
 console.log (multiArgs "Hello" "world" "!") (anonMultiArgs "world" "!" "Hello")

@@ -31,7 +31,6 @@ var identifierToken = function() {
         case 'match':
         case 'case':
         case 'do':
-        case 'bind':
         case 'return':
         case 'macro':
         case 'with':
@@ -127,6 +126,13 @@ var literalToken = function() {
     var next;
     switch(tag) {
     case '<':
+        next = chunk.slice(0, 2);
+        if(next == '<-') {
+            tokens.push(['LEFTARROW', next, lineno]);
+            return 2;
+        }
+        tokens.push(['COMPARE', tag, lineno]);
+        return 1;
     case '>':
         tokens.push(['COMPARE', tag, lineno]);
         return 1;
@@ -200,8 +206,32 @@ var literalToken = function() {
         }
         tokens.push([tag, tag, lineno]);
         return 1;
+    case 'λ':
     case '\\':
         tokens.push(['LAMBDA', tag, lineno]);
+        return 1;
+    case '←':
+        tokens.push(['LEFTARROW', tag, lineno]);
+        return 1;
+    case '→':
+        tokens.push(['RIGHTARROW', tag, lineno]);
+        return 1;
+    case '⇒':
+        tokens.push(['RIGHTFATARROW', tag, lineno]);
+        return 1;
+    case '∀':
+        tokens.push(['FORALL', tag, lineno]);
+        return 1;
+    // Called so because of Haskell's function elem.
+    case '∈':
+        tokens.push(['ELEM', tag, lineno]);
+        return 1;
+    case '∉':
+        tokens.push(['NOTELEM', tag, lineno]);
+        return 1;
+    // Function composition.
+    case '∘':
+        tokens.push(['COMPOSE', tag, lineno]);
         return 1;
     case ']':
     case ':':

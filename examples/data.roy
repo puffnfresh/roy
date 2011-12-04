@@ -11,7 +11,7 @@ printSomething None
 data Either a b =
   Left a | Right b
 
-let printString (s : String) =
+let printString (s: String) =
   console.log s
 
 let printResult e = match e
