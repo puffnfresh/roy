@@ -1,0 +1,15 @@
+type Request = {url: String, payload: String}
+
+let ajaxRequest = {
+  return: \x -> x
+  bind: \(x : Request) f ->
+    $.ajax x.url x.payload f
+}
+
+let v = (do ajaxRequest
+  bind value = {url: '/url/', payload: 'stuff'}
+  console.log value
+  return value
+)
+
+console.log v
