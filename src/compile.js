@@ -460,13 +460,14 @@ var main = function() {
     //get Argv
     var argv = process.argv.slice(2);
 
-    //Roy Infomation Object
-    var roy_infomation = {
-        version:"Roy,Version ?.?.?(Drafted ?) : http://roy.brianmckenna.org/"
-    }
 
+    //Get Roy Infomation
+    var fs = require('fs');
+    var infofile = fs.readFileSync("package.json", 'utf8');
+    var info = JSON.parse(infofile)
     if(process.argv.length < 3) {
-        console.log(roy_infomation.version)
+        console.log("Roy : " + info.description)
+        console.log(info.author)
         console.log(":? for help")
         nodeRepl();
         return;
@@ -480,12 +481,12 @@ var main = function() {
     
     switch(argv[0]){
         case "-v":
-            console.log(roy_infomation.version)
+            console.log(info.version)
             process.exit()
             break;
         
         case "--version":
-            console.log(roy_infomation.version)
+            console.log(info.version)
             process.exit()
             break;
 
