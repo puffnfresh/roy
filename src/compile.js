@@ -346,8 +346,7 @@ var compileNode = function(n) {
     });
 };
 
-var compile = function(source, env, opts) {
-    if(!env) env = {};
+var compile = function(source, env, data, aliases, opts) {
     if(!opts) opts = {};
 
     // Parse the file to an AST.
@@ -355,9 +354,7 @@ var compile = function(source, env, opts) {
     var ast = parser.parse(tokens);
 
     // Typecheck the AST. Any type errors will throw an exception.
-    var typeA = new types.Variable();
-    var typeB = new types.Variable();
-    var resultType = typecheck(ast, env);
+    var resultType = typecheck(ast, env, data, aliases);
 
     // Output strict JavaScript.
     var output = [];
@@ -395,6 +392,8 @@ var nodeRepl = function() {
     var repl = readline.createInterface(stdin, stdout);
 
     var env = {};
+    var data = {};
+    var aliases = {};
     var sandbox = getSandbox();
 
     // Include the standard library
@@ -420,10 +419,10 @@ var nodeRepl = function() {
                 // Load command
                 var filename = metacommand[1];
                 var source = fs.readFileSync(filename, 'utf8');
-                compiled = compile(source, env);
+                compiled = compile(source, env, data, aliases);
             } else {
                 // If the line isn't a metacommand, just eval it.
-                compiled = compile(line, env);
+                compiled = compile(line, env, data, aliases);
             }
 
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
@@ -458,6 +457,8 @@ var main = function() {
     filenames.unshift(path.dirname(__dirname) + '/lib/std.roy');
 
     var env = {};
+    var data = {};
+    var aliases = {};
     var sandbox = getSandbox();
     _.each(filenames, function(filename) {
         // Read the file content.
@@ -466,7 +467,7 @@ var main = function() {
         // Write the JavaScript output.
         var extension = /\.roy$/;
         console.assert(filename.match(extension), 'Filename must end with ".roy"');
-        var compiled = compile(source, env);
+        var compiled = compile(source, env, data, aliases);
         if(run) {
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
         } else {
