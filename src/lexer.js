@@ -1,4 +1,15 @@
-var IDENTIFIER = /^[a-zA-Z$_][a-zA-Z0-9$_]*/;
+var unicode = require('unicode-categories');
+
+// http://es5.github.com/#x7.6
+// ECMAscript identifier starts with `$`, `_`,
+// or letter from (Lu Ll Lt Lm Lo Nl) unicode groups.
+// Then identifier can also be from groups (Nd, Mn, Mc, or Pc).
+// Roy identifier cannot have letter u03BB (greek lowercase lambda)
+// because it's used in anonymous functions.
+var IDENTIFIER = new RegExp(
+    unicode.ECMA.identifier.source.replace('\\u03BB', '')
+);
+
 var NUMBER = /^-?[0-9]+(\.[0-9]+)?/;
 var COMMENT = /^\/\/.*/;
 var WHITESPACE = /^[^\n\S]+/;
