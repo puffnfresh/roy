@@ -13,6 +13,13 @@ let odd a = not (even a)
 let succ n = n + 1
 let pred n = n - 1
 
+//let compose f g = λx → f (g x)
+//let ∘ = compose
+//let elem =
+//let ∈ = elem
+//let ∉ = not ∘ elem
+//let negate n = -n
+
 // List type
 
 // data List a = Cons a (List a) | Nil
@@ -80,6 +87,7 @@ let optionMonad = {
 data Either a b = Left a | Right b
 
 // Math constants.
-//let π = Math.PI
-//let π2 = π * 2
-//let τ = π2  // tauday.com
+let π = Math.PI
+let π2 = π * 2
+// tauday.com
+let τ = π2

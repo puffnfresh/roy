@@ -24,3 +24,6 @@ console.log (do traceMonad
   z <- 4
   return w + x + y + z
 )
+
+let тест = "test"
+console.log тест
