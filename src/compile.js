@@ -408,11 +408,24 @@ var nodeRepl = function() {
     repl.on('line', function(line) {
         var compiled;
         var output;
+
+        // Check for a "metacommand"
+        // e.g. ":q" or ":l test.roy"
+        var metacommand = line.replace(/^\s+/, '').split(' ');
         try {
-            if (line.replace(/^\s+/g,"").replace(/\s+$/g,"") == ":q"){
+            if(metacommand[0] == ":q") {
+                // Exit command
                 process.exit();
+            } else if(metacommand[0] == ":l") {
+                // Load command
+                var filename = metacommand[1];
+                var source = fs.readFileSync(filename, 'utf8');
+                compiled = compile(source, env);
+            } else {
+                // If the line isn't a metacommand, just eval it.
+                compiled = compile(line, env);
             }
-            compiled = compile(line, env);
+
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
             if(typeof output != 'undefined') console.log(output + " : " + compiled.type);
         } catch(e) {
