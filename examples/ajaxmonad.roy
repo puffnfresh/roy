@@ -7,7 +7,7 @@ let ajaxRequest = {
 }
 
 let v = (do ajaxRequest
-  bind value = {url: '/url/', payload: 'stuff'}
+  value <- {url: '/url/', payload: 'stuff'}
   console.log value
   return value
 )

@@ -12,9 +12,9 @@ let traceMonad = {
 }
 
 console.log (do traceMonad
-  bind w = 1
+  w <- 1
   let x = 2
-  bind y = 3
-  bind z = 4
+  y <- 3
+  z <- 4
   return w + x + y + z
 )
