@@ -69,13 +69,17 @@ let maybe n f o = match o
   case None = n
 
 let optionMonad = {
-  return: \x ->
+  return: λx →
     Some x
-  bind: \x f -> match x
+  bind: λx f → match x
     case (Some a) = f a
     case None = None
 }
 
-// Either type
-
+// Either type.
 data Either a b = Left a | Right b
+
+// Math constants.
+//let π = Math.PI
+//let π2 = π * 2
+//let τ = π2  // tauday.com

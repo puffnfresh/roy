@@ -5,14 +5,14 @@ let child_process = require 'child_process'
 let dir = "test"
 let files = fs.readdirSync dir
 
-let tests = files.filter (\x ->
+let tests = files.filter (λx →
   (x.lastIndexOf '.roy') == (x.length - 4)
 )
 
-tests.forEach (\t ->
+tests.forEach (λt →
   let name = path.join dir t
   let outFile = (path.join dir (path.basename t '.roy')) ++ '.out'
-  child_process.exec './roy -r ' ++ name (\error stdout stderr ->
+  child_process.exec './roy -r ' ++ name (λerror stdout stderr →
     if error then
       console.log "Error:" name error.message
     else
