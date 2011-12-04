@@ -219,20 +219,6 @@ var literalToken = function() {
     case '⇒':
         tokens.push(['RIGHTFATARROW', tag, lineno]);
         return 1;
-    case '∀':
-        tokens.push(['FORALL', tag, lineno]);
-        return 1;
-    // Called so because of Haskell's function elem.
-    case '∈':
-        tokens.push(['ELEM', tag, lineno]);
-        return 1;
-    case '∉':
-        tokens.push(['NOTELEM', tag, lineno]);
-        return 1;
-    // Function composition.
-    case '∘':
-        tokens.push(['COMPOSE', tag, lineno]);
-        return 1;
     case ']':
     case ':':
     case '.':
