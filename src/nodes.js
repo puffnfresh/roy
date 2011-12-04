@@ -150,6 +150,15 @@ exports.nodes = {
             }
         };
     },
+    External: function(name, value){
+        this.name = name;
+        this.value = value;
+        this.accept = function(a){
+            if(a.visitExternal){
+                return a.visitExternal(this);
+            }
+        };
+    },
     Call: function(func, args) {
         this.func = func;
         this.args = args;
