@@ -5,16 +5,16 @@ let child_process = require 'child_process'
 let dir = "test"
 let files = fs.readdirSync dir
 
-let tests = files.filter (fn x =
+let tests = files.filter (\x ->
   (x.lastIndexOf '.roy') == (x.length - 4)
 )
 
-tests.forEach (fn t =
+tests.forEach (\t ->
   let name = path.join dir t
   let outFile = (path.join dir (path.basename t '.roy')) ++ '.out'
-  child_process.exec './roy -r ' ++ name (fn error stdout stderr =
+  child_process.exec './roy -r ' ++ name (\error stdout stderr ->
     if error then
-      console.log "Error:" error.message
+      console.log "Error:" name error.message
     else
       let expected = fs.readFileSync outFile 'utf8'
       let actual = stdout.toString ()

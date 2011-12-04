@@ -113,7 +113,8 @@ var lineToken = function() {
                     last = indents[indents.length - 1];
                 }
             }
-            tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
+            if(tokens.length > 0)
+                tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
         }
         indent = size;
         return token[0].length;
@@ -175,6 +176,14 @@ var literalToken = function() {
         }
         tokens.push([tag, tag, lineno]);
         return 1;
+    case '-':
+        next = chunk.slice(0, 2);
+        if (next == '->') {
+            tokens.push(['RIGHTARROW', next, lineno]);
+            return 2;
+        }
+        tokens.push([tag, tag, lineno]);
+        return 1;
     case '&':
         next = chunk.slice(0, 2);
         if(next == '&&') {
@@ -191,11 +200,13 @@ var literalToken = function() {
         }
         tokens.push([tag, tag, lineno]);
         return 1;
+    case '\\':
+        tokens.push(['LAMBDA', tag, lineno]);
+        return 1;
     case ']':
     case ':':
     case '.':
     case ',':
-    case '-':
     case '{':
     case '}':
     case '(':

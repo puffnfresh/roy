@@ -1,6 +1,4 @@
-Roy
-===
-
+# Roy
 Roy is a small functional language that compiles to JavaScript. It has a few main features:
 
 * Damas-Hindley-Milner type inference
@@ -12,9 +10,7 @@ Roy is a small functional language that compiles to JavaScript. It has a few mai
 * Monad syntax
 * Not-horrible JS output
 
-Usage
----
-
+## Usage
 To compile:
 
     make deps
@@ -33,36 +29,35 @@ To compile a `.roy` file to `.js`:
     ./roy examples/helloworld.roy
     cat examples/helloworld.js
 
-Example
----
-
+## Example
 Input (test.roy):
 
-    let addTwo n =
-        n + 2
+```roy
+let addTwo n =
+    n + 2
 
-    console.log (addTwo 40)
+console.log (addTwo 40)
+```
 
 Output (test.js):
 
-    var addTwo = function(n) {
-        return n + 2;
-    }
-    console.log(addTwo(40))
+```roy
+var addTwo = function(n) {
+    return n + 2;
+}
+console.log(addTwo(40))
+```
 
 Calling `addTwo "test"` will result in a compile-time error (`addTwo` can only take a Number).
 
 See the examples directory for more.
 
-License
----
-
+## License
 MIT
 
-Resources
----
-
+## Resources
 * Roy website: http://roy.brianmckenna.org/
+* Roy Twitter: http://twitter.com/roylangjs
 * Bitbucket repo: https://bitbucket.org/puffnfresh/roy
 * GitHub repo: https://github.com/pufuwozu/roy
 * Brian's blog: http://brianmckenna.org/

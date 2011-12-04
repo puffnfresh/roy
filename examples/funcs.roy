@@ -11,5 +11,5 @@ log "Hello"
 log 100
 log [1, 2, 3]
 
-// Lamdas
-console.log ((fn x = x + 1) 100)
+// Lambdas
+console.log ((\x -> x + 1) 100)
