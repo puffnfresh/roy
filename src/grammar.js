@@ -49,6 +49,8 @@ var grammar = {
         "statement": [
             ["letFunction", "$$ = $1;"],
             ["letBinding", "$$ = $1;"],
+            ["ExternalFunction", "$$ = $1;"],
+            ["ExternalBinding", "$$ = $1;"],
             ["dataDecl", "$$ = $1;"],
             ["typeDecl", "$$ = $1;"],
             ["macro", "$$ = $1;"]
@@ -148,6 +150,14 @@ var grammar = {
         "letBinding": [
             ["LET IDENTIFIER optType = expression", "$$ = new yy.Let($2, $5, $3);"],
             ["LET IDENTIFIER optType = INDENT expression OUTDENT", "$$ = new yy.Let($2, $6, $3);"]
+        ],
+        "ExternalFunction": [
+            ["EXTERNAL IDENTIFIER paramList optType = block", "$$ = new yy.Function($2, $3, $6, $4);"],
+            ["EXTERNAL IDENTIFIER paramList optType = expression", "$$ = new yy.Function($2, $3, [$6], $4);"]
+        ],
+        "ExternalBinding": [
+            ["EXTERNAL IDENTIFIER optType = expression", "$$ = new yy.External($2, $5, $3);"],
+            ["EXTERNAL IDENTIFIER optType = INDENT expression OUTDENT", "$$ = new yy.External($2, $6, $3);"]
         ],
         "paramList": [
             ["( )", "$$ = [];"],

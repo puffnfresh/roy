@@ -22,6 +22,7 @@ var identifierToken = function() {
             name = 'BOOLEAN';
             break;
         case 'let':
+        case 'external':
         case 'fn':
         case 'if':
         case 'then':

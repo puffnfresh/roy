@@ -108,6 +108,9 @@ var compileNode = function(n) {
         visitLet: function() {
             return "var " + n.name + " = " + compileNode(n.value) + ";";
         },
+        visitExternal: function(){
+            return "this." + n.name + " = " + compileNode(n.value) + ";";
+        },
         visitData: function() {
             _.each(n.tags, function(tag) {
                 data[tag.name] = n.name;
