@@ -412,22 +412,42 @@ var nodeRepl = function() {
         // Check for a "metacommand"
         // e.g. ":q" or ":l test.roy"
         var metacommand = line.replace(/^\s+/, '').split(' ');
+        var is_compiled = false;
         try {
-            if(metacommand[0] == ":q") {
-                // Exit command
-                process.exit();
-            } else if(metacommand[0] == ":l") {
-                // Load command
-                var filename = metacommand[1];
-                var source = fs.readFileSync(filename, 'utf8');
-                compiled = compile(source, env);
-            } else {
-                // If the line isn't a metacommand, just eval it.
-                compiled = compile(line, env);
+            switch(metacommand[0]){
+                case ":q":
+                    // Exit command
+                    process.exit();
+                    break;
+
+                case ":l":
+                    // Load command
+                    var filename = metacommand[1];
+                    var source = fs.readFileSync(filename, 'utf8');
+                    compiled = compile(source, env);
+                    is_compiled = true;
+                    break;
+                
+                case ":?":
+                    console.log("Command available from the prompt:");
+                    console.log(":l -- load and run an external file");
+                    console.log(":q -- exit Repl");
+                    console.log(":? -- show help");
+                    break;
+                
+                default:
+                    // If the line isn't a metacommand, just eval it.
+                    compiled = compile(line, env);
+                    is_compiled = true;
+                    break;
+            }
+            
+            // If Metacommand compile ...
+            if (is_compiled){
+                output = vm.runInNewContext(compiled.output, sandbox, 'eval');
+                if(typeof output != 'undefined') console.log(output + " : " + compiled.type);
             }
 
-            output = vm.runInNewContext(compiled.output, sandbox, 'eval');
-            if(typeof output != 'undefined') console.log(output + " : " + compiled.type);
         } catch(e) {
             console.log((e.stack || e.toString()) + '\n\n');
         }
@@ -437,29 +457,53 @@ var nodeRepl = function() {
 };
 
 var main = function() {
+    //get Argv
+    var argv = process.argv.slice(2);
+
+
+    //Get Roy Infomation
+    var fs = require('fs');
+    var infofile = fs.readFileSync("package.json", 'utf8');
+    var info = JSON.parse(infofile)
     if(process.argv.length < 3) {
+        console.log("Roy : " + info.description)
+        console.log(info.author)
+        console.log(":? for help")
         nodeRepl();
         return;
     }
 
     var fs = require('fs');
     var path = require('path');
-    var filenames = process.argv.slice(2);
 
     var vm;
     var run = false;
-    if(filenames[0] == '-r') {
-        vm = require('vm');
-        run = true;
-        filenames.shift();
+    
+    switch(argv[0]){
+        case "-v":
+            console.log(info.version)
+            process.exit()
+            break;
+        
+        case "--version":
+            console.log(info.version)
+            process.exit()
+            break;
+
+        case "-r":
+            vm = require('vm');
+            run = true;
+            argv.shift();
+            break;
     }
+    
 
     // Include the standard library
-    filenames.unshift(path.dirname(__dirname) + '/lib/std.roy');
+    argv.unshift(path.dirname(__dirname) + '/lib/std.roy');
 
     var env = {};
     var sandbox = getSandbox();
-    _.each(filenames, function(filename) {
+    _.each(argv, function(filename) {
         // Read the file content.
         var source = fs.readFileSync(filename, 'utf8');
 
@@ -479,3 +523,4 @@ exports.main = main;
 if(exports && !module.parent) {
     main();
 }
+
