@@ -49,8 +49,7 @@ var grammar = {
         "statement": [
             ["letFunction", "$$ = $1;"],
             ["letBinding", "$$ = $1;"],
-            ["ExternalFunction", "$$ = $1;"],
-            ["ExternalBinding", "$$ = $1;"],
+            ["ExternalDecl","$$ = $1;"],
             ["dataDecl", "$$ = $1;"],
             ["typeDecl", "$$ = $1;"],
             ["macro", "$$ = $1;"]
@@ -112,7 +111,10 @@ var grammar = {
             ["IDENTIFIER optTypeParamList", "$$ = [new yy.Tag($1, $2)];"],
             ["dataList | IDENTIFIER optTypeParamList", "$$ = $1; $1.push(new yy.Tag($3, $4));"]
         ],
-
+        // external document = Document
+        "ExternalDecl": [
+            ["EXTERNAL IDENTIFIER = IDENTIFIER", "$$ = new yy.External($2, $4);"]
+        ],
         // type Person = {firstName: String, lastName: String}
         "typeDecl": [
             ["TYPE IDENTIFIER = type", "$$ = new yy.Type($2, $4);"]
@@ -150,14 +152,6 @@ var grammar = {
         "letBinding": [
             ["LET IDENTIFIER optType = expression", "$$ = new yy.Let($2, $5, $3);"],
             ["LET IDENTIFIER optType = INDENT expression OUTDENT", "$$ = new yy.Let($2, $6, $3);"]
-        ],
-        "ExternalFunction": [
-            ["EXTERNAL IDENTIFIER paramList optType = block", "$$ = new yy.Function($2, $3, $6, $4);"],
-            ["EXTERNAL IDENTIFIER paramList optType = expression", "$$ = new yy.Function($2, $3, [$6], $4);"]
-        ],
-        "ExternalBinding": [
-            ["EXTERNAL IDENTIFIER optType = expression", "$$ = new yy.External($2, $5, $3);"],
-            ["EXTERNAL IDENTIFIER optType = INDENT expression OUTDENT", "$$ = new yy.External($2, $6, $3);"]
         ],
         "paramList": [
             ["( )", "$$ = [];"],

@@ -266,7 +266,8 @@ if(!module.parent) {
         " console.log 10 * 20",
         " console.log [1, 2, 3].length",
         " true",
-        "console.log 'example'"
+        "console.log 'example'",
+        "external hoge = fuga"
     ].join("\n"));
     console.log(tokens);
 }

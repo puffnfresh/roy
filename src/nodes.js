@@ -150,11 +150,9 @@ exports.nodes = {
             }
         };
     },
-    External: function(name,value,type){
+    External: function(name, value){
         this.name = name;
         this.value = value;
-        // Optional
-        this.type = type;
         this.accept = function(a){
             if(a.visitExternal){
                 return a.visitExternal(this);
