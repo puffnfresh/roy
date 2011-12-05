@@ -173,11 +173,14 @@ var compileNode = function(n) {
                     }
                 }
             });
-            lastBind.rest = n.body.slice(lastBindIndex + 1);
+            if(lastBind) {
+                lastBind.rest = n.body.slice(lastBindIndex + 1);
+            }
             return "(function(){\n" + pushIndent() + "var __monad__ = " +
                 compileNode(n.value) + ";\n" + getIndent() +
                 compiledInit.join('\n' + getIndent()) +
-                compileNode(firstBind) + "\n" + popIndent() + "})()";
+                (firstBind ? compileNode(firstBind) : '') + "\n" +
+                popIndent() + "})()";
         },
         visitTag: function() {
             var args = _.map(n.vars, function(v) {
