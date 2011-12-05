@@ -425,7 +425,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                         path.push(index);
 
                         var currentValue = value;
-                        for(var x = 0; x < path.length; x++) {
+                        for(var x = 0; x < path.length && path[x] != -1; x++) {
                             currentValue = prune(currentValue).types[path[x]];
                         }
 

@@ -1,0 +1,5 @@
+data List a = Empty | Cons a (List a)
+
+let map f l = match l
+  case (Cons x xs) = Cons (f x) (map f xs)
+  case Empty = Empty
