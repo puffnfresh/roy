@@ -400,8 +400,8 @@ var nodeRepl = function() {
     var sandbox = getSandbox();
 
     // Include the standard library
-    var stdlib = fs.readFileSync(path.dirname(__dirname) + '/lib/std.roy', 'utf8');
-    vm.runInNewContext(compile(stdlib, env).output, sandbox, 'eval');
+    var prelude = fs.readFileSync(path.dirname(__dirname) + '/lib/prelude.roy', 'utf8');
+    vm.runInNewContext(compile(prelude, env).output, sandbox, 'eval');
 
     repl.setPrompt('roy> ');
     repl.on('close', function() {
@@ -483,7 +483,7 @@ var main = function() {
     }
 
     // Include the standard library
-    argv.unshift(path.dirname(__dirname) + '/lib/std.roy');
+    argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
 
     var env = {};
     var data = {};
