@@ -428,9 +428,9 @@ var nodeRepl = function() {
                 break;
             case ":?":
                 // Help
-                console.log("Command available from the prompt:");
+                console.log("Commands available from the prompt:");
                 console.log(":l -- load and run an external file");
-                console.log(":q -- exit Repl");
+                console.log(":q -- exit REPL");
                 console.log(":? -- show help");
                 break;
             default:
