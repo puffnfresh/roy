@@ -115,7 +115,7 @@
       <pre id="output"></pre>
     </div>
     <div class="footer">
-      &copy; 2011 <a href="http://brianmckenna.org/">Brian McKenna</a>
+      Roy <span id="version"></span> &copy; 2011 <a href="http://brianmckenna.org/">Brian McKenna</a>
     </div>
     <script>
     var log = function() {
@@ -165,6 +165,16 @@
 
             return jscode;
         };
+        var sendRequest = function(url, callback) {
+            var request = new XMLHttpRequest();
+            request.onreadystatechange = function() {
+                if(request.readyState == 4) {
+                    callback(request);
+                }
+            };
+            request.open("GET", url, true);
+            request.send(null);
+        };
         addEvent("exampleselect", 'change', function() {
             var value = document.getElementById("exampleselect").value;
             if(!value) return;
@@ -172,16 +182,11 @@
                 document.getElementById("roycode").value = examples[value];
                 royCompile();
             } else {
-                var request = new XMLHttpRequest();
-                request.onreadystatechange = function() {
-                    if(request.readyState == 4) {
-                         examples[value] = request.responseText;
-                         document.getElementById("roycode").value = examples[value];
-                         royCompile();
-                    }
-                };
-                request.open("GET", "examples/" + value + ".roy", true);
-                request.send(null);
+                sendRequest("examples/" + value + ".roy", function(request) {
+                     examples[value] = request.responseText;
+                     document.getElementById("roycode").value = examples[value];
+                     royCompile();
+                });
             }
         });
         addEvent("roycode", 'change', royCompile);
@@ -192,6 +197,10 @@
             var script = document.createElement("script");
             script.text = "(function() {try {var console = newConsole;(function(){\n" + code + "\n})()} catch(e) {log(e);}})();";
             document.body.appendChild(script);
+        });
+        sendRequest("package.json", function(request) {
+            var package = eval("(" + request.responseText + ")");
+            document.getElementById("version").innerHTML = package.version;
         });
     })();
     </script>
