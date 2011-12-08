@@ -14,7 +14,7 @@
   },
   "main": "src/compile.js",
   "bin": {
-    "roy": "./roy"
+    "roy": "./bin/roy"
   },
   "scripts": {
     "install": "node src/grammar.js"
