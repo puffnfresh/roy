@@ -216,7 +216,17 @@ var grammar = {
             ["( expression ) . keywordOrIdentifier", "$$ = new yy.Access($2, $5);"]
         ],
         "keywordOrIdentifier": [
+            ["FN", "$$ = $1;"],
+            ["THEN", "$$ = $1;"],
+            ["ELSE", "$$ = $1;"],
+            ["DATA", "$$ = $1;"],
+            ["TYPE", "$$ = $1;"],
+            ["MATCH", "$$ = $1;"],
+            ["CASE", "$$ = $1;"],
+            ["DO", "$$ = $1;"],
             ["RETURN", "$$ = $1;"],
+            ["MACRO", "$$ = $1;"],
+            ["WITH", "$$ = $1;"],
             ["IDENTIFIER", "$$ = $1;"]
         ],
         "identifier": [
