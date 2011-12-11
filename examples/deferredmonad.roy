@@ -9,12 +9,13 @@ let deferred = {
 }
 
 let v = (do deferred
-  val <- $.ajax '/examples/helloworld.roy'
-  val2 <- $.ajax '/examples/alias.roy'
+  val <- $.ajax 'examples/helloworld.roy'
+  val2 <- $.ajax 'examples/alias.roy'
   return val ++ val2
 )
 
 (do deferred
   text <- v
   console.log text
+  return text
 )
