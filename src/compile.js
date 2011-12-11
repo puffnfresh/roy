@@ -1,5 +1,6 @@
 var typecheck = require('./typeinference').typecheck,
     nodes = require('./nodes').nodes,
+    prettyPrint = require('./prettyPrint').prettyPrint,
     types = require('./types'),
     parser = require('./parser').parser,
     lexer = require('./lexer'),
@@ -399,6 +400,7 @@ var nodeRepl = function() {
 
     var env = {};
     var data = {};
+    var sources = {};
     var aliases = {};
     var sandbox = getSandbox();
 
@@ -414,6 +416,12 @@ var nodeRepl = function() {
         var compiled;
         var output;
 
+        var filename;
+        var source;
+
+        var tokens;
+        var ast;
+
         // Check for a "metacommand"
         // e.g. ":q" or ":l test.roy"
         var metacommand = line.replace(/^\s+/, '').split(' ');
@@ -425,9 +433,17 @@ var nodeRepl = function() {
                 break;
             case ":l":
                 // Load
-                var filename = metacommand[1];
-                var source = fs.readFileSync(filename, 'utf8');
+                filename = metacommand[1];
+                source = fs.readFileSync(filename, 'utf8');
                 compiled = compile(source, env, data, aliases);
+                break;
+            case ":s":
+                // Source
+                if(sources[metacommand[1]]) {
+                    console.log(prettyPrint(sources[metacommand[1]]));
+                } else {
+                    console.log(metacommand[1], "is not defined.");
+                }
                 break;
             case ":?":
                 // Help
@@ -437,7 +453,18 @@ var nodeRepl = function() {
                 console.log(":? -- show help");
                 break;
             default:
-                // If the line isn't a metacommand, just eval it.
+                // The line isn't a metacommand
+
+                // Remember the source if it's a binding
+                tokens = lexer.tokenise(line);
+                ast = parser.parse(tokens);
+                ast[0].accept({
+                    visitLet: function(n) {
+                        sources[n.name] = n.value;
+                    }
+                });
+
+                // Just eval it
                 compiled = compile(line, env, data, aliases);
                 break;
             }
