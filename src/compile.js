@@ -547,9 +547,18 @@ var main = function() {
     switch(argv[0]) {
     case "-v":
     case "--version":
+        console.log("Roy: " + info.description);
         console.log(info.version);
         process.exit();
         break;
+    case "-h":
+        console.log("\n");
+        console.log("Roy: " + info.description + "\n");
+        console.log("-v        : show current version");
+        console.log("-r [file] : run Roy-code without compile javascript");
+        console.log("-c        : colorful repl mode");
+        console.log("-h        : show this help");
+        console.log("\n");
     case "-r":
         vm = require('vm');
         run = true;
