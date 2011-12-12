@@ -1,6 +1,6 @@
 var typecheck = require('./typeinference').typecheck,
     nodes = require('./nodes').nodes,
-    prettyPrint = require('./prettyPrint').prettyPrint,
+    prettyPrint = require('./prettyprint').prettyPrint,
     types = require('./types'),
     parser = require('./parser').parser,
     lexer = require('./lexer'),
@@ -389,7 +389,7 @@ var getSandbox = function() {
     return sandbox;
 };
 
-var nodeRepl = function() {
+var nodeRepl = function(metaenv) {
     var readline = require('readline');
     var fs = require('fs');
     var path = require('path');
@@ -407,12 +407,12 @@ var nodeRepl = function() {
     // Include the standard library
     var prelude = fs.readFileSync(path.dirname(__dirname) + '/lib/prelude.roy', 'utf8');
     vm.runInNewContext(compile(prelude, env).output, sandbox, 'eval');
-
-    repl.setPrompt('roy> ');
+    repl.setPrompt('roy>');
     repl.on('close', function() {
         stdin.destroy();
     });
     repl.on('line', function(line) {
+
         var compiled;
         var output;
 
@@ -439,17 +439,40 @@ var nodeRepl = function() {
                 break;
             case ":s":
                 // Source
+                if (metaenv.color_console){
+                    var tag_start = "\u001b[33m";
+                    var tag_end  = "\u001b[0m";
+                }else{
+                    var tag_start = "";
+                    var tag_end   = "";
+                }
+
                 if(sources[metacommand[1]]) {
-                    console.log(prettyPrint(sources[metacommand[1]]));
+                    console.log(tag_start,metacommand[1] + " =",prettyPrint(sources[metacommand[1]]),tag_end);
                 } else {
-                    console.log(metacommand[1], "is not defined.");
+                    if(metacommand[1]){
+                        console.log(tag_start,metacommand[1], "is not defined.",tag_end);
+                    }else{
+                        console.log("Usage :s command ")
+                        console.log(":s [identifier] :: show original code about identifier.");
+                    }
                 }
                 break;
             case ":?":
                 // Help
-                console.log("Commands available from the prompt:");
+                
+                if (metaenv.color_console){
+                    var tag_start = "\u001b[32m";
+                    var tag_end  = "\u001b[0m";
+                }else{
+                    var tag_start = "";
+                    var tag_end   = "";
+                }
+
+                console.log(tag_start,"Commands available from the prompt",tag_end);
                 console.log(":l -- load and run an external file");
                 console.log(":q -- exit REPL");
+                console.log(":s -- show original code about identifier.");
                 console.log(":? -- show help");
                 break;
             default:
@@ -471,10 +494,27 @@ var nodeRepl = function() {
 
             if(compiled) {
                 output = vm.runInNewContext(compiled.output, sandbox, 'eval');
-                if(typeof output != 'undefined') console.log(output + " : " + compiled.type);
+                if(typeof output != 'undefined') {
+                    
+                    console.log(metaenv.color_console);
+                    
+                    //COLOR_CONSOLE
+                    if (metaenv.color_console){
+                        console.log(output + " : \u001b[32m" + compiled.type +"\u001b[0m");
+                    } else {
+                        console.log(output + " : " + compiled.type);
+                    }
+
+                }
             }
         } catch(e) {
-            console.log((e.stack || e.toString()) + '\n\n');
+
+            // COLOR_CONSOLE:
+            if (metaenv.color_console){
+                console.log("\u001b[31m"+ (e.stack || e.toString()) + '\u001b[0m');
+            }else{
+                console.log((e.stack || e.toString()) + '\n\n');
+            }
         }
         repl.prompt();
     });
@@ -483,6 +523,11 @@ var nodeRepl = function() {
 
 var main = function() {
     var argv = process.argv.slice(2);
+    
+    // Meta Env Configure Data
+    var metaenv = {
+        color_console:false
+        }
 
     // Get Roy infomation
     var fs = require('fs');
@@ -492,7 +537,7 @@ var main = function() {
         console.log("Roy: " + info.description);
         console.log(info.author);
         console.log(":? for help");
-        nodeRepl();
+        nodeRepl(metaenv);
         return;
     }
 
@@ -502,14 +547,28 @@ var main = function() {
     switch(argv[0]) {
     case "-v":
     case "--version":
+        console.log("Roy: " + info.description);
         console.log(info.version);
         process.exit();
         break;
+    case "-h":
+        console.log("\n");
+        console.log("Roy: " + info.description + "\n");
+        console.log("-v        : show current version");
+        console.log("-r [file] : run Roy-code without compile javascript");
+        console.log("-c        : colorful repl mode");
+        console.log("-h        : show this help");
+        console.log("\n");
     case "-r":
         vm = require('vm');
         run = true;
         argv.shift();
         break;
+    case "-c":
+    case "--color":
+        metaenv.color_console = true;
+        nodeRepl(metaenv)
+        return;
     }
 
     // Include the standard library
