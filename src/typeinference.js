@@ -167,7 +167,12 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                 newEnv[node.name] = new t.FunctionType(tempTypes);
             }
 
+            var argNames = {};
             _.each(node.args, function(arg, i) {
+                if(argNames[arg.name]) {
+                    throw new Error("Repeated function argument '" + arg.name + "'");
+                }
+
                 var argType;
                 if(arg.type) {
                     argType = nodeToType(arg.type, env, aliases);
@@ -176,6 +181,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                     newNonGeneric.push(argType);
                 }
                 newEnv[arg.name] = argType;
+                argNames[arg.name] = argType;
                 types.push(argType);
             });
 
