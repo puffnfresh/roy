@@ -389,7 +389,7 @@ var getSandbox = function() {
     return sandbox;
 };
 
-var nodeRepl = function(metaenv) {
+var nodeRepl = function(opts) {
     var readline = require('readline');
     var fs = require('fs');
     var path = require('path');
@@ -404,15 +404,25 @@ var nodeRepl = function(metaenv) {
     var aliases = {};
     var sandbox = getSandbox();
 
+    var colorLog = function(color) {
+        var args = [].slice.call(arguments, 1);
+
+        if(opts.colorConsole) {
+            args[0] = '\u001b[' + color + 'm' + args[0];
+            args[args.length - 1] = args[args.length - 1] + '\u001b[0m';
+        }
+
+        console.log.apply(console, args);
+    };
+
     // Include the standard library
     var prelude = fs.readFileSync(path.dirname(__dirname) + '/lib/prelude.roy', 'utf8');
     vm.runInNewContext(compile(prelude, env).output, sandbox, 'eval');
-    repl.setPrompt('roy>');
+    repl.setPrompt('roy> ');
     repl.on('close', function() {
         stdin.destroy();
     });
     repl.on('line', function(line) {
-
         var compiled;
         var output;
 
@@ -439,19 +449,11 @@ var nodeRepl = function(metaenv) {
                 break;
             case ":s":
                 // Source
-                if (metaenv.color_console){
-                    var tag_start = "\u001b[33m";
-                    var tag_end  = "\u001b[0m";
-                }else{
-                    var tag_start = "";
-                    var tag_end   = "";
-                }
-
                 if(sources[metacommand[1]]) {
-                    console.log(tag_start,metacommand[1] + " =",prettyPrint(sources[metacommand[1]]),tag_end);
+                    colorLog(33, metacommand[1], "=", prettyPrint(sources[metacommand[1]]));
                 } else {
                     if(metacommand[1]){
-                        console.log(tag_start,metacommand[1], "is not defined.",tag_end);
+                        colorLog(33, metacommand[1], "is not defined.");
                     }else{
                         console.log("Usage :s command ")
                         console.log(":s [identifier] :: show original code about identifier.");
@@ -460,16 +462,7 @@ var nodeRepl = function(metaenv) {
                 break;
             case ":?":
                 // Help
-                
-                if (metaenv.color_console){
-                    var tag_start = "\u001b[32m";
-                    var tag_end  = "\u001b[0m";
-                }else{
-                    var tag_start = "";
-                    var tag_end   = "";
-                }
-
-                console.log(tag_start,"Commands available from the prompt",tag_end);
+                colorLog(32, "Commands available from the prompt");
                 console.log(":l -- load and run an external file");
                 console.log(":q -- exit REPL");
                 console.log(":s -- show original code about identifier.");
@@ -494,27 +487,13 @@ var nodeRepl = function(metaenv) {
 
             if(compiled) {
                 output = vm.runInNewContext(compiled.output, sandbox, 'eval');
-                if(typeof output != 'undefined') {
-                    
-                    console.log(metaenv.color_console);
-                    
-                    //COLOR_CONSOLE
-                    if (metaenv.color_console){
-                        console.log(output + " : \u001b[32m" + compiled.type +"\u001b[0m");
-                    } else {
-                        console.log(output + " : " + compiled.type);
-                    }
 
+                if(typeof output != 'undefined') {
+                    colorLog(32, output + " : " + compiled.type);
                 }
             }
         } catch(e) {
-
-            // COLOR_CONSOLE:
-            if (metaenv.color_console){
-                console.log("\u001b[31m"+ (e.stack || e.toString()) + '\u001b[0m');
-            }else{
-                console.log((e.stack || e.toString()) + '\n\n');
-            }
+            colorLog(31, (e.stack || e.toString()));
         }
         repl.prompt();
     });
@@ -525,9 +504,9 @@ var main = function() {
     var argv = process.argv.slice(2);
     
     // Meta Env Configure Data
-    var metaenv = {
-        color_console:false
-        }
+    var opts = {
+        colorConsole: false
+    };
 
     // Get Roy infomation
     var fs = require('fs');
@@ -537,7 +516,7 @@ var main = function() {
         console.log("Roy: " + info.description);
         console.log(info.author);
         console.log(":? for help");
-        nodeRepl(metaenv);
+        nodeRepl(opts);
         return;
     }
 
@@ -552,13 +531,11 @@ var main = function() {
         process.exit();
         break;
     case "-h":
-        console.log("\n");
         console.log("Roy: " + info.description + "\n");
         console.log("-v        : show current version");
-        console.log("-r [file] : run Roy-code without compile javascript");
-        console.log("-c        : colorful repl mode");
+        console.log("-r [file] : run Roy-code without JavaScript output");
+        console.log("-c        : colorful REPL mode");
         console.log("-h        : show this help");
-        console.log("\n");
     case "-r":
         vm = require('vm');
         run = true;
@@ -566,8 +543,8 @@ var main = function() {
         break;
     case "-c":
     case "--color":
-        metaenv.color_console = true;
-        nodeRepl(metaenv)
+        opts.colorConsole = true;
+        nodeRepl(opts);
         return;
     }
 
