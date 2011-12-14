@@ -381,7 +381,12 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                 newEnv[name] = env[name];
             }
 
+            var argNames = {};
             _.map(node.args, function(arg) {
+                if(argNames[arg.name]) {
+                    throw new Error("Repeated type variable '" + arg.name + "'");
+                }
+
                 var argType;
                 if(arg.type) {
                     argType = nodeToType(arg, newEnv, aliases);
@@ -389,6 +394,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                     argType = new t.Variable();
                 }
                 newEnv[arg.name] = argType;
+                argNames[arg.name] = argType;
                 types.push(argType);
             });
 
