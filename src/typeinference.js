@@ -152,11 +152,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var types = [];
             var newNonGeneric = nonGeneric.slice();
 
-            var newEnv = {};
-            var name;
-            for(name in env) {
-                newEnv[name] = env[name];
-            }
+            var newEnv = _.clone(env);
 
             var tempTypes = [];
             for(var i = 0; i < node.args.length; i++) {
@@ -375,11 +371,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                 throw new Error("Multiple declarations of type constructor: " + node.name);
             }
 
-            var newEnv = {};
-            var name;
-            for(name in env) {
-                newEnv[name] = env[name];
-            }
+            var newEnv = _.clone(env);
 
             var argNames = {};
             _.map(node.args, function(arg) {
@@ -418,11 +410,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var resultType = new t.Variable();
             var value = analyse(node.value, env, nonGeneric, data, aliases);
 
-            var newEnv = {};
-            var name;
-            for(name in env) {
-                newEnv[name] = env[name];
-            }
+            var newEnv = _.clone(env);
 
             _.each(node.cases, function(nodeCase) {
                 var newNonGeneric = nonGeneric.slice();
