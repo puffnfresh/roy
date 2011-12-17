@@ -1,6 +1,5 @@
 var typecheck = require('./typeinference').typecheck,
     nodes = require('./nodes').nodes,
-    prettyPrint = require('./prettyprint').prettyPrint,
     types = require('./types'),
     parser = require('./parser').parser,
     lexer = require('./lexer'),
@@ -390,10 +389,12 @@ var getSandbox = function() {
 };
 
 var nodeRepl = function(opts) {
-    var readline = require('readline');
-    var fs = require('fs');
-    var path = require('path');
-    var vm = require('vm');
+    var readline = require('readline'),
+        fs = require('fs'),
+        path = require('path'),
+        vm = require('vm'),
+        prettyPrint = require('./prettyprint').prettyPrint;
+
     var stdout = process.stdout;
     var stdin = process.openStdin();
     var repl = readline.createInterface(stdin, stdout);
