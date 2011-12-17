@@ -35,6 +35,9 @@ var roy = {};
     load["./types"] = function(exports) {
         //= src/types.js
     };
+    load["./prettyprint"] = function (exports) {
+        //= src/prettyprint.js
+    };
 
     roy.lexer = require("./lexer");
     roy.compile = require("./compile").compile;
