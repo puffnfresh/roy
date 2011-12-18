@@ -133,7 +133,7 @@ var occursInTypeArray = function(t1, types) {
 //
 // `analyse` is the core inference function. It takes an AST node and returns
 // the infered type.
-var analyse = function(node, env, nonGeneric, data, aliases) {
+var analyse = function(node, env, nonGeneric, currentEnv, data, aliases) {
     if(!nonGeneric) nonGeneric = [];
 
     return node.accept({
@@ -182,7 +182,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             });
 
             var scopeTypes = _.map(node.body, function(expression) {
-                return analyse(expression, newEnv, newNonGeneric, data, aliases);
+                return analyse(expression, newEnv, newNonGeneric, currentEnv, data, aliases);
             });
 
             var resultType = scopeTypes[scopeTypes.length - 1];
@@ -196,19 +196,19 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
 
             var functionType = new t.FunctionType(types);
             if(node.name) {
-                env[node.name] = functionType;
+                currentEnv[node.name] = env[node.name] = functionType;
             }
 
             return functionType;
         },
         visitIfThenElse: function() {
             var ifTrueScopeTypes = _.map(node.ifTrue, function(expression) {
-                return analyse(expression, env, nonGeneric, data, aliases);
+                return analyse(expression, env, nonGeneric, currentEnv, data, aliases);
             });
             var ifTrueType = ifTrueScopeTypes[ifTrueScopeTypes.length - 1];
 
             var ifFalseScopeTypes = _.map(node.ifFalse, function(expression) {
-                return analyse(expression, env, nonGeneric, data, aliases);
+                return analyse(expression, env, nonGeneric, currentEnv, data, aliases);
             });
             var ifFalseType = ifFalseScopeTypes[ifFalseScopeTypes.length - 1];
 
@@ -224,11 +224,11 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var types = [];
 
             _.each(node.args, function(arg) {
-                var argType = analyse(arg, env, nonGeneric, data, aliases);
+                var argType = analyse(arg, env, nonGeneric, currentEnv, data, aliases);
                 types.push(argType);
             });
 
-            var funType = analyse(node.func, env, nonGeneric, data, aliases);
+            var funType = analyse(node.func, env, nonGeneric, currentEnv, data, aliases);
             if(prune(funType) instanceof t.NativeType) {
                 return new t.NativeType();
             }
@@ -263,15 +263,19 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
         //
         // Infer the value's type, assigns it in the environment and returns it.
         visitLet: function() {
-            var valueType = analyse(node.value, env, nonGeneric, data, aliases);
+            var valueType = analyse(node.value, env, nonGeneric, currentEnv, data, aliases);
 
             var annotationType;
             if(node.type) {
                 annotationType = nodeToType(node.type, env, aliases);
-                unify(valueType, annotationType);
+                if(prune(valueType) instanceof t.NativeType) {
+                    valueType = annotationType;
+                } else {
+                    unify(valueType, annotationType);
+                }
             }
 
-            env[node.name] = valueType;
+            currentEnv[node.name] = env[node.name] = valueType;
 
             return valueType;
         },
@@ -280,7 +284,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             return env[node.value.value].props['return'].types[1];
         },
         visitAccess: function() {
-            var valueType = analyse(node.value, env, nonGeneric, data, aliases);
+            var valueType = analyse(node.value, env, nonGeneric, currentEnv, data, aliases);
 
             if(prune(valueType) instanceof t.NativeType) {
                 return new t.NativeType();
@@ -299,16 +303,16 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             return prune(valueType).getPropertyType(node.property);
         },
         visitBinaryGenericOperator: function() {
-            var leftType = analyse(node.left, env, nonGeneric, data, aliases);
-            var rightType = analyse(node.right, env, nonGeneric, data, aliases);
+            var leftType = analyse(node.left, env, nonGeneric, currentEnv, data, aliases);
+            var rightType = analyse(node.right, env, nonGeneric, currentEnv, data, aliases);
             unify(leftType, rightType);
 
             return new t.BooleanType();
         },
         visitBinaryNumberOperator: function() {
             var resultType = new t.NumberType();
-            var leftType = analyse(node.left, env, nonGeneric, data, aliases);
-            var rightType = analyse(node.right, env, nonGeneric, data, aliases);
+            var leftType = analyse(node.left, env, nonGeneric, currentEnv, data, aliases);
+            var rightType = analyse(node.right, env, nonGeneric, currentEnv, data, aliases);
             if(!(prune(leftType) instanceof t.NativeType)) {
                 unify(resultType, leftType);
             }
@@ -320,8 +324,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
         },
         visitBinaryBooleanOperator: function() {
             var resultType = new t.BooleanType();
-            var leftType = analyse(node.left, env, nonGeneric, data, aliases);
-            var rightType = analyse(node.right, env, nonGeneric, data, aliases);
+            var leftType = analyse(node.left, env, nonGeneric, currentEnv, data, aliases);
+            var rightType = analyse(node.right, env, nonGeneric, currentEnv, data, aliases);
             if(!(prune(leftType) instanceof t.NativeType)) {
                 unify(resultType, leftType);
             }
@@ -333,8 +337,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
         },
         visitBinaryStringOperator: function() {
             var resultType = new t.StringType();
-            var leftType = analyse(node.left, env, nonGeneric, data, aliases);
-            var rightType = analyse(node.right, env, nonGeneric, data, aliases);
+            var leftType = analyse(node.left, env, nonGeneric, currentEnv, data, aliases);
+            var rightType = analyse(node.right, env, nonGeneric, currentEnv, data, aliases);
             if(!(prune(leftType) instanceof t.NativeType)) {
                 unify(resultType, leftType);
             }
@@ -345,8 +349,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             return resultType;
         },
         visitWith: function() {
-            var leftType = analyse(node.left, env, nonGeneric, data, aliases);
-            var rightType = analyse(node.right, env, nonGeneric, data, aliases);
+            var leftType = analyse(node.left, env, nonGeneric, currentEnv, data, aliases);
+            var rightType = analyse(node.right, env, nonGeneric, currentEnv, data, aliases);
             var combinedTypes = {};
 
             var emptyObjectType = new t.ObjectType({});
@@ -391,7 +395,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             });
 
             var type = new t.TagType(types);
-            env[node.name] = newEnv[node.name] = type;
+            currentEnv[node.name] = env[node.name] = newEnv[node.name] = type;
             _.each(node.tags, function(tag) {
                 if(data[tag.name]) {
                     throw new Error("Multiple declarations for data constructor: " + tag.name);
@@ -401,14 +405,14 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                 _.each(tag.vars, function(v, i) {
                     data[tag.name][i] = nodeToType(v, newEnv, aliases);
                 });
-                env[tag.name] = type;
+                currentEnv[tag.name] = env[tag.name] = type;
             });
 
             return new t.NativeType();
         },
         visitMatch: function() {
             var resultType = new t.Variable();
-            var value = analyse(node.value, env, nonGeneric, data, aliases);
+            var value = analyse(node.value, env, nonGeneric, currentEnv, data, aliases);
 
             var newEnv = _.clone(env);
 
@@ -448,7 +452,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                 };
                 addVarsToEnv(nodeCase.pattern, []);
 
-                var caseType = analyse(nodeCase.value, newEnv, newNonGeneric, data, aliases);
+                var caseType = analyse(nodeCase.value, newEnv, newNonGeneric, currentEnv, data, aliases);
                 unify(resultType, caseType);
             });
             return resultType;
@@ -483,14 +487,14 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
         visitArray: function() {
             var valueType = new t.Variable();
             _.each(node.values, function(v) {
-                unify(valueType, analyse(v, env, nonGeneric, data, aliases));
+                unify(valueType, analyse(v, env, nonGeneric, currentEnv, data, aliases));
             });
             return new t.ArrayType(valueType);
         },
         visitTuple: function() {
             var propTypes = {};
             _.each(node.values, function(v, i) {
-                propTypes[i] = analyse(v, env, nonGeneric, data, aliases);
+                propTypes[i] = analyse(v, env, nonGeneric, currentEnv, data, aliases);
             });
             return new t.ObjectType(propTypes);
         },
@@ -498,7 +502,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var propTypes = {};
             var prop;
             for(prop in node.values) {
-                propTypes[prop] = analyse(node.values[prop], env, nonGeneric, data, aliases);
+                propTypes[prop] = analyse(node.values[prop], env, nonGeneric, currentEnv, data, aliases);
             }
             return new t.ObjectType(propTypes);
         }
@@ -508,6 +512,14 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
 // Converts an AST node to type system type.
 var nodeToType = function(n, env, aliases) {
     return n.accept({
+        visitGeneric: function(g) {
+            return new t.Variable(g.value);
+        },
+        visitTypeFunction: function(tf) {
+            return new t.FunctionType(_.map(tf.args, function(v) {
+                return nodeToType(v, env, aliases);
+            }));
+        },
         visitTypeName: function(tn) {
             if(tn.value in aliases) {
                 return aliases[tn.value];
@@ -553,11 +565,12 @@ var nodeToType = function(n, env, aliases) {
         }
     });
 };
+exports.nodeToType = nodeToType;
 
 // Run inference on an array of AST nodes.
-var typecheck = function(ast, env, data, aliases) {
+var typecheck = function(ast, env, currentEnv, data, aliases) {
     var types = _.map(ast, function(node) {
-        return analyse(node, env, [], data, aliases);
+        return analyse(node, env, [], currentEnv, data, aliases);
     });
     return types && types[0];
 };

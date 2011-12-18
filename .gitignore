@@ -1,5 +1,6 @@
 node_modules
 src/parser.js
+src/typeparser.js
 examples/*.js
 test/*.js
 lib/*.js

@@ -1,4 +1,5 @@
 all:
+	node src/typegrammar.js
 	node src/grammar.js
 
 deps:

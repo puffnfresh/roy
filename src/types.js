@@ -8,9 +8,13 @@ var _ = require('underscore');
 //     fun id x = x
 //
 // Here, `id` has the polymorphic type `'a -> 'a`.
-var Variable = function() {
-    this.id = Variable.nextId;
-    Variable.nextId++;
+var Variable = function(idString) {
+    if(!idString) {
+        this.id = Variable.nextId;
+        Variable.nextId++;
+    } else {
+        this.id = variableFromString(idString);
+    }
     this.instance = null;
 };
 Variable.nextId = 0;
@@ -21,13 +25,30 @@ var toChar = function(n) {
 };
 // Type variables should look like `'a`. If the variable has an instance, that
 // should be used for the string instead.
+//
+// This is just bijective base 26.
+var variableToString  = function(n) {
+    var a = '';
+    if(n >= 26) {
+        a = variableToString(n / 26 - 1);
+        n = n % 26;
+    }
+    a += toChar(n);
+    return a;
+};
 Variable.prototype.toString = function() {
     if(!this.instance) {
-        return "'" + _.map(this.id.toString(26).split(''), function(c) {
-            return toChar(parseInt(c, 26));
-        }).join('');
+        return "'" + variableToString(this.id);
     }
     return this.instance.toString();
+};
+
+var variableFromString = function(vs) {
+    return _.reduce(_.map(vs.split(''), function(v, k) {
+        return v.charCodeAt(0) - 'a'.charCodeAt(0) + 26 * k;
+    }), function(accum, n) {
+        return accum + n;
+    }, 0);
 };
 
 // ## Base type

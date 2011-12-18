@@ -1,15 +1,17 @@
 var typecheck = require('./typeinference').typecheck,
+    nodeToType = require('./typeinference').nodeToType,
     nodes = require('./nodes').nodes,
     types = require('./types'),
     parser = require('./parser').parser,
+    typeparser = require('./typeparser').parser,
     lexer = require('./lexer'),
     _ = require('underscore');
 
 // Assigning the nodes to `parser.yy` allows the grammar to access the nodes from
 // the `yy` namespace.
-parser.yy = nodes;
+parser.yy = typeparser.yy = nodes;
 
-parser.lexer =  {
+parser.lexer = typeparser.lexer =  {
     "lex": function() {
         var token = this.tokens[this.pos] ? this.tokens[this.pos++] : ['EOF'];
         this.yytext = token[1];
@@ -349,8 +351,9 @@ var compileNode = function(n) {
     });
 };
 
-var compile = function(source, env, data, aliases, opts) {
+var compile = function(source, env, currentEnv, data, aliases, opts) {
     if(!env) env = {};
+    if(!currentEnv) currentEnv = {};
     if(!data) data = {};
     if(!aliases) aliases = {};
     if(!opts) opts = {};
@@ -360,7 +363,7 @@ var compile = function(source, env, data, aliases, opts) {
     var ast = parser.parse(tokens);
 
     // Typecheck the AST. Any type errors will throw an exception.
-    var resultType = typecheck(ast, env, data, aliases);
+    var resultType = typecheck(ast, env, currentEnv, data, aliases);
 
     // Output strict JavaScript.
     var output = [];
@@ -503,7 +506,7 @@ var nodeRepl = function(opts) {
 
 var main = function() {
     var argv = process.argv.slice(2);
-    
+
     // Meta Env Configure Data
     var opts = {
         colorConsole: false
@@ -549,13 +552,32 @@ var main = function() {
         return;
     }
 
-    // Include the standard library
-    argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
-
+    var currentEnv;
     var env = {};
     var data = {};
     var aliases = {};
     var sandbox = getSandbox();
+
+    if(run) {
+       // Include the standard library
+        argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
+    } else {
+        var modules = [];
+        if(!argv.length || argv[0] != 'lib/prelude.roy') {
+            modules.push('./lib/prelude.roym');
+        }
+        _.each(modules, function(module) {
+            var source = fs.readFileSync(module, 'utf8');
+            var tokens = lexer.tokenise(source);
+            var moduleTypes = typeparser.parse(tokens);
+
+            _.each(moduleTypes, function(v, k) {
+                env[k] = new types.Variable();
+                env[k] = nodeToType(v, env, aliases);
+            });
+        });
+    }
+
     _.each(argv, function(filename) {
         // Read the file content.
         var source = fs.readFileSync(filename, 'utf8');
@@ -563,11 +585,18 @@ var main = function() {
         // Write the JavaScript output.
         var extension = /\.roy$/;
         console.assert(filename.match(extension), 'Filename must end with ".roy"');
-        var compiled = compile(source, env, data, aliases);
+
+        currentEnv = {};
+        var compiled = compile(source, env, currentEnv, data, aliases);
         if(run) {
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
         } else {
             fs.writeFile(filename.replace(extension, '.js'), compiled.output, 'utf8');
+
+            var moduleOutput = _.map(currentEnv, function(v, k) {
+                return k + ': ' + v.toString();
+            }).join('\n') + '\n';
+            fs.writeFile(filename.replace(extension, '.roym'), moduleOutput, 'utf8');
         }
     });
 };

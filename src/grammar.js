@@ -1,5 +1,6 @@
 var sys = require('sys'),
-    Parser = require('jison').Parser;
+    Parser = require('jison').Parser,
+    typegrammar = require('./typegrammar').bnf;
 
 var grammar = {
     "startSymbol": "program",
@@ -116,26 +117,13 @@ var grammar = {
             ["TYPE IDENTIFIER = type", "$$ = new yy.Type($2, $4);"]
         ],
 
-        // For type annotations
-        "type": [
-            ["IDENTIFIER optTypeParamList", "$$ = new yy.TypeName($1, $2);"],
-            ["{ optTypePairs }", "$$ = new yy.TypeObject($2);"]
-        ],
-        "optTypeParamList": [
-            ["", "$$ = [];"],
-            ["typeParamList", "$$ = $1;"]
-        ],
-        "typeParamList": [
-            ["IDENTIFIER", "$$ = [new yy.TypeName($1, [])];"],
-            ["( type )", "$$ = [$2];"],
-            ["typeParamList IDENTIFIER", "$$ = $1; $1.push(new yy.TypeName($2, []));"],
-            ["typeParamList ( type )", "$$ = $1; $1.push($3);"]
-        ],
-        "optTypePairs": [
-            ["", "$$ = {};"],
-            ["keywordOrIdentifier : type", "$$ = {}; $$[$1] = $3;"],
-            ["optTypePairs , keywordOrIdentifier : type", "$$ = $1; $1[$3] = $5;"]
-        ],
+        // For type annotations (from the typegrammar module)
+        "type": typegrammar.type,
+        "optTypeParamList": typegrammar.optTypeParamList,
+        "typeParamList": typegrammar.typeParamList,
+        "optTypeFunctionArgList": typegrammar.optTypeFunctionArgList,
+        "typeFunctionArgList": typegrammar.typeFunctionArgList,
+        "optTypePairs": typegrammar.optTypePairs,
 
         "macro": [
             ["MACRO IDENTIFIER = expression", "$$ = new yy.Macro($2, [$4]);"],
@@ -215,20 +203,7 @@ var grammar = {
             ["accessor . keywordOrIdentifier", "$$ = new yy.Access($1, $3);"],
             ["( expression ) . keywordOrIdentifier", "$$ = new yy.Access($2, $5);"]
         ],
-        "keywordOrIdentifier": [
-            ["FN", "$$ = $1;"],
-            ["THEN", "$$ = $1;"],
-            ["ELSE", "$$ = $1;"],
-            ["DATA", "$$ = $1;"],
-            ["TYPE", "$$ = $1;"],
-            ["MATCH", "$$ = $1;"],
-            ["CASE", "$$ = $1;"],
-            ["DO", "$$ = $1;"],
-            ["RETURN", "$$ = $1;"],
-            ["MACRO", "$$ = $1;"],
-            ["WITH", "$$ = $1;"],
-            ["IDENTIFIER", "$$ = $1;"]
-        ],
+        "keywordOrIdentifier": typegrammar.keywordOrIdentifier,
         "identifier": [
             ["IDENTIFIER", "$$ = new yy.Identifier($1);"]
         ]
