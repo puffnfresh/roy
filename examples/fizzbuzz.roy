@@ -1,0 +1,26 @@
+let isFizzBuzz x =
+  if x % 15 == 0 then
+    console.log "FizzBuzz"
+  else
+    isBuzz x
+
+let isBuzz x =
+  if x % 5 == 0 then
+    console.log "Buzz"
+  else
+    isFizz x
+
+let isFizz x =
+  if x % 3 == 0 then
+    console.log "Fizz"
+  else
+    console.log(x)
+
+let fizzBuzz x y =
+  if x < y + 1 then
+    isFizzBuzz x
+    fizzBuzz (x + 1) y
+  else
+    console.log "end"
+
+fizzBuzz 1 25
