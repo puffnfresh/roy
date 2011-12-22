@@ -418,6 +418,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                 var tagType = newEnv[nodeCase.pattern.tag.value];
                 unify(value, fresh(prune(tagType), newNonGeneric));
 
+                var argNames = {};
                 var addVarsToEnv = function(p, lastPath) {
                     _.each(p.vars, function(v, i) {
                         var index = tagType.types.indexOf(data[p.tag.value][i]);
@@ -431,12 +432,17 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
 
                         v.accept({
                             visitIdentifier: function() {
+                                if(argNames[v.value]) {
+                                    throw new Error('Repeated variable "' + v.value + '" in pattern');
+                                }
+
                                 if(v.value in data) {
                                     unify(currentValue, fresh(prune(newEnv[v.value]), newNonGeneric));
                                 } else {
                                     newEnv[v.value] = currentValue;
                                     newNonGeneric.push(newEnv[v.value]);
                                 }
+                                argNames[v.value] = newEnv[v.value];
                             },
                             visitPattern: function() {
                                 unify(currentValue, fresh(prune(newEnv[v.tag.value]), newNonGeneric));
