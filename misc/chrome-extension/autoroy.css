@@ -1,0 +1,40 @@
+body {
+    font-family: sans-serif;
+}
+
+h1, input {
+    margin: 0;
+    font-weight: normal;
+    margin: 0.62em 0;
+}
+
+h1 {
+    text-align: right;
+    font-size: 0.62em;
+}
+
+input {
+    padding: 3em;
+}
+
+textarea {
+    width: 100%;
+}
+
+textarea, pre {
+    height: 14em;
+    padding: 0.5em;
+    background: #FCFCFC;
+    color: #030303;
+    margin: 0;
+    border: 1px solid;
+}
+
+pre {
+    overflow: auto;
+}
+
+textarea, code {
+    font-family: Consolas, monospace;
+    font-size: 1em;
+}
