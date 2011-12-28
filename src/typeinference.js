@@ -286,6 +286,12 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                 return new t.NativeType();
             }
 
+            if(prune(valueType) instanceof t.ArrayType) {
+                var accessType = analyse(node.property, env, nonGeneric, data, aliases);
+                unify(accessType, new t.NumberType());
+                return prune(valueType).type;
+            }
+
             if(valueType instanceof t.ObjectType) {
                 if(!valueType.props[node.property]) {
                     valueType.props[node.property] = new t.Variable();

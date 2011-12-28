@@ -9,7 +9,7 @@ var grammar = {
           "FORALL", "COMPOSE"],
         ["left", "BOOLOP"],
         ["left", "COMPARE", "WITH"],
-        ["left", "+", "-"],
+        ["left", "+", "-", "!"],
         ["left", "MATH", "CONCAT"],
         ["left", "."]
     ],
@@ -67,6 +67,7 @@ var grammar = {
             ["& ( expression )", "$$ = new yy.Replacement($3);"],
             ["[| expression |]", "$$ = new yy.Quoted($2);"],
             ["accessor", "$$ = $1;"],
+            ["innerExpression ! innerExpression", "$$ = new yy.Access($1, $3);"],
             ["innerExpression MATH innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
             ["innerExpression CONCAT innerExpression", "$$ = new yy.BinaryStringOperator($2, $1, $3);"],
             ["innerExpression + innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],

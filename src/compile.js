@@ -285,6 +285,9 @@ var compileNode = function(n) {
             return compileNode(n.func) + "(" + _.map(n.args, compileNode).join(", ") + ")";
         },
         visitAccess: function() {
+            if(n.property.accept) {
+                return compileNode(n.value) + "[" + compileNode(n.property) + "]";
+            }
             return compileNode(n.value) + "." + n.property;
         },
         visitBinaryGenericOperator: function() {
