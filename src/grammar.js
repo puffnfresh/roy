@@ -30,8 +30,7 @@ var grammar = {
             ["COMMENT", "$$ = new yy.Comment($1);"]
         ],
         "block": [
-            ["INDENT body OUTDENT", "$$ = $2;"],
-            ["INDENT OUTDENT", "$$ = $1;"]
+            ["INDENT body outdentOrEof", "$$ = $2;"]
         ],
         "doBody": [
             ["doLine", "$$ = [$1];"],
@@ -44,7 +43,7 @@ var grammar = {
             ["RETURN expression", "$$ = new yy.Return($2);"]
         ],
         "doBlock": [
-            ["INDENT doBody OUTDENT", "$$ = $2;"]
+            ["INDENT doBody outdentOrEof", "$$ = $2;"]
         ],
         "statement": [
             ["letFunction", "$$ = $1;"],
@@ -57,7 +56,7 @@ var grammar = {
             ["innerExpression", "$$ = $1;"],
             ["LAMBDA paramList optType RIGHTARROW expression", "$$ = new yy.Function(undefined, $2, [$5], $3);"],
             ["LAMBDA paramList optType RIGHTARROW block", "$$ = new yy.Function(undefined, $2, $5, $3);"],
-            ["MATCH innerExpression INDENT caseList OUTDENT", "$$ = new yy.Match($2, $4);"],
+            ["MATCH innerExpression INDENT caseList outdentOrEof", "$$ = new yy.Match($2, $4);"],
             ["DO innerExpression doBlock", "$$ = new yy.Do($2, $3);"],
             ["call", "$$ = $1;"]
         ],
@@ -101,7 +100,7 @@ var grammar = {
         // data Maybe a = Some a | None
         "dataDecl": [
             ["DATA IDENTIFIER optParamList = dataList", "$$ = new yy.Data($2, $3, $5);"],
-            ["DATA IDENTIFIER optParamList = INDENT dataList OUTDENT", "$$ = new yy.Data($2, $3, $6);"]
+            ["DATA IDENTIFIER optParamList = INDENT dataList outdentOrEof", "$$ = new yy.Data($2, $3, $6);"]
         ],
         "optParamList": [
             ["", "$$ = [];"],
@@ -148,7 +147,7 @@ var grammar = {
         ],
         "letBinding": [
             ["LET IDENTIFIER optType = expression", "$$ = new yy.Let($2, $5, $3);"],
-            ["LET IDENTIFIER optType = INDENT expression OUTDENT", "$$ = new yy.Let($2, $6, $3);"]
+            ["LET IDENTIFIER optType = INDENT expression outdentOrEof", "$$ = new yy.Let($2, $6, $3);"]
         ],
         "paramList": [
             ["( )", "$$ = [];"],
@@ -215,6 +214,10 @@ var grammar = {
             ["IDENTIFIER", "$$ = new yy.Identifier($1);"],
             ["accessor . keywordOrIdentifier", "$$ = new yy.Access($1, $3);"],
             ["( expression ) . keywordOrIdentifier", "$$ = new yy.Access($2, $5);"]
+        ],
+        "outdentOrEof": [
+            ["OUTDENT", ""],
+            ["EOF", ""]
         ],
         "keywordOrIdentifier": [
             ["FN", "$$ = $1;"],
