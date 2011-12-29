@@ -220,7 +220,6 @@ var grammar = {
             ["EOF", ""]
         ],
         "keywordOrIdentifier": [
-            ["FN", "$$ = $1;"],
             ["THEN", "$$ = $1;"],
             ["ELSE", "$$ = $1;"],
             ["DATA", "$$ = $1;"],

@@ -33,7 +33,6 @@ var identifierToken = function() {
             name = 'BOOLEAN';
             break;
         case 'let':
-        case 'fn':
         case 'if':
         case 'then':
         case 'else':
