@@ -140,10 +140,18 @@ var literalToken = function() {
         if(next == '<-') {
             tokens.push(['LEFTARROW', next, lineno]);
             return 2;
+        } else if(next == '<<') {
+            tokens.push(['MATH', next, lineno]);
+            return 2;
         }
         tokens.push(['COMPARE', tag, lineno]);
         return 1;
     case '>':
+        next = chunk.slice(0, 2);
+        if(next == '>>') {
+            tokens.push(['MATH', next, lineno]);
+            return 2;
+        }
         tokens.push(['COMPARE', tag, lineno]);
         return 1;
     case '=':
