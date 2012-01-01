@@ -12,8 +12,14 @@ website: all bundle
 	cp -r site/* roy.brianmckenna.org
 	cp -r examples roy.brianmckenna.org
 	cp package.json roy.brianmckenna.org
-	closure --js bundled-roy.js --js_output_file roy.brianmckenna.org/bundled-roy.js 2>/dev/null || \
-		(echo "Closure not available - not minimising" && cp bundled-roy.js roy.brianmckenna.org)
+	$(MAKE) optimise-bundle DEST=roy.brianmckenna.org/
+
+extension:
+	$(MAKE) optimise-bundle DEST=misc/chrome-extension/
+
+optimise-bundle:
+	closure --js bundled-roy.js --js_output_file $(DEST)bundled-roy.js 2>/dev/null || \
+		(echo "Closure not available - not minimising" && cp bundled-roy.js $(DEST))
 
 # Tests
 
