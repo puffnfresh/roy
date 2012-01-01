@@ -558,6 +558,9 @@ var main = function() {
     // Include the standard library
     argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
 
+    var extensions = /\.l?roy$/;
+    var literateExtension = /\.lroy$/;
+
     var env = {};
     var data = {};
     var aliases = {};
@@ -566,14 +569,20 @@ var main = function() {
         // Read the file content.
         var source = fs.readFileSync(filename, 'utf8');
 
-        // Write the JavaScript output.
-        var extension = /\.roy$/;
-        console.assert(filename.match(extension), 'Filename must end with ".roy"');
+        if(filename.match(literateExtension)) {
+            // Strip out the Markdown.
+            source = source.match(/^ {4,}.+$/mg).join('\n').replace(/^ {4}/gm, '');
+        } else {
+            console.assert(filename.match(extensions), 'Filename must end with ".roy" or ".lroy"');
+        }
+
         var compiled = compile(source, env, data, aliases);
         if(run) {
+            // Execute the JavaScript output.
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
         } else {
-            fs.writeFile(filename.replace(extension, '.js'), compiled.output, 'utf8');
+            // Write the JavaScript output.
+            fs.writeFile(filename.replace(extensions, '.js'), compiled.output, 'utf8');
         }
     });
 };
