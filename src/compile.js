@@ -115,6 +115,9 @@ var compileNode = function(n) {
             var defs = _.map(n.tags, compileNode);
             return defs.join("\n");
         },
+        visitExpression: function() {
+            return '(' + compileNode(n.value) + ')';
+        },
         visitReplacement: function() {
             return n.value;
         },

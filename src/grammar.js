@@ -62,7 +62,7 @@ var grammar = {
         ],
         "innerExpression": [
             ["ifThenElse", "$$ = $1;"],
-            ["( expression )", "$$ = $2;"],
+            ["( expression )", "$$ = new yy.Expression($2);"],
             ["& ( expression )", "$$ = new yy.Replacement($3);"],
             ["[| expression |]", "$$ = new yy.Quoted($2);"],
             ["accessor", "$$ = $1;"],

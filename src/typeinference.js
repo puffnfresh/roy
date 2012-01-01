@@ -275,6 +275,9 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
 
             return valueType;
         },
+        visitExpression: function() {
+            return analyse(node.value, env, nonGeneric, data, aliases);
+        },
         visitDo: function() {
             // TODO: Make cleaner
             return env[node.value.value].props['return'].types[1];
