@@ -1,0 +1,6 @@
+[submodule "misc/roy.tmbundle"]
+	path = misc/roy.tmbundle
+	url = https://github.com/paulmillr/roy.tmbundle.git
+[submodule "misc/roy-mode"]
+	path = misc/roy-mode
+	url = https://github.com/folone/roy-mode.git
