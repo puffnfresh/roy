@@ -1,5 +1,5 @@
 Introduction
-===============================
+============
 
 Roy is a programming language that targets JavaScript. It has a few
 main features:
