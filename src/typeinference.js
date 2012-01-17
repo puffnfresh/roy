@@ -279,6 +279,9 @@ var analyse = function(node, env, nonGeneric, currentEnv, data, aliases) {
 
             return valueType;
         },
+        visitExpression: function() {
+            return analyse(node.value, env, nonGeneric, data, aliases);
+        },
         visitDo: function() {
             // TODO: Make cleaner
             return env[node.value.value].props['return'].types[1];
@@ -288,6 +291,12 @@ var analyse = function(node, env, nonGeneric, currentEnv, data, aliases) {
 
             if(prune(valueType) instanceof t.NativeType) {
                 return new t.NativeType();
+            }
+
+            if(prune(valueType) instanceof t.ArrayType) {
+                var accessType = analyse(node.property, env, nonGeneric, data, aliases);
+                unify(accessType, new t.NumberType());
+                return prune(valueType).type;
             }
 
             if(valueType instanceof t.ObjectType) {

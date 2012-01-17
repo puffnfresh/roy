@@ -12,7 +12,7 @@ let tests = files.filter (λx →
 tests.forEach (λt →
   let name = path.join dir t
   let outFile = (path.join dir (path.basename t '.roy')) ++ '.out'
-  child_process.exec './roy -r ' ++ name (λerror stdout stderr →
+  child_process.exec (process.argv ! 0) ++ ' ./roy -r ' ++ name (λerror stdout stderr →
     if error then
       console.log "Error:" name error.message
     else

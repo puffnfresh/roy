@@ -117,6 +117,9 @@ var compileNode = function(n) {
             var defs = _.map(n.tags, compileNode);
             return defs.join("\n");
         },
+        visitExpression: function() {
+            return '(' + compileNode(n.value) + ')';
+        },
         visitReplacement: function() {
             return n.value;
         },
@@ -287,6 +290,9 @@ var compileNode = function(n) {
             return compileNode(n.func) + "(" + _.map(n.args, compileNode).join(", ") + ")";
         },
         visitAccess: function() {
+            if(n.property.accept) {
+                return compileNode(n.value) + "[" + compileNode(n.property) + "]";
+            }
             return compileNode(n.value) + "." + n.property;
         },
         visitBinaryGenericOperator: function() {
@@ -552,6 +558,9 @@ var main = function() {
         return;
     }
 
+    var extensions = /\.l?roy$/;
+    var literateExtension = /\.lroy$/;
+
     var currentEnv;
     var env = {};
     var data = {};
@@ -582,21 +591,26 @@ var main = function() {
         // Read the file content.
         var source = fs.readFileSync(filename, 'utf8');
 
-        // Write the JavaScript output.
-        var extension = /\.roy$/;
-        console.assert(filename.match(extension), 'Filename must end with ".roy"');
+        if(filename.match(literateExtension)) {
+            // Strip out the Markdown.
+            source = source.match(/^ {4,}.+$/mg).join('\n').replace(/^ {4}/gm, '');
+        } else {
+            console.assert(filename.match(extensions), 'Filename must end with ".roy" or ".lroy"');
+        }
 
         currentEnv = {};
         var compiled = compile(source, env, currentEnv, data, aliases);
         if(run) {
+            // Execute the JavaScript output.
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
         } else {
-            fs.writeFile(filename.replace(extension, '.js'), compiled.output, 'utf8');
+            // Write the JavaScript output.
+            fs.writeFile(filename.replace(extensions, '.js'), compiled.output, 'utf8');
 
             var moduleOutput = _.map(currentEnv, function(v, k) {
                 return k + ': ' + v.toString();
             }).join('\n') + '\n';
-            fs.writeFile(filename.replace(extension, '.roym'), moduleOutput, 'utf8');
+            fs.writeFile(filename.replace(extensions, '.roym'), moduleOutput, 'utf8');
         }
     });
 };

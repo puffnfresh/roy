@@ -35,7 +35,6 @@ var bnf = {
         ["optTypePairs , keywordOrIdentifier : type", "$$ = $1; $1[$3] = $5;"]
     ],
     "keywordOrIdentifier": [
-        ["FN", "$$ = $1;"],
         ["THEN", "$$ = $1;"],
         ["ELSE", "$$ = $1;"],
         ["DATA", "$$ = $1;"],
