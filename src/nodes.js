@@ -164,6 +164,16 @@ exports.nodes = {
             }
         };
     },
+    Assignment: function(name, value) {
+        this.name = name;
+        this.value = value;
+
+        this.accept = function(a) {
+            if(a.visitAssignment) {
+                return a.visitAssignment(this);
+            }
+        };
+    },
     Let: function(name, value, type) {
         this.name = name;
         this.value = value;

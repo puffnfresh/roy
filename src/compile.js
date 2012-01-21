@@ -1,7 +1,9 @@
 var typecheck = require('./typeinference').typecheck,
+    macroexpand = require('./macroexpand').macroexpand,
+    loadModule = require('./modules').loadModule,
+    types = require('./types'),
     nodeToType = require('./typeinference').nodeToType,
     nodes = require('./nodes').nodes,
-    types = require('./types'),
     parser = require('./parser').parser,
     typeparser = require('./typeparser').parser,
     lexer = require('./lexer'),
@@ -29,7 +31,6 @@ parser.lexer = typeparser.lexer =  {
 
 // Compile an abstract syntax tree (AST) node to JavaScript.
 var data = {};
-var macros = {};
 var indent = 0;
 var getIndent = function(extra) {
     if(!extra) {
@@ -58,6 +59,7 @@ var popIndent = function() {
     indent--;
     return getIndent();
 };
+
 var compileNode = function(n) {
     return n.accept({
         // Function definition to JavaScript function.
@@ -110,6 +112,9 @@ var compileNode = function(n) {
         visitLet: function() {
             return "var " + n.name + " = " + compileNode(n.value) + ";";
         },
+        visitAssignment: function() {
+            return compileNode(n.name) + " = " + compileNode(n.value) + ";";
+        },
         visitData: function() {
             _.each(n.tags, function(tag) {
                 data[tag.name] = n.name;
@@ -142,12 +147,6 @@ var compileNode = function(n) {
                 return v.accept(serializeNode);
             };
             return serialize(n.value);
-        },
-        visitMacro: function() {
-            var init = n.body.slice(0, n.body.length - 1);
-            var last = n.body[n.body.length - 1];
-            var code = _.map(init, compileNode).join('\n') + '\nreturn ' + compileNode(last) + ';';
-            macros[n.name] = 'var nodes = this.nodes; ' + code;
         },
         visitReturn: function() {
             return "return __monad__[\"return\"](" + compileNode(n.value) + ");";
@@ -276,14 +275,7 @@ var compileNode = function(n) {
         },
         // Call to JavaScript call.
         visitCall: function() {
-            if(macros[n.func.value]) {
-                // Is a macro
-                var f = new Function(macros[n.func.value]);
-                var tree = f.apply({nodes: nodes}, n.args);
-                // TODO: Give an actual env
-                typecheck([tree], {});
-                return compileNode(tree);
-            } else if(data[n.func.value]) {
+            if(data[n.func.value]) {
                 // Is a tag
                 return 'new ' + n.func.value + "(" + _.map(n.args, compileNode).join(", ") + ")";
             }
@@ -367,6 +359,7 @@ var compile = function(source, env, currentEnv, data, aliases, opts) {
     // Parse the file to an AST.
     var tokens = lexer.tokenise(source);
     var ast = parser.parse(tokens);
+    ast = macroexpand(ast, env, opts);
 
     // Typecheck the AST. Any type errors will throw an exception.
     var resultType = typecheck(ast, env, currentEnv, data, aliases);
@@ -409,6 +402,7 @@ var nodeRepl = function(opts) {
     var repl = readline.createInterface(stdin, stdout);
 
     var env = {};
+    var currentEnv = {};
     var data = {};
     var sources = {};
     var aliases = {};
@@ -455,7 +449,7 @@ var nodeRepl = function(opts) {
                 // Load
                 filename = metacommand[1];
                 source = fs.readFileSync(filename, 'utf8');
-                compiled = compile(source, env, data, aliases);
+                compiled = compile(source, env, data, currentEnv, aliases, {nodejs: true, filename: ".", run: true});
                 break;
             case ":s":
                 // Source
@@ -491,7 +485,7 @@ var nodeRepl = function(opts) {
                 });
 
                 // Just eval it
-                compiled = compile(line, env, data, aliases);
+                compiled = compile(line, env, data, currentEnv, aliases, {nodejs: true, filename: ".", run: true});
                 break;
             }
 
@@ -573,13 +567,10 @@ var main = function() {
     } else {
         var modules = [];
         if(!argv.length || argv[0] != 'lib/prelude.roy') {
-            modules.push('./lib/prelude.roym');
+            modules.push('./lib/prelude');
         }
         _.each(modules, function(module) {
-            var source = fs.readFileSync(module, 'utf8');
-            var tokens = lexer.tokenise(source);
-            var moduleTypes = typeparser.parse(tokens);
-
+            var moduleTypes = loadModule(module, '.');
             _.each(moduleTypes, function(v, k) {
                 env[k] = new types.Variable();
                 env[k] = nodeToType(v, env, aliases);
@@ -599,7 +590,7 @@ var main = function() {
         }
 
         currentEnv = {};
-        var compiled = compile(source, env, currentEnv, data, aliases);
+        var compiled = compile(source, env, currentEnv, data, aliases, {nodejs: true, filename: filename, run: run});
         if(run) {
             // Execute the JavaScript output.
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');

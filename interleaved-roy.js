@@ -26,6 +26,15 @@ var roy = {};
     load["./nodes"] = function(exports) {
         //= src/nodes.js
     };
+    load["./modules"] = function(exports) {
+        //= src/modules.js
+    };
+    load["./macroexpand"] = function(exports) {
+        //= src/macroexpand.js
+    };
+    load["./typeparser"] = function(exports) {
+        //= src/typeparser.js
+    };
     load["./parser"] = function(exports) {
         //= src/parser.js
     };

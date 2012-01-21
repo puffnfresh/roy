@@ -153,7 +153,7 @@
         var royCompile = function() {
             var jscode;
             try {
-                jscode = roy.compile(document.getElementById("roycode").value).output;
+                jscode = roy.compile(document.getElementById("roycode").value, {}, {}, {}, {}, {modules: {"dom": "eval: Function(String, String)"}}).output;
             } catch(e) {
                 jscode = e;
             }

@@ -279,6 +279,21 @@ var analyse = function(node, env, nonGeneric, currentEnv, data, aliases) {
 
             return valueType;
         },
+        visitAssignment: function() {
+            var valueType = analyse(node.value, env, nonGeneric, currentEnv, data, aliases);
+
+            if(env[node.name]) {
+                if(prune(valueType) instanceof t.NativeType) {
+                    return env[node.name];
+                } else {
+                    unify(valueType, env[node.name]);
+                }
+            } else {
+                env[node.name] = valueType;
+            }
+
+            return valueType;
+        },
         visitExpression: function() {
             return analyse(node.value, env, nonGeneric, data, aliases);
         },

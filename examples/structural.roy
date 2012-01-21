@@ -31,3 +31,5 @@ console.log (getGreeting {
 } with {
   target: "World"
 })
+
+export obj
