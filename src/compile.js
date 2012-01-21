@@ -509,16 +509,16 @@ var nodeRepl = function(opts) {
 
 var main = function() {
     var argv = process.argv.slice(2);
-    
-    // Meta Env Configure Data
+
+    // Meta-commands configuration
     var opts = {
         colorConsole: false
     };
 
-    // Get Roy infomation
+    // Roy package information
     var fs = require('fs');
-    var infofile = fs.readFileSync('package.json', 'utf8');
-    var info = JSON.parse(infofile);
+    var info = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+
     if(process.argv.length < 3) {
         console.log("Roy: " + info.description);
         console.log(info.author);
