@@ -1,3 +1,5 @@
+PHONY_: site
+
 all:
 	node src/grammar.js
 
@@ -7,7 +9,7 @@ deps:
 bundle:
 	./node_modules/interleave/bin/interleave -o bundled-roy.js interleaved-roy.js
 
-website: all bundle
+site: all bundle
 	[ -e roy.brianmckenna.org ] || mkdir roy.brianmckenna.org
 	cp -r site/* roy.brianmckenna.org
 	cp -r examples roy.brianmckenna.org
