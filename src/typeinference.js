@@ -221,11 +221,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
         // Ensures that all argument types `unify` with the defined function and
         // returns the function's result type.
         visitCall: function() {
-            var types = [];
-
-            _.each(node.args, function(arg) {
-                var argType = analyse(arg, env, nonGeneric, data, aliases);
-                types.push(argType);
+            var types = _.map(node.args, function(arg) {
+                return analyse(arg, env, nonGeneric, data, aliases);
             });
 
             var funType = analyse(node.func, env, nonGeneric, data, aliases);
