@@ -570,7 +570,7 @@ var main = function() {
             modules.push('./lib/prelude');
         }
         _.each(modules, function(module) {
-            var moduleTypes = loadModule(module, '.');
+            var moduleTypes = loadModule(module, 'require', '.');
             _.each(moduleTypes, function(v, k) {
                 env[k] = new types.Variable();
                 env[k] = nodeToType(v, env, aliases);
