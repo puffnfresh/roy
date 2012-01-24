@@ -183,6 +183,9 @@ var literalToken = function() {
         case '|]':
             tokens.push([next, next, lineno]);
             return 2;
+        case '||':
+            tokens.push(['BOOLOP', next, lineno]);
+            return 2;
         }
         tokens.push([tag, tag, lineno]);
         return 1;
@@ -211,14 +214,6 @@ var literalToken = function() {
     case '&':
         next = chunk.slice(0, 2);
         if(next == '&&') {
-            tokens.push(['BOOLOP', next, lineno]);
-            return 2;
-        }
-        tokens.push([tag, tag, lineno]);
-        return 1;
-    case '|':
-        next = chunk.slice(0, 2);
-        if(next == '||') {
             tokens.push(['BOOLOP', next, lineno]);
             return 2;
         }
