@@ -523,6 +523,9 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
 // Converts an AST node to type system type.
 var nodeToType = function(n, env, aliases) {
     return n.accept({
+        visitTypeArray: function(ta) {
+            return new t.ArrayType(nodeToType(ta.value, env, aliases));
+        },
         visitTypeName: function(tn) {
             if(tn.value in aliases) {
                 return aliases[tn.value];

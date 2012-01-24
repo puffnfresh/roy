@@ -119,7 +119,13 @@ var grammar = {
         // For type annotations
         "type": [
             ["IDENTIFIER optTypeParamList", "$$ = new yy.TypeName($1, $2);"],
+            ["[ type ]", "$$ = new yy.TypeArray($2);"],
+            ["( typeList )", "$$ = new yy.TypeObject($2);"],
             ["{ optTypePairs }", "$$ = new yy.TypeObject($2);"]
+        ],
+        "typeList": [
+            ["type", "$$ = [$1];"],
+            ["typeList , type", "$$ = $1; $1.push($3);"]
         ],
         "optTypeParamList": [
             ["", "$$ = [];"],

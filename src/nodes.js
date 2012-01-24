@@ -74,6 +74,15 @@ exports.nodes = {
             }
         };
     },
+    TypeArray: function(value) {
+        this.value = value;
+
+        this.accept = function(a) {
+            if(a.visitTypeArray) {
+                return a.visitTypeArray(this);
+            }
+        };
+    },
     Return: function(value) {
         this.value = value;
 
