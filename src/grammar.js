@@ -7,6 +7,7 @@ var grammar = {
     "operators": [
         ["left", "RIGHTARROW", "LEFTARROW", "RIGHTFATARROW", "ELEM", "NOTELEM",
           "FORALL", "COMPOSE"],
+        ["right", "IF", "ELSE"],
         ["left", "BOOLOP"],
         ["left", "COMPARE", "WITH"],
         ["left", "+", "-", "!"],
@@ -94,7 +95,8 @@ var grammar = {
             ["patternIdentifiers identifier", "$$ = $1; $1.push($2);"]
         ],
         "ifThenElse": [
-            ["IF innerExpression THEN block TERMINATOR ELSE block", "$$ = new yy.IfThenElse($2, $4, $7);"]
+            ["IF innerExpression THEN block TERMINATOR ELSE block", "$$ = new yy.IfThenElse($2, $4, $7);"],
+            ["IF innerExpression THEN innerExpression ELSE innerExpression", "$$ = new yy.IfThenElse($2, [$4], [$6]);"]
         ],
 
         // data Maybe a = Some a | None
