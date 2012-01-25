@@ -5,6 +5,7 @@ all:
 
 deps:
 	npm install
+	npm prune
 
 bundle:
 	./node_modules/interleave/bin/interleave interleaved-roy.js
