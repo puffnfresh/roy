@@ -7,7 +7,7 @@ deps:
 	npm install
 
 bundle:
-	./node_modules/interleave/bin/interleave -o bundled-roy.js interleaved-roy.js
+	./node_modules/interleave/bin/interleave interleaved-roy.js
 
 site: all bundle
 	[ -e roy.brianmckenna.org ] || mkdir roy.brianmckenna.org
@@ -20,8 +20,8 @@ extension:
 	$(MAKE) optimise-bundle DEST=misc/chrome-extension/
 
 optimise-bundle:
-	closure --js bundled-roy.js --js_output_file $(DEST)bundled-roy.js 2>/dev/null || \
-		(echo "Closure not available - not minimising" && cp bundled-roy.js $(DEST))
+	closure --js dist/interleaved-roy.js --js_output_file $(DEST)bundled-roy.js 2>/dev/null || \
+		(echo "Closure not available - not minimising" && cp dist/interleaved-roy.js $(DEST)bundled-roy.js)
 
 # Tests
 
