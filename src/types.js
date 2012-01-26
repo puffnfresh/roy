@@ -38,7 +38,7 @@ var variableToString  = function(n) {
 };
 Variable.prototype.toString = function() {
     if(!this.instance) {
-        return "'" + variableToString(this.id);
+        return "#" + variableToString(this.id);
     }
     return this.instance.toString();
 };

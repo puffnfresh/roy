@@ -14,7 +14,7 @@ var NUMBER = /^-?[0-9]+(\.[0-9]+)?/;
 var COMMENT = /^\/\/.*/;
 var WHITESPACE = /^[^\n\S]+/;
 var INDENT = /^(?:\n[^\n\S]*)+/;
-var GENERIC = /^'([a-z]+)/;
+var GENERIC = /^#([a-z]+)/;
 
 var chunk;
 var indent;
@@ -71,7 +71,7 @@ var stringToken = function() {
     var firstChar = chunk.charAt(0),
         quoted = false,
         nextChar;
-    if(firstChar == '"'/* || firstChar == "'"*/) {
+    if(firstChar == '"' || firstChar == "'") {
         for(var i = 1; i < chunk.length; i++) {
             if(!quoted) {
                 nextChar = chunk.charAt(i);
