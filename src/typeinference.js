@@ -282,19 +282,14 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             // TODO: Make cleaner
             return env[node.value.value].props['return'].types[1];
         },
-        visitAccess: function() {
+        visitPropertyAccess: function() {
             var valueType = analyse(node.value, env, nonGeneric, data, aliases);
 
             if(prune(valueType) instanceof t.NativeType) {
                 return new t.NativeType();
             }
 
-            if(prune(valueType) instanceof t.ArrayType) {
-                var accessType = analyse(node.property, env, nonGeneric, data, aliases);
-                unify(accessType, new t.NumberType());
-                return prune(valueType).type;
-            }
-
+            // TODO: Properly generate property constraints
             if(valueType instanceof t.ObjectType) {
                 if(!valueType.props[node.property]) {
                     valueType.props[node.property] = new t.Variable();
@@ -306,6 +301,19 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             }
 
             return prune(valueType).getPropertyType(node.property);
+        },
+        visitAccess: function() {
+            var valueType = analyse(node.value, env, nonGeneric, data, aliases);
+
+            if(prune(valueType) instanceof t.NativeType) {
+                return new t.NativeType();
+            }
+
+            unify(valueType, new t.ArrayType(new t.Variable()));
+
+            var accessType = analyse(node.property, env, nonGeneric, data, aliases);
+            unify(accessType, new t.NumberType());
+            return prune(valueType).type;
         },
         visitBinaryGenericOperator: function() {
             var leftType = analyse(node.left, env, nonGeneric, data, aliases);

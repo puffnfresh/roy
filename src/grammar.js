@@ -220,8 +220,8 @@ var grammar = {
         ],
         "accessor": [
             ["IDENTIFIER", "$$ = new yy.Identifier($1);"],
-            ["accessor . keywordOrIdentifier", "$$ = new yy.Access($1, $3);"],
-            ["( expression ) . keywordOrIdentifier", "$$ = new yy.Access($2, $5);"]
+            ["accessor . keywordOrIdentifier", "$$ = new yy.PropertyAccess($1, $3);"],
+            ["( expression ) . keywordOrIdentifier", "$$ = new yy.PropertyAccess($2, $5);"]
         ],
         "outdentOrEof": [
             ["OUTDENT", ""],

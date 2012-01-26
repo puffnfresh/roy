@@ -287,11 +287,11 @@ var compileNode = function(n) {
             }
             return compileNode(n.func) + "(" + _.map(n.args, compileNode).join(", ") + ")";
         },
-        visitAccess: function() {
-            if(n.property.accept) {
-                return compileNode(n.value) + "[" + compileNode(n.property) + "]";
-            }
+        visitPropertyAccess: function() {
             return compileNode(n.value) + "." + n.property;
+        },
+        visitAccess: function() {
+            return compileNode(n.value) + "[" + compileNode(n.property) + "]";
         },
         visitBinaryGenericOperator: function() {
             return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");

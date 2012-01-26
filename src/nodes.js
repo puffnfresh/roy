@@ -198,6 +198,16 @@ exports.nodes = {
             }
         };
     },
+    PropertyAccess: function(value, property) {
+        this.value = value;
+        this.property = property;
+
+        this.accept = function(a) {
+            if(a.visitPropertyAccess) {
+                return a.visitPropertyAccess(this);
+            }
+        };
+    },
     Access: function(value, property) {
         this.value = value;
         this.property = property;
