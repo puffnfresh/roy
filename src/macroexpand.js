@@ -36,7 +36,12 @@ var macros = {
     'export': [
         'var name = arguments[0].value;',
         'internals.opts.exported[name] = internals.env[name];',
-        'return new nodes.Assignment(new nodes.Access(new nodes.Identifier("exports"), new nodes.String(\'"\' + name + \'"\')), arguments[0]);'].join('\n')
+        'if(internals.opts.nodejs) {',
+        '    return new nodes.Assignment(new nodes.Access(new nodes.Identifier("exports"), new nodes.String(\'"\' + name + \'"\')), arguments[0]);',
+        '} else {',
+        '    return new nodes.Assignment(new nodes.Identifier("_" + name), arguments[0]);',
+        '}'].join('\n')
+
 };
 var macroexpand = function(ast, env, opts) {
     return _.map(ast, function(n) {

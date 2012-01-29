@@ -366,12 +366,25 @@ var compile = function(source, env, data, aliases, opts) {
 
     // Output strict JavaScript.
     var output = [];
+
+    if(!opts.nodejs) {
+        _.map(opts.exported, function(v, k) {
+            output.push("var _" + k + ";");
+        });
+        output.push("(function() {");
+    }
+
     if(opts.strict) {
         output.push('"use strict";');
     }
     _.each(ast, function(v) {
         output.push(compileNode(v));
     });
+
+    if(!opts.nodejs) {
+        output.push("})();");
+    }
+
     // Add a newline at the end
     output.push("");
 
