@@ -349,9 +349,8 @@ var compileNode = function(n) {
     });
 };
 
-var compile = function(source, env, currentEnv, data, aliases, opts) {
+var compile = function(source, env, data, aliases, opts) {
     if(!env) env = {};
-    if(!currentEnv) currentEnv = {};
     if(!data) data = {};
     if(!aliases) aliases = {};
     if(!opts) opts = {};
@@ -359,10 +358,11 @@ var compile = function(source, env, currentEnv, data, aliases, opts) {
     // Parse the file to an AST.
     var tokens = lexer.tokenise(source);
     var ast = parser.parse(tokens);
-    ast = macroexpand(ast, env, opts);
 
     // Typecheck the AST. Any type errors will throw an exception.
-    var resultType = typecheck(ast, env, currentEnv, data, aliases);
+    var resultType = typecheck(ast, env, data, aliases);
+
+    ast = macroexpand(ast, env, opts);
 
     // Output strict JavaScript.
     var output = [];
@@ -402,7 +402,6 @@ var nodeRepl = function(opts) {
     var repl = readline.createInterface(stdin, stdout);
 
     var env = {};
-    var currentEnv = {};
     var data = {};
     var sources = {};
     var aliases = {};
@@ -449,7 +448,7 @@ var nodeRepl = function(opts) {
                 // Load
                 filename = metacommand[1];
                 source = fs.readFileSync(filename, 'utf8');
-                compiled = compile(source, env, data, currentEnv, aliases, {nodejs: true, filename: ".", run: true});
+                compiled = compile(source, env, data, aliases, {nodejs: true, filename: ".", run: true});
                 break;
             case ":s":
                 // Source
@@ -485,7 +484,7 @@ var nodeRepl = function(opts) {
                 });
 
                 // Just eval it
-                compiled = compile(line, env, data, currentEnv, aliases, {nodejs: true, filename: ".", run: true});
+                compiled = compile(line, env, data, aliases, {nodejs: true, filename: ".", run: true});
                 break;
             }
 
@@ -555,7 +554,7 @@ var main = function() {
     var extensions = /\.l?roy$/;
     var literateExtension = /\.lroy$/;
 
-    var currentEnv;
+    var exported;
     var env = {};
     var data = {};
     var aliases = {};
@@ -571,9 +570,14 @@ var main = function() {
         }
         _.each(modules, function(module) {
             var moduleTypes = loadModule(module, 'require', '.');
-            _.each(moduleTypes, function(v, k) {
+            _.each(moduleTypes.env, function(v, k) {
                 env[k] = new types.Variable();
                 env[k] = nodeToType(v, env, aliases);
+            });
+            _.each(moduleTypes.data, function(v, k) {
+                data[k] = _.map(v, function(d) {
+                    return nodeToType(d, env, aliases);
+                });
             });
         });
     }
@@ -589,8 +593,8 @@ var main = function() {
             console.assert(filename.match(extensions), 'Filename must end with ".roy" or ".lroy"');
         }
 
-        currentEnv = {};
-        var compiled = compile(source, env, currentEnv, data, aliases, {nodejs: true, filename: filename, run: run});
+        exported = {};
+        var compiled = compile(source, env, data, aliases, {nodejs: true, filename: filename, run: run, exported: exported});
         if(run) {
             // Execute the JavaScript output.
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
@@ -598,7 +602,12 @@ var main = function() {
             // Write the JavaScript output.
             fs.writeFile(filename.replace(extensions, '.js'), compiled.output, 'utf8');
 
-            var moduleOutput = _.map(currentEnv, function(v, k) {
+            var moduleOutput = _.map(exported, function(v, k) {
+                if(data[k]) {
+                    return 'case ' + k + ' ' + _.map(data[k], function(d) {
+                        return d.toString();
+                    }).join(' ') + ': ' + v.toString();
+                }
                 return k + ': ' + v.toString();
             }).join('\n') + '\n';
             fs.writeFile(filename.replace(extensions, '.roym'), moduleOutput, 'utf8');

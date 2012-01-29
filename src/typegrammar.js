@@ -60,9 +60,14 @@ var grammar = {
             ["body EOF", "return $1;"]
         ],
         "body": [
-            ["IDENTIFIER : type", "$$ = {}; $$[$1] = $3;"],
-            ["body TERMINATOR IDENTIFIER : type", "$$ = $1; $1[$3] = $5;"],
+            ["pair", "$$ = {data: {}, env: {}}; if($1.data) { $$.data[$1.name] = $1.params; } $$.env[$1.name] = $1.type;"],
+            ["body TERMINATOR pair", "$$ = $1; if($3.data) { $$.data[$3.name] = $3.params; } $$.env[$3.name] = $3.type;"],
             ["body TERMINATOR", "$$ = $1;"]
+        ],
+
+        "pair": [
+            ["IDENTIFIER : type", "$$ = {name: $1, type: $3, data: false};"],
+            ["CASE IDENTIFIER optTypeParamList : type", "$$ = {name: $2, params: $3, type: $5, data: true};"]
         ],
 
         "type": bnf.type,
