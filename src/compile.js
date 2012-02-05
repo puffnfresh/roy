@@ -106,7 +106,7 @@ var compileNode = function(n) {
         },
         // Let binding to JavaScript variable.
         visitLet: function() {
-            return "var " + n.name + " = " + compileNode(n.value) + ";";
+            return "var " + n.name + " = " + compileNode(n.value);
         },
         visitData: function() {
             _.each(n.tags, function(tag) {
@@ -153,7 +153,7 @@ var compileNode = function(n) {
         visitBind: function() {
             return "return __monad__[\"bind\"](" + compileNode(n.value) +
                 ", function(" + n.name + ") {\n" + pushIndent() +
-                _.map(n.rest, compileNode).join("\n" + getIndent()) + "\n" +
+                _.map(n.rest, compileNode).join(";\n" + getIndent()) + "\n" +
                 popIndent() + "});";
         },
         visitDo: function() {
@@ -374,7 +374,7 @@ var compile = function(source, env, data, aliases, opts) {
         output.push('"use strict";');
     }
     _.each(ast, function(v) {
-        output.push(compileNode(v));
+        output.push(compileNode(v) + (v instanceof nodes.Comment ? '' : ';'));
     });
     // Add a newline at the end
     output.push("");
