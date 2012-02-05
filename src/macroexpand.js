@@ -39,7 +39,7 @@ var macros = {
         'if(internals.opts.nodejs) {',
         '    return new nodes.Assignment(new nodes.Access(new nodes.Identifier("exports"), new nodes.String(\'"\' + name + \'"\')), arguments[0]);',
         '} else {',
-        '    return new nodes.Assignment(new nodes.Identifier("_" + name), arguments[0]);',
+        '    return new nodes.Comment("// Exported " + name);',
         '}'].join('\n')
 
 };

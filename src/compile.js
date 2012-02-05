@@ -369,7 +369,7 @@ var compile = function(source, env, data, aliases, opts) {
 
     if(!opts.nodejs) {
         _.map(opts.exported, function(v, k) {
-            output.push("var _" + k + ";");
+            output.push("var " + k + ";");
         });
         output.push("(function() {");
     }
@@ -378,6 +378,9 @@ var compile = function(source, env, data, aliases, opts) {
         output.push('"use strict";');
     }
     _.each(ast, function(v) {
+        if(v instanceof nodes.Let) {
+            v = new nodes.Assignment(new nodes.Identifier(v.name), v.value);
+        }
         output.push(compileNode(v));
     });
 
