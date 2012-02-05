@@ -358,11 +358,10 @@ var compile = function(source, env, data, aliases, opts) {
     // Parse the file to an AST.
     var tokens = lexer.tokenise(source);
     var ast = parser.parse(tokens);
+    ast = macroexpand(ast, env, opts);
 
     // Typecheck the AST. Any type errors will throw an exception.
     var resultType = typecheck(ast, env, data, aliases);
-
-    ast = macroexpand(ast, env, opts);
 
     // Output strict JavaScript.
     var output = [];
