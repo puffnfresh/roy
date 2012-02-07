@@ -374,7 +374,10 @@ var compile = function(source, env, data, aliases, opts) {
         output.push('"use strict";');
     }
     _.each(ast, function(v) {
-        output.push(compileNode(v) + (v instanceof nodes.Comment ? '' : ';'));
+        var compiled = compileNode(v);
+        if(compiled) {
+            output.push(compiled + (v instanceof nodes.Comment ? '' : ';'));
+        }
     });
     // Add a newline at the end
     output.push("");
