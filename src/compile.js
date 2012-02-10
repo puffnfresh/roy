@@ -186,11 +186,11 @@ var compileNode = function(n) {
                 popIndent() + "})()";
         },
         visitTag: function() {
-            var args = _.map(n.vars, function(v) {
-                return v.value;
+            var args = _.map(n.vars, function(v, i) {
+                return v.value + "_" + i;
             });
-            var setters = _.map(n.vars, function(v, i) {
-                return "this._" + i + " = " + v.value;
+            var setters = _.map(args, function(v, i) {
+                return "this._" + i + " = " + v;
             });
             return "var " + n.name + " = function(" + args.join(", ") + "){" + setters.join(";") + "};";
         },
