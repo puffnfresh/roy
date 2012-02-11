@@ -457,6 +457,13 @@ var nodeRepl = function(opts) {
                 source = fs.readFileSync(filename, 'utf8');
                 compiled = compile(source, env, data, aliases);
                 break;
+            case ":t":
+                if(metacommand[1] in env) {
+                    console.log(env[metacommand[1]].toString());
+                } else {
+                    colorLog(33, metacommand[1], "is not defined.");
+                }
+                break;
             case ":s":
                 // Source
                 if(sources[metacommand[1]]) {
