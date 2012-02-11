@@ -254,7 +254,7 @@ exports.tokenise = function(source) {
     while(chunk = source.slice(i)) {
         var diff = identifierToken() || numberToken() || stringToken() || commentToken() || whitespaceToken() || lineToken() || literalToken();
         if(!diff) {
-            throw "Couldn't tokenise: " + chunk.substring(0, chunk.indexOf("\n"));
+            throw "Couldn't tokenise: " + chunk.substring(0, chunk.indexOf("\n") > -1 ? chunk.indexOf("\n") : chunk.length);
         }
         lineno += source.slice(i, i + diff).split('\n').length - 1;
         i += diff;
