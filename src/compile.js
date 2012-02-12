@@ -132,6 +132,9 @@ var compileNode = function(n) {
                 visitAccess: function(v) {
                     return "new nodes.Access(" + serialize(v.value) + ", " + JSON.stringify(v.property) + ")";
                 },
+                visitPropertyAccess: function(v) {
+                    return "new nodes.PropertyAccess(" + serialize(v.value) + ", " + JSON.stringify(v.property) + ")";
+                },
                 visitCall: function(v) {
                     return "new nodes.Call(" + serialize(v.func) + ", [" + _.map(v.args, serialize).join(', ') + "])";
                 }
