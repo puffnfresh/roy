@@ -10,8 +10,8 @@ let optionMonad = {
 }
 
 console.log (do optionMonad
-  bind x = Some 1
+  x <- Some 1
   let y = 2
-  bind z = Some 3
+  z <- Some 3
   return x + y + z
 )
