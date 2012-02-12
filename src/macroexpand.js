@@ -6,7 +6,7 @@ var nodes = require('./nodes').nodes,
 
 var macros = {
     'import': [
-        'var name = eval(arguments[0].value);',
+        'var name = JSON.parse(arguments[0].value);',
         'if(internals.opts.nodejs) {',
         '    // Need to convert to absolute paths for the CLI',
         '    if(internals.opts.run) {',
@@ -32,13 +32,7 @@ var macros = {
         '        internals.env[k] = internals.nodeToType(v, internals.env, {});',
         '    });',
         '    return new nodes.Comment("// Using browser module: " + arguments[0].value);',
-        '}'].join('\n'),
-    'export': [
-        'var name = arguments[0].value;',
-        'internals.opts.exported[name] = internals.env[name];',
-        'var scope = internals.opts.nodejs ? "exports" : "this";',
-        'return new nodes.Assignment(new nodes.Access(new nodes.Identifier(scope), new nodes.String(\'"\' + name + \'"\')), arguments[0]);'].join('\n')
-
+        '}'].join('\n')
 };
 var macroexpand = function(ast, env, opts) {
     return _.map(ast, function(n) {

@@ -1,5 +1,6 @@
 var lexer = require('./lexer'),
     typeparser = require('./typeparser').parser,
+    nodes = require('./nodes').nodes,
     _ = require('underscore');
 
 var resolveNodeModule = function(moduleName, filename) {
@@ -37,4 +38,11 @@ exports.loadModule = function(moduleName, mode, argument) {
     var tokens = lexer.tokenise(source);
     var moduleTypes = typeparser.parse(tokens);
     return moduleTypes;
+};
+
+exports.exportType = function(arg, env, exported, nodejs) {
+    var name = arg.value;
+    exported[name] = env[name];
+    var scope = nodejs ? "exports" : "this";
+    return new nodes.Assignment(new nodes.Access(new nodes.Identifier(scope), new nodes.String(JSON.stringify(name))), arg);
 };

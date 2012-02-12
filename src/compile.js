@@ -1,6 +1,7 @@
 var typecheck = require('./typeinference').typecheck,
     macroexpand = require('./macroexpand').macroexpand,
     loadModule = require('./modules').loadModule,
+    exportType = require('./modules').exportType,
     types = require('./types'),
     nodeToType = require('./typeinference').nodeToType,
     nodes = require('./nodes').nodes,
@@ -362,6 +363,14 @@ var compile = function(source, env, data, aliases, opts) {
 
     // Typecheck the AST. Any type errors will throw an exception.
     var resultType = typecheck(ast, env, data, aliases);
+
+    // Export types
+    ast = _.map(ast, function(n) {
+        if(n instanceof nodes.Call && n.func.value == 'export') {
+            return exportType(n.args[0], env, opts.exported, opts.nodejs);
+        }
+        return n;
+    });
 
     // Output strict JavaScript.
     var output = [];
