@@ -506,7 +506,7 @@ var nodeRepl = function(opts) {
                 output = vm.runInNewContext(compiled.output, sandbox, 'eval');
 
                 if(typeof output != 'undefined') {
-                    colorLog(32, output + " : " + compiled.type);
+                    colorLog(32, (typeof output == 'object' ? JSON.stringify(output) : output) + " : " + compiled.type);
                 }
             }
         } catch(e) {
