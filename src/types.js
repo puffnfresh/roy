@@ -57,10 +57,9 @@ FunctionType.prototype.map = function(f) {
     return _.map(this.types, f);
 };
 FunctionType.prototype.toString = function() {
-    typeString = _.map(this.types, function(type) {
+    return this.name + "(" + _.map(this.types, function(type) {
         return type.toString();
-    }).toString();
-    return this.name + "(" + typeString + ")";
+    }).join(', ') + ")";
 };
 exports.FunctionType = FunctionType;
 
