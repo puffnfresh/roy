@@ -25,7 +25,7 @@ var macros = {
         '',
         '    console.log("Using sync CommonJS module:", name);',
         '',
-        '    return new nodes.Let(variable, new nodes.Call(new nodes.Identifier("require"), [new nodes.String(JSON.stringify(name))]), new nodes.TypeObject(moduleTypes));',
+        '    return new nodes.Let(variable, new nodes.Call(new nodes.Identifier("require"), [new nodes.String(JSON.stringify(name))]), new nodes.TypeObject(moduleTypes.env));',
         '} else {',
         '    var moduleTypes = internals.loadModule(name, "browser", internals.opts.modules);',
         '    internals._.each(moduleTypes.env, function(v, k) {',
