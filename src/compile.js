@@ -485,7 +485,8 @@ var nodeRepl = function(opts) {
                 colorLog(32, "Commands available from the prompt");
                 console.log(":l -- load and run an external file");
                 console.log(":q -- exit REPL");
-                console.log(":s -- show original code about identifier.");
+                console.log(":s -- show original code about identifier");
+                console.log(":t -- show the type of the identifier");
                 console.log(":? -- show help");
                 break;
             default:
