@@ -543,6 +543,7 @@ var main = function() {
     var path = require('path');
     var vm;
     var run = false;
+    var includePrelude = true;
     switch(argv[0]) {
     case "-v":
     case "--version":
@@ -554,8 +555,11 @@ var main = function() {
         console.log("Roy: " + info.description + "\n");
         console.log("-v        : show current version");
         console.log("-r [file] : run Roy-code without JavaScript output");
+        console.log("-p        : run without prelude (standard library)");
         console.log("-c        : colorful REPL mode");
         console.log("-h        : show this help");
+    case "-p":
+        includePrelude = false;
     case "-r":
         vm = require('vm');
         run = true;
@@ -569,7 +573,9 @@ var main = function() {
     }
 
     // Include the standard library
-    argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
+    if(includePrelude) {
+        argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
+    }
 
     var extensions = /\.l?roy$/;
     var literateExtension = /\.lroy$/;
