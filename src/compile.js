@@ -113,7 +113,7 @@ var compileNode = function(n) {
                 data[tag.name] = n.name;
             });
             var defs = _.map(n.tags, compileNode);
-            return defs.join("\n");
+            return defs.join(";\n");
         },
         visitExpression: function() {
             return '(' + compileNode(n.value) + ')';
@@ -195,7 +195,8 @@ var compileNode = function(n) {
             var setters = _.map(args, function(v, i) {
                 return "this._" + i + " = " + v;
             });
-            return "var " + n.name + " = function(" + args.join(", ") + "){" + setters.join(";") + "};";
+            var settersString = (setters.length == 0 ? "" : setters.join(";") + ";");
+            return "var " + n.name + " = function(" + args.join(", ") + "){" + settersString + "}";
         },
         visitMatch: function() {
             var flatMap = function(a, f) {
