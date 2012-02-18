@@ -151,12 +151,15 @@ var compileNode = function(n) {
             macros[n.name] = 'var nodes = this.nodes; ' + code;
         },
         visitReturn: function() {
-            return "return __monad__[\"return\"](" + compileNode(n.value) + ");";
+            return "__monad__.return(" + compileNode(n.value) + ");";
         },
         visitBind: function() {
-            return "return __monad__[\"bind\"](" + compileNode(n.value) +
+            var init = n.rest.slice(0, n.rest.length - 1);
+            var last = n.rest[n.rest.length - 1];
+            return "__monad__.bind(" + compileNode(n.value) +
                 ", function(" + n.name + ") {\n" + pushIndent() +
-                _.map(n.rest, compileNode).join(";\n" + getIndent()) + "\n" +
+                _.map(init, compileNode).join(";\n" + getIndent()) + "\n" +
+                getIndent() + "return " + compileNode(last) + "\n" +
                 popIndent() + "});";
         },
         visitDo: function() {
@@ -184,8 +187,8 @@ var compileNode = function(n) {
             }
             return "(function(){\n" + pushIndent() + "var __monad__ = " +
                 compileNode(n.value) + ";\n" + getIndent() +
-                compiledInit.join('\n' + getIndent()) +
-                (firstBind ? compileNode(firstBind) : '') + "\n" +
+                (!firstBind ? 'return ' : '') + compiledInit.join('\n' + getIndent()) +
+                (firstBind ? 'return ' + compileNode(firstBind) : '') + "\n" +
                 popIndent() + "})()";
         },
         visitTag: function() {
