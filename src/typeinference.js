@@ -430,6 +430,9 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                 var newNonGeneric = nonGeneric.slice();
 
                 var tagType = newEnv[nodeCase.pattern.tag.value];
+                if(!tagType) {
+                    throw new Error("Couldn't find the tag: " + nodeCase.pattern.tag.value);
+                }
                 unify(value, fresh(prune(tagType), newNonGeneric));
 
                 var argNames = {};
