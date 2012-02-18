@@ -211,7 +211,7 @@ var compileNode = function(n) {
 
                         return a.accept({
                             visitIdentifier: function() {
-                                if(a.value in data) return [];
+                                if(a.value in data || a.value == '_') return [];
 
                                 var accessors = _.map(nextVarPath, function(x) {
                                     return "._" + x;

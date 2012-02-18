@@ -446,6 +446,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
 
                         v.accept({
                             visitIdentifier: function() {
+                                if(v.value == '_') return;
+
                                 if(argNames[v.value]) {
                                     throw new Error('Repeated variable "' + v.value + '" in pattern');
                                 }
