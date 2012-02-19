@@ -38,6 +38,9 @@ var unify = function(t1, t2) {
         }
     } else if(t1 instanceof t.BaseType && t2 instanceof t.Variable) {
         unify(t2, t1);
+    } else if(t1 instanceof t.NativeType || t2 instanceof t.NativeType) {
+        // do nothing.
+        // coercing Native to any type.
     } else if(t1 instanceof t.BaseType && t2 instanceof t.BaseType) {
         var t1str = t1.aliased || t1.toString();
         var t2str = t2.aliased || t2.toString();
