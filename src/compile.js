@@ -66,8 +66,12 @@ var compileNode = function(n) {
                 }).join(", ");
             };
             pushIndent();
+            var compiledWhereDecls = _.map(n.whereDecls, compileNode);
             var compiledNodeBody = _.map(n.body, compileNode);
             var init = [];
+            if(compiledWhereDecls.length > 0) {
+                init.push(compiledWhereDecls.join(';\n' + getIndent()) + ';');
+            }
             if(compiledNodeBody.length > 1) {
                 init.push(compiledNodeBody.slice(0, compiledNodeBody.length - 1).join(';\n' + getIndent()) + ';');
             }

@@ -1,0 +1,18 @@
+let f x =
+  let r: Number = g 1
+  r
+where
+  g y =
+    if (x == 0) then
+      h y
+    else
+      x + y + (z ())
+  where
+    z () = 3
+  h y =
+    if (x == 1) then
+      g y
+    else
+      x * y
+
+console.log (f 2)

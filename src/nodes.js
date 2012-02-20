@@ -20,13 +20,14 @@ exports.nodes = {
             }
         };
     },
-    Function: function(name, args, body, type) {
+    Function: function(name, args, body, type, whereDecls) {
         this.name = name;
         this.args = args;
         this.body = body;
 
         // Optional
         this.type = type;
+        this.whereDecls = whereDecls || [];
 
         this.accept = function(a) {
             if(a.visitFunction) {
