@@ -563,6 +563,7 @@ var main = function() {
         console.log("-p        : run without prelude (standard library)");
         console.log("-c        : colorful REPL mode");
         console.log("-h        : show this help");
+        return;
     case "-p":
         includePrelude = false;
     case "-r":
