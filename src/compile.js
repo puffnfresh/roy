@@ -546,6 +546,7 @@ var main = function() {
     }
 
     var path = require('path');
+    var source;
     var vm;
     var run = false;
     var includePrelude = true;
@@ -563,6 +564,17 @@ var main = function() {
         console.log("-p        : run without prelude (standard library)");
         console.log("-c        : colorful REPL mode");
         console.log("-h        : show this help");
+        return;
+    case "--stdio":
+        source = '';
+        process.stdin.resume();
+        process.stdin.setEncoding('utf8');
+        process.stdin.on('data', function(data) {
+            source += data;
+        });
+        process.stdin.on('end', function() {
+            console.log(compile(source).output);
+        });
         return;
     case "-p":
         includePrelude = false;
