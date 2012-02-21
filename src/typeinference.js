@@ -326,12 +326,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var resultType = new t.NumberType();
             var leftType = analyse(node.left, env, nonGeneric, data, aliases);
             var rightType = analyse(node.right, env, nonGeneric, data, aliases);
-            if(!(prune(leftType) instanceof t.NativeType)) {
-                unify(resultType, leftType);
-            }
-            if(!(prune(rightType) instanceof t.NativeType)) {
-                unify(resultType, rightType);
-            }
+            unify(resultType, leftType);
+            unify(resultType, rightType);
 
             return resultType;
         },
@@ -339,12 +335,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var resultType = new t.BooleanType();
             var leftType = analyse(node.left, env, nonGeneric, data, aliases);
             var rightType = analyse(node.right, env, nonGeneric, data, aliases);
-            if(!(prune(leftType) instanceof t.NativeType)) {
-                unify(resultType, leftType);
-            }
-            if(!(prune(rightType) instanceof t.NativeType)) {
-                unify(resultType, rightType);
-            }
+            unify(resultType, leftType);
+            unify(resultType, rightType);
 
             return resultType;
         },
@@ -352,12 +344,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var resultType = new t.StringType();
             var leftType = analyse(node.left, env, nonGeneric, data, aliases);
             var rightType = analyse(node.right, env, nonGeneric, data, aliases);
-            if(!(prune(leftType) instanceof t.NativeType)) {
-                unify(resultType, leftType);
-            }
-            if(!(prune(rightType) instanceof t.NativeType)) {
-                unify(resultType, rightType);
-            }
+            unify(resultType, leftType);
+            unify(resultType, rightType);
 
             return resultType;
         },
