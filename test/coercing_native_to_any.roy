@@ -1,0 +1,2 @@
+let x: Number = console
+console.log "ok"
