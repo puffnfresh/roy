@@ -180,7 +180,7 @@ var grammar = {
             ["whereDecls TERMINATOR whereDecl", "$$ = $1; $1.push($3);"]
         ],
         "whereDecl": [
-            // TODO ["dataDecl", "$$ = $1;"],
+            ["dataDecl", "$$ = $1;"],
             ["IDENTIFIER paramList optType = block optWhere", "$$ = new yy.Function($1, $2, $5, $3, $6);"],
             ["IDENTIFIER paramList optType = expression", "$$ = new yy.Function($1, $2, [$5], $3, []);"]
         ],

@@ -157,16 +157,19 @@ var analyseFunction = function(functionDecl, funcType, env, nonGeneric, data, al
         types.push(argType);
     });
 
-    // TODO handle data decl
+    var newData = _.clone(data);
+
+    analyseWhereDataDecls(functionDecl.whereDecls, newEnv, nonGeneric, newData, aliases);
+
     var whereFunctionTypeMap =
-        analyseWhereFunctions(functionDecl.whereDecls, newEnv, nonGeneric, data, aliases);
+        analyseWhereFunctions(functionDecl.whereDecls, newEnv, nonGeneric, newData, aliases);
 
     for(var name in whereFunctionTypeMap) {
         newEnv[name] = whereFunctionTypeMap[name];
     }
 
     var scopeTypes = _.map(functionDecl.body, function(expression) {
-        return analyse(expression, newEnv, nonGeneric, data, aliases);
+        return analyse(expression, newEnv, nonGeneric, newData, aliases);
     });
 
     var resultType = scopeTypes[scopeTypes.length - 1];
@@ -224,6 +227,63 @@ var createTemporaryFunctionType = function(node) {
     tempTypes.push(new t.Variable());
 
     return [new t.FunctionType(tempTypes), nonGeneric];
+};
+var analyseWhereDataDecls = function(whereDecls, env, nonGeneric, data, aliases) {
+    var dataDecls = _.filter(whereDecls, function(whereDecl) {
+        return whereDecl instanceof n.Data;
+    });
+
+    _.each(dataDecls, function(dataDecl) {
+        var nameType = new t.TagNameType(dataDecl.name);
+        var types = [nameType];
+
+        if(env[dataDecl.name]) {
+            throw new Error("Multiple declarations of type constructor: " + dataDecl.name);
+        }
+
+        var argNames = {};
+        var argEnv = _.clone(env);
+        _.each(dataDecl.args, function(arg) {
+            if(argNames[arg.name]) {
+                throw new Error("Repeated type variable '" + arg.name + "'");
+            }
+
+            var argType;
+            if(arg.type) {
+                argType = nodeToType(arg, argEnv, aliases);
+            } else {
+                argType = new t.Variable();
+            }
+            argEnv[arg.name] = argType;
+            argNames[arg.name] = argType;
+            types.push(argType);
+        });
+
+        env[dataDecl.name] = new t.TagType(types);
+    });
+
+    _.each(dataDecls, function(dataDecl) {
+        var type = env[dataDecl.name];
+        var newEnv = _.clone(env);
+
+        _.each(dataDecl.args, function(arg, i) {
+            var argType = type.types[i + 1];
+
+            newEnv[arg.name] = argType;
+        });
+
+        _.each(dataDecl.tags, function(tag) {
+            if(data[tag.name]) {
+                throw new Error("Multiple declarations for data constructor: " + tag.name);
+            }
+
+            data[tag.name] = [];
+            _.each(tag.vars, function(v, i) {
+                data[tag.name][i] = nodeToType(v, newEnv, aliases);
+            });
+            env[tag.name] = type;
+        });
+    });
 };
 
 
@@ -433,45 +493,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             return new t.ObjectType(combinedTypes);
         },
         visitData: function() {
-            var nameType = new t.TagNameType(node.name);
-            var types = [nameType];
-
-            if(env[node.name]) {
-                throw new Error("Multiple declarations of type constructor: " + node.name);
-            }
-
-            var newEnv = _.clone(env);
-
-            var argNames = {};
-            _.map(node.args, function(arg) {
-                if(argNames[arg.name]) {
-                    throw new Error("Repeated type variable '" + arg.name + "'");
-                }
-
-                var argType;
-                if(arg.type) {
-                    argType = nodeToType(arg, newEnv, aliases);
-                } else {
-                    argType = new t.Variable();
-                }
-                newEnv[arg.name] = argType;
-                argNames[arg.name] = argType;
-                types.push(argType);
-            });
-
-            var type = new t.TagType(types);
-            env[node.name] = newEnv[node.name] = type;
-            _.each(node.tags, function(tag) {
-                if(data[tag.name]) {
-                    throw new Error("Multiple declarations for data constructor: " + tag.name);
-                }
-
-                data[tag.name] = [];
-                _.each(tag.vars, function(v, i) {
-                    data[tag.name][i] = nodeToType(v, newEnv, aliases);
-                });
-                env[tag.name] = type;
-            });
+            analyseWhereDataDecls([node], env, nonGeneric, data, aliases);
 
             return new t.NativeType();
         },
