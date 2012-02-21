@@ -8,3 +8,10 @@ console.log (xor (Left (Left 100)))
 console.log (xor (Left (Right 100)))
 console.log (xor (Right (Left 100)))
 console.log (xor (Right (Right 100)))
+
+data XX = X
+data YY = Y XX
+let yy = Y X
+let idXX (x:XX) = x
+match yy
+  case (Y x) = idXX x

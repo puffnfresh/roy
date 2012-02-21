@@ -449,8 +449,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                                 if(v.value in data) {
                                     unify(currentValue, fresh(prune(newEnv[v.value]), newNonGeneric));
                                 } else {
-                                    newEnv[v.value] = currentValue;
-                                    newNonGeneric.push(newEnv[v.value]);
+                                    newEnv[v.value] = data[p.tag.value][i];
+                                    newNonGeneric.push(currentValue);
                                 }
                                 argNames[v.value] = newEnv[v.value];
                             },
