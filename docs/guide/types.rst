@@ -96,6 +96,19 @@ object::
     roy> {a: 100}
     [object Object] : {a: Number}
 
+This property can be used to write well-typed code that works on object properties.
+
+    roy> let a = {a:100}
+    roy> let b = {a:5, b:5}
+    roy> let f o = o.a + 6
+    roy> f a
+    106 : Number
+    roy> f b
+    11 : Number
+    roy> let d = {b:100}
+    roy> f d
+    Error: Type error: {b: Number} is not {a: Number}
+
 Interoperating with JavaScript
 ------------------------------
 
