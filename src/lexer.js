@@ -44,6 +44,7 @@ var identifierToken = function() {
         case 'return':
         case 'macro':
         case 'with':
+        case 'where':
             name = value.toUpperCase();
             break;
         default:
@@ -104,6 +105,12 @@ var whitespaceToken = function() {
     return 0;
 };
 
+// If an OUTDENT is followed by a line continuer,
+// the next TERMINATOR token is supressed.
+var lineContinuer = {
+    "where": true
+};
+
 var lineToken = function() {
     var token = INDENT.exec(chunk);
     if(token) {
@@ -122,8 +129,13 @@ var lineToken = function() {
                     last = indents[indents.length - 1];
                 }
             }
-            if(tokens.length > 0)
-                tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
+            if(tokens.length > 0) {
+                var lookahead = IDENTIFIER.exec(chunk.slice(token[0].length));
+
+                if (!lookahead || !lineContinuer[lookahead[0]]) {
+                    tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
+                }
+            }
         }
         indent = size;
         return token[0].length;
