@@ -121,7 +121,7 @@ JavaScript. These can help with writing statically-typed, functional
 code for the browser but they usually have a few downsides:
 
 * Hard/impossible to interoperate with JavaScript libraries
-* Generate to a lot of code
+* Generate a lot of code
 * Generate code that requires a hefty runtime
 * Must be compiled on the server-side (not in the browser)
 
