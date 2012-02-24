@@ -59,6 +59,14 @@ Notice that it doesn't give you an answer to the
 expression. JavaScript at this point would instead guess what you
 meant and give you an answer of ``"1Test"``.
 
+.. _strings:
+
+Strings
+-------
+
+These behave similar to a Javascript String, but they won't have methods attached to them.
+String concatentation is done with the '++' operator.
+
 .. _arrays:
 
 Arrays
