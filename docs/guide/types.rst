@@ -59,6 +59,14 @@ Notice that it doesn't give you an answer to the
 expression. JavaScript at this point would instead guess what you
 meant and give you an answer of ``"1Test"``.
 
+.. _strings:
+
+Strings
+-------
+
+These behave similar to a Javascript String, but they won't have methods attached to them.
+String concatentation is done with the '++' operator.
+
 .. _arrays:
 
 Arrays
@@ -96,6 +104,19 @@ object::
     roy> {a: 100}
     [object Object] : {a: Number}
 
+This property can be used to write well-typed code that works on object properties.
+
+    roy> let a = {a:100}
+    roy> let b = {a:5, b:5}
+    roy> let f o = o.a + 6
+    roy> f a
+    106 : Number
+    roy> f b
+    11 : Number
+    roy> let d = {b:100}
+    roy> f d
+    Error: Type error: {b: Number} is not {a: Number}
+
 Interoperating with JavaScript
 ------------------------------
 
@@ -107,6 +128,48 @@ natively to Roy::
 
     roy> console.log "Hello!"
     Hello!
+
+
+Using Native types
+--------------------
+
+Given Roy's current limitations, you may want to use a Native type sometimes.
+
+    roy> "abc".length
+    Error: Parse error on line 2: Unexpected '.'
+
+    roy> (String "abc")
+    abc : Native
+    roy> (String "abc").length
+    3 : Native
+
+Regular Expressions
+------------------------------
+
+Roy does not have direct support for regular expressions, including literals like /exp/
+
+To use a regular expression in Roy you need one of the following approaches:
+* have an existing RegExp
+* create a native RegExp using the RegExp constructor
+* invoke match on a Native String, which converts the matching String to a RegExp
+
+    roy> (String "abcd").match "a.c"
+    ["abc"] : Native
+
+    roy> (RegExp("a.c")).exec 'abcd'
+    ["abc"] : Native
+
+If you want, you can try and shorten up RegExp construction:
+
+    roy> let r s = RegExp s
+    roy> r "a.c"
+    /a.c/ : Native
+    roy> r"a.c"
+    /a.c/ : Native
+
+    roy> (r"a.c").exec "abcd"
+    ["abc"] : Native
+
 
 .. _Curry-Howard isomorphism: http://en.wikipedia.org/wiki/Curry-Howard_correspondence
 .. _structural subtyping: http://en.wikipedia.org/wiki/Structural_type_system
