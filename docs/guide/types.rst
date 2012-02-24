@@ -104,7 +104,7 @@ object::
     roy> {a: 100}
     [object Object] : {a: Number}
 
-This property can be used to write well-typed code that works on object properties.
+This property can be used to write well-typed code that works on object properties::
 
     roy> let a = {a:100}
     roy> let b = {a:5, b:5}
@@ -133,7 +133,7 @@ natively to Roy::
 Using Native types
 --------------------
 
-Given Roy's current limitations, you may want to use a Native type sometimes.
+Given Roy's current limitations, you may want to use a Native type sometimes::
 
     roy> "abc".length
     Error: Parse error on line 2: Unexpected '.'
@@ -149,9 +149,12 @@ Regular Expressions
 Roy does not have direct support for regular expressions, including literals like /exp/
 
 To use a regular expression in Roy you need one of the following approaches:
-* have an existing RegExp
-* create a native RegExp using the RegExp constructor
-* invoke match on a Native String, which converts the matching String to a RegExp
+
+* Have an existing RegExp
+* Create a native RegExp using the RegExp constructor
+* Invoke match on a Native String, which converts the matching String to a RegExp
+
+::
 
     roy> (String "abcd").match "a.c"
     ["abc"] : Native
@@ -159,7 +162,7 @@ To use a regular expression in Roy you need one of the following approaches:
     roy> (RegExp("a.c")).exec 'abcd'
     ["abc"] : Native
 
-If you want, you can try and shorten up RegExp construction:
+If you want, you can try and shorten up RegExp construction::
 
     roy> let r s = RegExp s
     roy> r "a.c"
@@ -169,7 +172,6 @@ If you want, you can try and shorten up RegExp construction:
 
     roy> (r"a.c").exec "abcd"
     ["abc"] : Native
-
 
 .. _Curry-Howard isomorphism: http://en.wikipedia.org/wiki/Curry-Howard_correspondence
 .. _structural subtyping: http://en.wikipedia.org/wiki/Structural_type_system
