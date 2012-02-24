@@ -7,6 +7,7 @@
 
 // Type variable and built-in types are defined in the `types` module.
 var t = require('./types'),
+    n = require('./nodes').nodes,
     _ = require('underscore');
 
 // ### Unification
@@ -132,6 +133,160 @@ var occursInTypeArray = function(t1, types) {
     }).indexOf(true) >= 0;
 };
 
+// ### Helper functions for function definitions
+// 
+// recursively process where declarations.
+var analyseFunction = function(functionDecl, funcType, env, nonGeneric, data, aliases) {
+    var types = [];
+    var newEnv = _.clone(env);
+
+    var argNames = {};
+    _.each(functionDecl.args, function(arg, i) {
+        if(argNames[arg.name]) {
+            throw new Error("Repeated function argument '" + arg.name + "'");
+        }
+
+        var argType;
+        if(arg.type) {
+            argType = nodeToType(arg.type, env, aliases);
+        } else {
+            argType = funcType.types[i];
+        }
+        newEnv[arg.name] = argType;
+        argNames[arg.name] = argType;
+        types.push(argType);
+    });
+
+    var newData = _.clone(data);
+
+    analyseWhereDataDecls(functionDecl.whereDecls, newEnv, nonGeneric, newData, aliases);
+
+    var whereFunctionTypeMap =
+        analyseWhereFunctions(functionDecl.whereDecls, newEnv, nonGeneric, newData, aliases);
+
+    for(var name in whereFunctionTypeMap) {
+        newEnv[name] = whereFunctionTypeMap[name];
+    }
+
+    var scopeTypes = _.map(functionDecl.body, function(expression) {
+        return analyse(expression, newEnv, nonGeneric, newData, aliases);
+    });
+
+    var resultType = scopeTypes[scopeTypes.length - 1];
+    types.push(resultType);
+
+    var annotationType;
+    if(functionDecl.type) {
+        annotationType = nodeToType(functionDecl.type, env, aliases);
+        unify(resultType, annotationType);
+    }
+
+    return new t.FunctionType(types);
+};
+var analyseWhereFunctions = function(whereDecls, env, nonGeneric, data, aliases) {
+    var newNonGeneric = nonGeneric.slice();
+
+    var newEnv = _.clone(env);
+
+    var functionDecls = _.filter(whereDecls, function(whereDecl) {
+        return whereDecl instanceof n.Function;
+    });
+
+    _.each(functionDecls, function(functionDecl) {
+        var funcTypeAndNonGenerics = createTemporaryFunctionType(functionDecl);
+        var funcType = funcTypeAndNonGenerics[0];
+
+        newNonGeneric = newNonGeneric.concat(funcTypeAndNonGenerics[1]);
+
+        newEnv[functionDecl.name] = funcType;
+    });
+
+    var functionTypes = {};
+    _.each(functionDecls, function(functionDecl) {
+        var functionType = newEnv[functionDecl.name];
+
+        functionTypes[functionDecl.name] =
+            analyseFunction(functionDecl, functionType, newEnv, newNonGeneric, data, aliases);
+    });
+
+    return functionTypes;
+};
+var createTemporaryFunctionType = function(node) {
+    var nonGeneric = [];
+
+    var tempTypes = _.map(node.args, function(arg) {
+        var typeVar = new t.Variable();
+
+        if (!arg.type) {
+            nonGeneric.push(typeVar);
+        }
+
+        return typeVar;
+    });
+
+    tempTypes.push(new t.Variable());
+
+    return [new t.FunctionType(tempTypes), nonGeneric];
+};
+var analyseWhereDataDecls = function(whereDecls, env, nonGeneric, data, aliases) {
+    var dataDecls = _.filter(whereDecls, function(whereDecl) {
+        return whereDecl instanceof n.Data;
+    });
+
+    _.each(dataDecls, function(dataDecl) {
+        var nameType = new t.TagNameType(dataDecl.name);
+        var types = [nameType];
+
+        if(env[dataDecl.name]) {
+            throw new Error("Multiple declarations of type constructor: " + dataDecl.name);
+        }
+
+        var argNames = {};
+        var argEnv = _.clone(env);
+        _.each(dataDecl.args, function(arg) {
+            if(argNames[arg.name]) {
+                throw new Error("Repeated type variable '" + arg.name + "'");
+            }
+
+            var argType;
+            if(arg.type) {
+                argType = nodeToType(arg, argEnv, aliases);
+            } else {
+                argType = new t.Variable();
+            }
+            argEnv[arg.name] = argType;
+            argNames[arg.name] = argType;
+            types.push(argType);
+        });
+
+        env[dataDecl.name] = new t.TagType(types);
+    });
+
+    _.each(dataDecls, function(dataDecl) {
+        var type = env[dataDecl.name];
+        var newEnv = _.clone(env);
+
+        _.each(dataDecl.args, function(arg, i) {
+            var argType = type.types[i + 1];
+
+            newEnv[arg.name] = argType;
+        });
+
+        _.each(dataDecl.tags, function(tag) {
+            if(data[tag.name]) {
+                throw new Error("Multiple declarations for data constructor: " + tag.name);
+            }
+
+            data[tag.name] = [];
+            _.each(tag.vars, function(v, i) {
+                data[tag.name][i] = nodeToType(v, newEnv, aliases);
+            });
+            env[tag.name] = type;
+        });
+    });
+};
+
+
 // ### Type analysis
 //
 // `analyse` is the core inference function. It takes an AST node and returns
@@ -152,52 +307,21 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
         //
         // We create temporary types for recursive definitions.
         visitFunction: function() {
-            var types = [];
             var newNonGeneric = nonGeneric.slice();
 
             var newEnv = _.clone(env);
 
-            var tempTypes = [];
-            for(var i = 0; i < node.args.length; i++) {
-                tempTypes.push(new t.Variable());
-            }
-            tempTypes.push(new t.Variable());
-            if(node.name) {
-                newEnv[node.name] = new t.FunctionType(tempTypes);
-            }
+            var funcTypeAndNonGenerics = createTemporaryFunctionType(node);
+            var funcType = funcTypeAndNonGenerics[0];
 
-            var argNames = {};
-            _.each(node.args, function(arg, i) {
-                if(argNames[arg.name]) {
-                    throw new Error("Repeated function argument '" + arg.name + "'");
-                }
+            newNonGeneric = newNonGeneric.concat(funcTypeAndNonGenerics[1]);
 
-                var argType;
-                if(arg.type) {
-                    argType = nodeToType(arg.type, env, aliases);
-                } else {
-                    argType = tempTypes[i];
-                    newNonGeneric.push(argType);
-                }
-                newEnv[arg.name] = argType;
-                argNames[arg.name] = argType;
-                types.push(argType);
-            });
-
-            var scopeTypes = _.map(node.body, function(expression) {
-                return analyse(expression, newEnv, newNonGeneric, data, aliases);
-            });
-
-            var resultType = scopeTypes[scopeTypes.length - 1];
-            types.push(resultType);
-
-            var annotationType;
-            if(node.type) {
-                annotationType = nodeToType(node.type, env, aliases);
-                unify(resultType, annotationType);
+            if (node.name) {
+                newEnv[node.name] = funcType;
             }
 
-            var functionType = new t.FunctionType(types);
+            var functionType = analyseFunction(node, funcType, newEnv, newNonGeneric, data, aliases);
+
             if(node.name) {
                 env[node.name] = functionType;
             }
@@ -369,45 +493,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             return new t.ObjectType(combinedTypes);
         },
         visitData: function() {
-            var nameType = new t.TagNameType(node.name);
-            var types = [nameType];
-
-            if(env[node.name]) {
-                throw new Error("Multiple declarations of type constructor: " + node.name);
-            }
-
-            var newEnv = _.clone(env);
-
-            var argNames = {};
-            _.map(node.args, function(arg) {
-                if(argNames[arg.name]) {
-                    throw new Error("Repeated type variable '" + arg.name + "'");
-                }
-
-                var argType;
-                if(arg.type) {
-                    argType = nodeToType(arg, newEnv, aliases);
-                } else {
-                    argType = new t.Variable();
-                }
-                newEnv[arg.name] = argType;
-                argNames[arg.name] = argType;
-                types.push(argType);
-            });
-
-            var type = new t.TagType(types);
-            env[node.name] = newEnv[node.name] = type;
-            _.each(node.tags, function(tag) {
-                if(data[tag.name]) {
-                    throw new Error("Multiple declarations for data constructor: " + tag.name);
-                }
-
-                data[tag.name] = [];
-                _.each(tag.vars, function(v, i) {
-                    data[tag.name][i] = nodeToType(v, newEnv, aliases);
-                });
-                env[tag.name] = type;
-            });
+            analyseWhereDataDecls([node], env, nonGeneric, data, aliases);
 
             return new t.NativeType();
         },

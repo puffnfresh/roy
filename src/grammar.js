@@ -150,8 +150,8 @@ var grammar = {
             ["MACRO IDENTIFIER = block", "$$ = new yy.Macro($2, $4);"]
         ],
         "letFunction": [
-            ["LET IDENTIFIER paramList optType = block", "$$ = new yy.Function($2, $3, $6, $4);"],
-            ["LET IDENTIFIER paramList optType = expression", "$$ = new yy.Function($2, $3, [$6], $4);"]
+            ["LET IDENTIFIER paramList optType = block optWhere", "$$ = new yy.Function($2, $3, $6, $4, $7);"],
+            ["LET IDENTIFIER paramList optType = expression", "$$ = new yy.Function($2, $3, [$6], $4, []);"]
         ],
         "letBinding": [
             ["LET IDENTIFIER optType = expression", "$$ = new yy.Let($2, $5, $3);"],
@@ -171,6 +171,20 @@ var grammar = {
             ["", ""],
             [": type", "$$ = $2"]
         ],
+        "optWhere": [
+            ["", "$$ = [];"],
+            ["WHERE INDENT whereDecls outdentOrEof", "$$ = $3;"] 
+        ],
+        "whereDecls": [
+            ["whereDecl", "$$ = [$1];"],
+            ["whereDecls TERMINATOR whereDecl", "$$ = $1; $1.push($3);"]
+        ],
+        "whereDecl": [
+            ["dataDecl", "$$ = $1;"],
+            ["IDENTIFIER paramList optType = block optWhere", "$$ = new yy.Function($1, $2, $5, $3, $6);"],
+            ["IDENTIFIER paramList optType = expression", "$$ = new yy.Function($1, $2, [$5], $3, []);"]
+        ],
+
         "call": [
             ["accessor argList", "$$ = new yy.Call($1, $2);"],
             ["( expression ) argList", "$$ = new yy.Call($2, $4);"]
@@ -238,6 +252,7 @@ var grammar = {
             ["RETURN", "$$ = $1;"],
             ["MACRO", "$$ = $1;"],
             ["WITH", "$$ = $1;"],
+            ["WHERE", "$$ = $1;"],
             ["IDENTIFIER", "$$ = $1;"]
         ],
         "identifier": [
