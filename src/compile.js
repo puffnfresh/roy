@@ -25,6 +25,21 @@ parser.lexer =  {
     }
 };
 
+// Separate end comments from other expressions
+var splitComments = function(body) {
+    return _.reduceRight(body, function(accum, node) {
+        if(!accum.body.length && node instanceof nodes.Comment) {
+            accum.comments.unshift(node);
+            return accum;
+        }
+        accum.body.unshift(node);
+        return accum;
+    }, {
+        body: [],
+        comments: []
+    });
+};
+
 // Compile an abstract syntax tree (AST) node to JavaScript.
 var data = {};
 var macros = {};
@@ -66,8 +81,9 @@ var compileNode = function(n) {
                 }).join(", ");
             };
             pushIndent();
+            var split = splitComments(n.body);
             var compiledWhereDecls = _.map(n.whereDecls, compileNode);
-            var compiledNodeBody = _.map(n.body, compileNode);
+            var compiledNodeBody = _.map(split.body, compileNode);
             var init = [];
             if(compiledWhereDecls.length > 0) {
                 init.push(compiledWhereDecls.join(';\n' + getIndent()) + ';');
@@ -80,31 +96,50 @@ var compileNode = function(n) {
             if(n.name) {
                 varEquals = "var " + n.name + " = ";
             }
+
+            var compiledEndComments = "";
+            if(split.comments.length) {
+                compiledEndComments = getIndent() + _.map(split.comments, compileNode).join("\n" + getIndent()) + "\n";
+            }
             return varEquals + "function(" + getArgs(n.args) + ") {\n" +
                 getIndent() + joinIndent(init) + "return " + lastString +
-                ";\n" + popIndent() + "}";
+                ";\n" + compiledEndComments + popIndent() + "}";
         },
         visitIfThenElse: function() {
-            var compiledNodeCondition = compileNode(n.condition);
+            var compiledCondition = compileNode(n.condition);
 
             var compileAppendSemicolon = function(n) {
                 return compileNode(n) + ';';
             };
 
+            var ifTrue = splitComments(n.ifTrue);
+            var ifFalse = splitComments(n.ifFalse);
+
             pushIndent();
             pushIndent();
-            var compiledNodeIfTrueInit = joinIndent(_.map(n.ifTrue.slice(0, n.ifTrue.length - 1), compileAppendSemicolon));
-            var compiledNodeIfTrueLast = compileNode(n.ifTrue[n.ifTrue.length - 1]);
-            var compiledNodeIfFalseInit = joinIndent(_.map(n.ifFalse.slice(0, n.ifFalse.length - 1), compileAppendSemicolon));
-            var compiledNodeIfFalseLast = compileNode(n.ifFalse[n.ifFalse.length - 1]);
+
+            var compiledIfTrueInit = joinIndent(_.map(ifTrue.body.slice(0, ifTrue.body.length - 1), compileAppendSemicolon));
+            var compiledIfTrueLast = compileNode(ifTrue.body[ifTrue.body.length - 1]);
+            var compiledIfTrueEndComments = "";
+            if(ifTrue.comments.length) {
+                compiledIfTrueEndComments = getIndent() + _.map(ifTrue.comments, compileNode).join("\n" + getIndent()) + "\n";
+            }
+
+            var compiledIfFalseInit = joinIndent(_.map(ifFalse.body.slice(0, ifFalse.body.length - 1), compileAppendSemicolon));
+            var compiledIfFalseLast = compileNode(ifFalse.body[ifFalse.body.length - 1]);
+            var compiledIfFalseEndComments = "";
+            if(ifFalse.comments.length) {
+                compiledIfFalseEndComments = getIndent() + _.map(ifFalse.comments, compileNode).join("\n" + getIndent()) + "\n";
+            }
+
             popIndent();
             popIndent();
 
             return "(function() {\n" +
-                getIndent(1) + "if(" + compiledNodeCondition + ") {\n" +
-                getIndent(2) + compiledNodeIfTrueInit + "return " + compiledNodeIfTrueLast + ";\n" +
+                getIndent(1) + "if(" + compiledCondition + ") {\n" +
+                getIndent(2) + compiledIfTrueInit + "return " + compiledIfTrueLast + ";\n" + compiledIfTrueEndComments +
                 getIndent(1) + "} else {\n" +
-                getIndent(2) + compiledNodeIfFalseInit + "return " + compiledNodeIfFalseLast + ";\n" +
+                getIndent(2) + compiledIfFalseInit + "return " + compiledIfFalseLast + ";\n" + compiledIfFalseEndComments +
                 getIndent(1) + "}\n" +
                 getIndent() + "})()";
         },

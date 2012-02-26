@@ -168,7 +168,7 @@ var analyseFunction = function(functionDecl, funcType, env, nonGeneric, data, al
         newEnv[name] = whereFunctionTypeMap[name];
     }
 
-    var scopeTypes = _.map(functionDecl.body, function(expression) {
+    var scopeTypes = _.map(withoutComments(functionDecl.body), function(expression) {
         return analyse(expression, newEnv, nonGeneric, newData, aliases);
     });
 
@@ -286,6 +286,12 @@ var analyseWhereDataDecls = function(whereDecls, env, nonGeneric, data, aliases)
     });
 };
 
+// Want to skip typing of comments in bodies
+var withoutComments = function(xs) {
+    return _.filter(xs, function(x) {
+        return x instanceof n.Comment;
+    });
+};
 
 // ### Type analysis
 //
@@ -329,12 +335,12 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             return functionType;
         },
         visitIfThenElse: function() {
-            var ifTrueScopeTypes = _.map(node.ifTrue, function(expression) {
+            var ifTrueScopeTypes = _.map(withoutComments(node.ifTrue), function(expression) {
                 return analyse(expression, env, nonGeneric, data, aliases);
             });
             var ifTrueType = ifTrueScopeTypes[ifTrueScopeTypes.length - 1];
 
-            var ifFalseScopeTypes = _.map(node.ifFalse, function(expression) {
+            var ifFalseScopeTypes = _.map(withoutComments(node.ifFalse), function(expression) {
                 return analyse(expression, env, nonGeneric, data, aliases);
             });
             var ifFalseType = ifFalseScopeTypes[ifFalseScopeTypes.length - 1];

@@ -57,6 +57,7 @@ MIT
 
 ## Resources
 * Roy website: http://roy.brianmckenna.org/
+* Roy docs: http://guide.roylang.org/
 * Roy Twitter: http://twitter.com/roylangjs
 * Bitbucket repo: https://bitbucket.org/puffnfresh/roy
 * GitHub repo: https://github.com/pufuwozu/roy
