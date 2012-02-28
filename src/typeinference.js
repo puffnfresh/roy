@@ -289,7 +289,7 @@ var analyseWhereDataDecls = function(whereDecls, env, nonGeneric, data, aliases)
 // Want to skip typing of comments in bodies
 var withoutComments = function(xs) {
     return _.filter(xs, function(x) {
-        return x instanceof n.Comment;
+        return !(x instanceof n.Comment);
     });
 };
 
