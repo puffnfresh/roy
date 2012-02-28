@@ -1,4 +1,4 @@
-PHONY_: site
+.PHONY: site
 
 all:
 	node src/grammar.js
