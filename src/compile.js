@@ -573,8 +573,9 @@ var main = function() {
     };
 
     // Roy package information
-    var fs = require('fs');
-    var info = JSON.parse(fs.readFileSync('package.json', 'utf8'));
+    var fs = require('fs'),
+        path = require('path');
+    var info = JSON.parse(fs.readFileSync(path.dirname(__dirname) + '/package.json', 'utf8'));
 
     if(process.argv.length < 3) {
         console.log("Roy: " + info.description);
