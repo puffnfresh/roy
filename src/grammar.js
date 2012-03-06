@@ -59,23 +59,26 @@ var grammar = {
             ["LAMBDA paramList optType RIGHTARROW block", "$$ = new yy.Function(undefined, $2, $5, $3);"],
             ["MATCH innerExpression INDENT caseList outdentOrEof", "$$ = new yy.Match($2, $4);"],
             ["DO innerExpression doBlock", "$$ = new yy.Do($2, $3);"],
-            ["call", "$$ = $1;"]
+            ["ifThenElse", "$$ = $1;"]
         ],
-        "innerExpression": [
-            ["ifThenElse", "$$ = $1;"],
+        "callArgument": [
             ["( expression )", "$$ = new yy.Expression($2);"],
             ["& ( expression )", "$$ = new yy.Replacement($3);"],
             ["[| expression |]", "$$ = new yy.Quoted($2);"],
             ["accessor", "$$ = $1;"],
-            ["innerExpression ! innerExpression", "$$ = new yy.Access($1, $3);"],
-            ["innerExpression MATH innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
-            ["innerExpression CONCAT innerExpression", "$$ = new yy.BinaryStringOperator($2, $1, $3);"],
-            ["innerExpression + innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
-            ["innerExpression - innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
-            ["innerExpression BOOLOP innerExpression", "$$ = new yy.BinaryBooleanOperator($2, $1, $3);"],
-            ["innerExpression COMPARE innerExpression", "$$ = new yy.BinaryGenericOperator($2, $1, $3);"],
-            ["innerExpression WITH innerExpression", "$$ = new yy.With($1, $3);"],
+            ["callArgument ! callArgument", "$$ = new yy.Access($1, $3);"],
+            ["callArgument MATH callArgument", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
+            ["callArgument CONCAT callArgument", "$$ = new yy.BinaryStringOperator($2, $1, $3);"],
+            ["callArgument + callArgument", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
+            ["callArgument - callArgument", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
+            ["callArgument BOOLOP callArgument", "$$ = new yy.BinaryBooleanOperator($2, $1, $3);"],
+            ["callArgument COMPARE callArgument", "$$ = new yy.BinaryGenericOperator($2, $1, $3);"],
+            ["callArgument WITH callArgument", "$$ = new yy.With($1, $3);"],
             ["literal", "$$ = $1;"]
+        ],
+        "innerExpression": [
+            ["call", "$$ = $1;"],
+            ["callArgument", "$$ = $1;"]
         ],
         "caseList": [
             ["CASE pattern = expression", "$$ = [new yy.Case($2, $4)];"],
@@ -191,9 +194,9 @@ var grammar = {
         ],
         "argList": [
             ["( )", "$$ = [];"],
-            ["innerExpression", "$$ = [$1];"],
+            ["callArgument", "$$ = [$1];"],
             ["argList ( )", "$$ = $1;"],
-            ["argList innerExpression", "$$ = $1; $1.push($2);"]
+            ["argList callArgument", "$$ = $1; $1.push($2);"]
         ],
         "tuple": [
             ["( innerExpression , tupleList )", "$4.unshift($2); $$ = new yy.Tuple($4);"]
