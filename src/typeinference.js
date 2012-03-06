@@ -456,8 +456,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var resultType = new t.NumberType();
             var leftType = analyse(node.left, env, nonGeneric, data, aliases);
             var rightType = analyse(node.right, env, nonGeneric, data, aliases);
-            unify(resultType, leftType);
-            unify(resultType, rightType);
+            unify(leftType, resultType);
+            unify(rightType, resultType);
 
             return resultType;
         },
@@ -465,8 +465,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var resultType = new t.BooleanType();
             var leftType = analyse(node.left, env, nonGeneric, data, aliases);
             var rightType = analyse(node.right, env, nonGeneric, data, aliases);
-            unify(resultType, leftType);
-            unify(resultType, rightType);
+            unify(leftType, resultType);
+            unify(rightType, resultType);
 
             return resultType;
         },
@@ -474,8 +474,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var resultType = new t.StringType();
             var leftType = analyse(node.left, env, nonGeneric, data, aliases);
             var rightType = analyse(node.right, env, nonGeneric, data, aliases);
-            unify(resultType, leftType);
-            unify(resultType, rightType);
+            unify(leftType, resultType);
+            unify(rightType, resultType);
 
             return resultType;
         },
