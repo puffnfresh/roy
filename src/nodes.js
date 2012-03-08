@@ -20,13 +20,14 @@ exports.nodes = {
             }
         };
     },
-    Function: function(name, args, body, type) {
+    Function: function(name, args, body, type, whereDecls) {
         this.name = name;
         this.args = args;
         this.body = body;
 
         // Optional
         this.type = type;
+        this.whereDecls = whereDecls || [];
 
         this.accept = function(a) {
             if(a.visitFunction) {
@@ -89,6 +90,15 @@ exports.nodes = {
         this.accept = function(a) {
             if(a.visitTypeObject) {
                 return a.visitTypeObject(this);
+            }
+        };
+    },
+    TypeArray: function(value) {
+        this.value = value;
+
+        this.accept = function(a) {
+            if(a.visitTypeArray) {
+                return a.visitTypeArray(this);
             }
         };
     },
@@ -214,6 +224,16 @@ exports.nodes = {
         this.accept = function(a) {
             if(a.visitComment) {
                 return a.visitComment(this);
+            }
+        };
+    },
+    PropertyAccess: function(value, property) {
+        this.value = value;
+        this.property = property;
+
+        this.accept = function(a) {
+            if(a.visitPropertyAccess) {
+                return a.visitPropertyAccess(this);
             }
         };
     },

@@ -46,6 +46,7 @@ var identifierToken = function() {
         case 'return':
         case 'macro':
         case 'with':
+        case 'where':
             name = value.toUpperCase();
             break;
         default:
@@ -115,6 +116,12 @@ var whitespaceToken = function() {
     return 0;
 };
 
+// If an OUTDENT is followed by a line continuer,
+// the next TERMINATOR token is supressed.
+var lineContinuer = {
+    "where": true
+};
+
 var lineToken = function() {
     var token = INDENT.exec(chunk);
     if(token) {
@@ -133,8 +140,13 @@ var lineToken = function() {
                     last = indents[indents.length - 1];
                 }
             }
-            if(tokens.length > 0)
-                tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
+            if(tokens.length > 0) {
+                var lookahead = IDENTIFIER.exec(chunk.slice(token[0].length));
+
+                if (!lookahead || !lineContinuer[lookahead[0]]) {
+                    tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
+                }
+            }
         }
         indent = size;
         return token[0].length;
@@ -194,6 +206,9 @@ var literalToken = function() {
         case '|]':
             tokens.push([next, next, lineno]);
             return 2;
+        case '||':
+            tokens.push(['BOOLOP', next, lineno]);
+            return 2;
         }
         tokens.push([tag, tag, lineno]);
         return 1;
@@ -222,14 +237,6 @@ var literalToken = function() {
     case '&':
         next = chunk.slice(0, 2);
         if(next == '&&') {
-            tokens.push(['BOOLOP', next, lineno]);
-            return 2;
-        }
-        tokens.push([tag, tag, lineno]);
-        return 1;
-    case '|':
-        next = chunk.slice(0, 2);
-        if(next == '||') {
             tokens.push(['BOOLOP', next, lineno]);
             return 2;
         }
@@ -270,7 +277,7 @@ exports.tokenise = function(source) {
     while(chunk = source.slice(i)) {
         var diff = identifierToken() || numberToken() || stringToken() || genericToken() || commentToken() || whitespaceToken() || lineToken() || literalToken();
         if(!diff) {
-            throw "Couldn't tokenise: " + chunk.substring(0, chunk.indexOf("\n"));
+            throw "Couldn't tokenise: " + chunk.substring(0, chunk.indexOf("\n") > -1 ? chunk.indexOf("\n") : chunk.length);
         }
         lineno += source.slice(i, i + diff).split('\n').length - 1;
         i += diff;

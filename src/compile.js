@@ -30,6 +30,21 @@ parser.lexer = typeparser.lexer =  {
     }
 };
 
+// Separate end comments from other expressions
+var splitComments = function(body) {
+    return _.reduceRight(body, function(accum, node) {
+        if(!accum.body.length && node instanceof nodes.Comment) {
+            accum.comments.unshift(node);
+            return accum;
+        }
+        accum.body.unshift(node);
+        return accum;
+    }, {
+        body: [],
+        comments: []
+    });
+};
+
 // Compile an abstract syntax tree (AST) node to JavaScript.
 var data = {};
 var indent = 0;
@@ -71,8 +86,13 @@ var compileNode = function(n) {
                 }).join(", ");
             };
             pushIndent();
-            var compiledNodeBody = _.map(n.body, compileNode);
+            var split = splitComments(n.body);
+            var compiledWhereDecls = _.map(n.whereDecls, compileNode);
+            var compiledNodeBody = _.map(split.body, compileNode);
             var init = [];
+            if(compiledWhereDecls.length > 0) {
+                init.push(compiledWhereDecls.join(';\n' + getIndent()) + ';');
+            }
             if(compiledNodeBody.length > 1) {
                 init.push(compiledNodeBody.slice(0, compiledNodeBody.length - 1).join(';\n' + getIndent()) + ';');
             }
@@ -81,37 +101,56 @@ var compileNode = function(n) {
             if(n.name) {
                 varEquals = "var " + n.name + " = ";
             }
+
+            var compiledEndComments = "";
+            if(split.comments.length) {
+                compiledEndComments = getIndent() + _.map(split.comments, compileNode).join("\n" + getIndent()) + "\n";
+            }
             return varEquals + "function(" + getArgs(n.args) + ") {\n" +
                 getIndent() + joinIndent(init) + "return " + lastString +
-                ";\n" + popIndent() + "}";
+                ";\n" + compiledEndComments + popIndent() + "}";
         },
         visitIfThenElse: function() {
-            var compiledNodeCondition = compileNode(n.condition);
+            var compiledCondition = compileNode(n.condition);
 
             var compileAppendSemicolon = function(n) {
                 return compileNode(n) + ';';
             };
 
+            var ifTrue = splitComments(n.ifTrue);
+            var ifFalse = splitComments(n.ifFalse);
+
             pushIndent();
             pushIndent();
-            var compiledNodeIfTrueInit = joinIndent(_.map(n.ifTrue.slice(0, n.ifTrue.length - 1), compileAppendSemicolon));
-            var compiledNodeIfTrueLast = compileNode(n.ifTrue[n.ifTrue.length - 1]);
-            var compiledNodeIfFalseInit = joinIndent(_.map(n.ifFalse.slice(0, n.ifFalse.length - 1), compileAppendSemicolon));
-            var compiledNodeIfFalseLast = compileNode(n.ifFalse[n.ifFalse.length - 1]);
+
+            var compiledIfTrueInit = joinIndent(_.map(ifTrue.body.slice(0, ifTrue.body.length - 1), compileAppendSemicolon));
+            var compiledIfTrueLast = compileNode(ifTrue.body[ifTrue.body.length - 1]);
+            var compiledIfTrueEndComments = "";
+            if(ifTrue.comments.length) {
+                compiledIfTrueEndComments = getIndent() + _.map(ifTrue.comments, compileNode).join("\n" + getIndent()) + "\n";
+            }
+
+            var compiledIfFalseInit = joinIndent(_.map(ifFalse.body.slice(0, ifFalse.body.length - 1), compileAppendSemicolon));
+            var compiledIfFalseLast = compileNode(ifFalse.body[ifFalse.body.length - 1]);
+            var compiledIfFalseEndComments = "";
+            if(ifFalse.comments.length) {
+                compiledIfFalseEndComments = getIndent() + _.map(ifFalse.comments, compileNode).join("\n" + getIndent()) + "\n";
+            }
+
             popIndent();
             popIndent();
 
             return "(function() {\n" +
-                getIndent(1) + "if(" + compiledNodeCondition + ") {\n" +
-                getIndent(2) + compiledNodeIfTrueInit + "return " + compiledNodeIfTrueLast + ";\n" +
+                getIndent(1) + "if(" + compiledCondition + ") {\n" +
+                getIndent(2) + compiledIfTrueInit + "return " + compiledIfTrueLast + ";\n" + compiledIfTrueEndComments +
                 getIndent(1) + "} else {\n" +
-                getIndent(2) + compiledNodeIfFalseInit + "return " + compiledNodeIfFalseLast + ";\n" +
+                getIndent(2) + compiledIfFalseInit + "return " + compiledIfFalseLast + ";\n" + compiledIfFalseEndComments +
                 getIndent(1) + "}\n" +
                 getIndent() + "})()";
         },
         // Let binding to JavaScript variable.
         visitLet: function() {
-            return "var " + n.name + " = " + compileNode(n.value) + ";";
+            return "var " + n.name + " = " + compileNode(n.value);
         },
         visitAssignment: function() {
             return compileNode(n.name) + " = " + compileNode(n.value) + ";";
@@ -121,7 +160,7 @@ var compileNode = function(n) {
                 data[tag.name] = n.name;
             });
             var defs = _.map(n.tags, compileNode);
-            return defs.join("\n");
+            return defs.join(";\n");
         },
         visitExpression: function() {
             return '(' + compileNode(n.value) + ')';
@@ -140,6 +179,9 @@ var compileNode = function(n) {
                 visitAccess: function(v) {
                     return "new nodes.Access(" + serialize(v.value) + ", " + JSON.stringify(v.property) + ")";
                 },
+                visitPropertyAccess: function(v) {
+                    return "new nodes.PropertyAccess(" + serialize(v.value) + ", " + JSON.stringify(v.property) + ")";
+                },
                 visitCall: function(v) {
                     return "new nodes.Call(" + serialize(v.func) + ", [" + _.map(v.args, serialize).join(', ') + "])";
                 }
@@ -150,12 +192,15 @@ var compileNode = function(n) {
             return serialize(n.value);
         },
         visitReturn: function() {
-            return "return __monad__[\"return\"](" + compileNode(n.value) + ");";
+            return "__monad__.return(" + compileNode(n.value) + ");";
         },
         visitBind: function() {
-            return "return __monad__[\"bind\"](" + compileNode(n.value) +
+            var init = n.rest.slice(0, n.rest.length - 1);
+            var last = n.rest[n.rest.length - 1];
+            return "__monad__.bind(" + compileNode(n.value) +
                 ", function(" + n.name + ") {\n" + pushIndent() +
-                _.map(n.rest, compileNode).join("\n" + getIndent()) + "\n" +
+                _.map(init, compileNode).join(";\n" + getIndent()) + "\n" +
+                getIndent() + "return " + compileNode(last) + "\n" +
                 popIndent() + "});";
         },
         visitDo: function() {
@@ -183,18 +228,19 @@ var compileNode = function(n) {
             }
             return "(function(){\n" + pushIndent() + "var __monad__ = " +
                 compileNode(n.value) + ";\n" + getIndent() +
-                compiledInit.join('\n' + getIndent()) +
-                (firstBind ? compileNode(firstBind) : '') + "\n" +
+                (!firstBind ? 'return ' : '') + compiledInit.join('\n' + getIndent()) +
+                (firstBind ? 'return ' + compileNode(firstBind) : '') + "\n" +
                 popIndent() + "})()";
         },
         visitTag: function() {
-            var args = _.map(n.vars, function(v) {
-                return v.value;
+            var args = _.map(n.vars, function(v, i) {
+                return v.value + "_" + i;
             });
-            var setters = _.map(n.vars, function(v, i) {
-                return "this._" + i + " = " + v.value;
+            var setters = _.map(args, function(v, i) {
+                return "this._" + i + " = " + v;
             });
-            return "var " + n.name + " = function(" + args.join(", ") + "){" + setters.join(";") + "};";
+            var settersString = (setters.length == 0 ? "" : setters.join(";") + ";");
+            return "var " + n.name + " = function(" + args.join(", ") + "){" + settersString + "}";
         },
         visitMatch: function() {
             var flatMap = function(a, f) {
@@ -209,7 +255,7 @@ var compileNode = function(n) {
 
                         return a.accept({
                             visitIdentifier: function() {
-                                if(a.value in data) return [];
+                                if(a.value in data || a.value == '_') return [];
 
                                 var accessors = _.map(nextVarPath, function(x) {
                                     return "._" + x;
@@ -282,11 +328,11 @@ var compileNode = function(n) {
             }
             return compileNode(n.func) + "(" + _.map(n.args, compileNode).join(", ") + ")";
         },
-        visitAccess: function() {
-            if(n.property.accept) {
-                return compileNode(n.value) + "[" + compileNode(n.property) + "]";
-            }
+        visitPropertyAccess: function() {
             return compileNode(n.value) + "." + n.property;
+        },
+        visitAccess: function() {
+            return compileNode(n.value) + "[" + compileNode(n.property) + "]";
         },
         visitBinaryGenericOperator: function() {
             return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
@@ -383,7 +429,10 @@ var compile = function(source, env, data, aliases, opts) {
         output.push('"use strict";');
     }
     _.each(ast, function(v) {
-        output.push(compileNode(v));
+        var compiled = compileNode(v);
+        if(compiled) {
+            output.push(compiled + (v instanceof nodes.Comment ? '' : ';'));
+        }
     });
 
     if(!opts.nodejs) {
@@ -468,6 +517,13 @@ var nodeRepl = function(opts) {
                 source = fs.readFileSync(filename, 'utf8');
                 compiled = compile(source, env, data, aliases, {nodejs: true, filename: ".", run: true});
                 break;
+            case ":t":
+                if(metacommand[1] in env) {
+                    console.log(env[metacommand[1]].toString());
+                } else {
+                    colorLog(33, metacommand[1], "is not defined.");
+                }
+                break;
             case ":s":
                 // Source
                 if(sources[metacommand[1]]) {
@@ -486,7 +542,8 @@ var nodeRepl = function(opts) {
                 colorLog(32, "Commands available from the prompt");
                 console.log(":l -- load and run an external file");
                 console.log(":q -- exit REPL");
-                console.log(":s -- show original code about identifier.");
+                console.log(":s -- show original code about identifier");
+                console.log(":t -- show the type of the identifier");
                 console.log(":? -- show help");
                 break;
             default:
@@ -510,7 +567,7 @@ var nodeRepl = function(opts) {
                 output = vm.runInNewContext(compiled.output, sandbox, 'eval');
 
                 if(typeof output != 'undefined') {
-                    colorLog(32, output + " : " + compiled.type);
+                    colorLog(32, (typeof output == 'object' ? JSON.stringify(output) : output) + " : " + compiled.type);
                 }
             }
         } catch(e) {
@@ -524,15 +581,16 @@ var nodeRepl = function(opts) {
 var main = function() {
     var argv = process.argv.slice(2);
 
-    // Meta Env Configure Data
+    // Meta-commands configuration
     var opts = {
         colorConsole: false
     };
 
-    // Get Roy infomation
-    var fs = require('fs');
-    var infofile = fs.readFileSync('package.json', 'utf8');
-    var info = JSON.parse(infofile);
+    // Roy package information
+    var fs = require('fs'),
+        path = require('path');
+    var info = JSON.parse(fs.readFileSync(path.dirname(__dirname) + '/package.json', 'utf8'));
+
     if(process.argv.length < 3) {
         console.log("Roy: " + info.description);
         console.log(info.author);
@@ -542,8 +600,10 @@ var main = function() {
     }
 
     var path = require('path');
+    var source;
     var vm;
     var run = false;
+    var includePrelude = true;
     switch(argv[0]) {
     case "-v":
     case "--version":
@@ -555,8 +615,23 @@ var main = function() {
         console.log("Roy: " + info.description + "\n");
         console.log("-v        : show current version");
         console.log("-r [file] : run Roy-code without JavaScript output");
+        console.log("-p        : run without prelude (standard library)");
         console.log("-c        : colorful REPL mode");
         console.log("-h        : show this help");
+        return;
+    case "--stdio":
+        source = '';
+        process.stdin.resume();
+        process.stdin.setEncoding('utf8');
+        process.stdin.on('data', function(data) {
+            source += data;
+        });
+        process.stdin.on('end', function() {
+            console.log(compile(source).output);
+        });
+        return;
+    case "-p":
+        includePrelude = false;
     case "-r":
         vm = require('vm');
         run = true;
@@ -579,8 +654,10 @@ var main = function() {
     var sandbox = getSandbox();
 
     if(run) {
-       // Include the standard library
-        argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
+        // Include the standard library
+        if(includePrelude) {
+            argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
+        }
     } else {
         var modules = [];
         if(!argv.length || argv[0] != 'lib/prelude.roy') {

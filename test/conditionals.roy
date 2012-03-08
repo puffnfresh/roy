@@ -1,0 +1,10 @@
+let x = if 2 > 0 then
+  "ok"
+else
+  "fail"
+
+console.log x
+
+console.log (if 2 > 0 then "ok" else "fail")
+console.log (if 3 > 0 then (if 3 < 0 then "fail" else "ok") else "fail")
+console.log (if 3 < 0 then "fail" else (if 3 > 0 then "ok" else "fail"))

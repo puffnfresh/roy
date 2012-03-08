@@ -8,6 +8,7 @@ var grammar = {
     "operators": [
         ["left", "RIGHTARROW", "LEFTARROW", "RIGHTFATARROW", "ELEM", "NOTELEM",
           "FORALL", "COMPOSE"],
+        ["right", "IF", "ELSE"],
         ["left", "BOOLOP"],
         ["left", "COMPARE", "WITH"],
         ["left", "+", "-", "!"],
@@ -59,23 +60,26 @@ var grammar = {
             ["LAMBDA paramList optType RIGHTARROW block", "$$ = new yy.Function(undefined, $2, $5, $3);"],
             ["MATCH innerExpression INDENT caseList outdentOrEof", "$$ = new yy.Match($2, $4);"],
             ["DO innerExpression doBlock", "$$ = new yy.Do($2, $3);"],
-            ["call", "$$ = $1;"]
+            ["ifThenElse", "$$ = $1;"]
         ],
-        "innerExpression": [
-            ["ifThenElse", "$$ = $1;"],
+        "callArgument": [
             ["( expression )", "$$ = new yy.Expression($2);"],
             ["& ( expression )", "$$ = new yy.Replacement($3);"],
             ["[| expression |]", "$$ = new yy.Quoted($2);"],
             ["accessor", "$$ = $1;"],
-            ["innerExpression ! innerExpression", "$$ = new yy.Access($1, $3);"],
-            ["innerExpression MATH innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
-            ["innerExpression CONCAT innerExpression", "$$ = new yy.BinaryStringOperator($2, $1, $3);"],
-            ["innerExpression + innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
-            ["innerExpression - innerExpression", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
-            ["innerExpression BOOLOP innerExpression", "$$ = new yy.BinaryBooleanOperator($2, $1, $3);"],
-            ["innerExpression COMPARE innerExpression", "$$ = new yy.BinaryGenericOperator($2, $1, $3);"],
-            ["innerExpression WITH innerExpression", "$$ = new yy.With($1, $3);"],
+            ["callArgument ! callArgument", "$$ = new yy.Access($1, $3);"],
+            ["callArgument MATH callArgument", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
+            ["callArgument CONCAT callArgument", "$$ = new yy.BinaryStringOperator($2, $1, $3);"],
+            ["callArgument + callArgument", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
+            ["callArgument - callArgument", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
+            ["callArgument BOOLOP callArgument", "$$ = new yy.BinaryBooleanOperator($2, $1, $3);"],
+            ["callArgument COMPARE callArgument", "$$ = new yy.BinaryGenericOperator($2, $1, $3);"],
+            ["callArgument WITH callArgument", "$$ = new yy.With($1, $3);"],
             ["literal", "$$ = $1;"]
+        ],
+        "innerExpression": [
+            ["call", "$$ = $1;"],
+            ["callArgument", "$$ = $1;"]
         ],
         "caseList": [
             ["CASE pattern = expression", "$$ = [new yy.Case($2, $4)];"],
@@ -95,7 +99,8 @@ var grammar = {
             ["patternIdentifiers identifier", "$$ = $1; $1.push($2);"]
         ],
         "ifThenElse": [
-            ["IF innerExpression THEN block TERMINATOR ELSE block", "$$ = new yy.IfThenElse($2, $4, $7);"]
+            ["IF innerExpression THEN block TERMINATOR ELSE block", "$$ = new yy.IfThenElse($2, $4, $7);"],
+            ["IF innerExpression THEN innerExpression ELSE innerExpression", "$$ = new yy.IfThenElse($2, [$4], [$6]);"]
         ],
 
         // data Maybe a = Some a | None
@@ -119,6 +124,7 @@ var grammar = {
 
         // For type annotations (from the typegrammar module)
         "type": typegrammar.type,
+        "typeList": typegrammar.typeList,
         "optTypeParamList": typegrammar.optTypeParamList,
         "typeParamList": typegrammar.typeParamList,
         "optTypeFunctionArgList": typegrammar.optTypeFunctionArgList,
@@ -130,8 +136,8 @@ var grammar = {
             ["MACRO IDENTIFIER = block", "$$ = new yy.Macro($2, $4);"]
         ],
         "letFunction": [
-            ["LET IDENTIFIER paramList optType = block", "$$ = new yy.Function($2, $3, $6, $4);"],
-            ["LET IDENTIFIER paramList optType = expression", "$$ = new yy.Function($2, $3, [$6], $4);"]
+            ["LET IDENTIFIER paramList optType = block optWhere", "$$ = new yy.Function($2, $3, $6, $4, $7);"],
+            ["LET IDENTIFIER paramList optType = expression", "$$ = new yy.Function($2, $3, [$6], $4, []);"]
         ],
         "letBinding": [
             ["LET IDENTIFIER optType = expression", "$$ = new yy.Let($2, $5, $3);"],
@@ -151,15 +157,29 @@ var grammar = {
             ["", ""],
             [": type", "$$ = $2"]
         ],
+        "optWhere": [
+            ["", "$$ = [];"],
+            ["WHERE INDENT whereDecls outdentOrEof", "$$ = $3;"] 
+        ],
+        "whereDecls": [
+            ["whereDecl", "$$ = [$1];"],
+            ["whereDecls TERMINATOR whereDecl", "$$ = $1; $1.push($3);"]
+        ],
+        "whereDecl": [
+            ["dataDecl", "$$ = $1;"],
+            ["IDENTIFIER paramList optType = block optWhere", "$$ = new yy.Function($1, $2, $5, $3, $6);"],
+            ["IDENTIFIER paramList optType = expression", "$$ = new yy.Function($1, $2, [$5], $3, []);"]
+        ],
+
         "call": [
             ["accessor argList", "$$ = new yy.Call($1, $2);"],
             ["( expression ) argList", "$$ = new yy.Call($2, $4);"]
         ],
         "argList": [
             ["( )", "$$ = [];"],
-            ["innerExpression", "$$ = [$1];"],
+            ["callArgument", "$$ = [$1];"],
             ["argList ( )", "$$ = $1;"],
-            ["argList innerExpression", "$$ = $1; $1.push($2);"]
+            ["argList callArgument", "$$ = $1; $1.push($2);"]
         ],
         "tuple": [
             ["( innerExpression , tupleList )", "$4.unshift($2); $$ = new yy.Tuple($4);"]
@@ -200,8 +220,8 @@ var grammar = {
         ],
         "accessor": [
             ["IDENTIFIER", "$$ = new yy.Identifier($1);"],
-            ["accessor . keywordOrIdentifier", "$$ = new yy.Access($1, $3);"],
-            ["( expression ) . keywordOrIdentifier", "$$ = new yy.Access($2, $5);"]
+            ["accessor . keywordOrIdentifier", "$$ = new yy.PropertyAccess($1, $3);"],
+            ["( expression ) . keywordOrIdentifier", "$$ = new yy.PropertyAccess($2, $5);"]
         ],
         "outdentOrEof": [
             ["OUTDENT", ""],

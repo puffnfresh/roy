@@ -7,6 +7,7 @@
 
 // Type variable and built-in types are defined in the `types` module.
 var t = require('./types'),
+    n = require('./nodes').nodes,
     _ = require('underscore');
 
 // ### Unification
@@ -38,6 +39,9 @@ var unify = function(t1, t2) {
         }
     } else if(t1 instanceof t.BaseType && t2 instanceof t.Variable) {
         unify(t2, t1);
+    } else if(t1 instanceof t.NativeType || t2 instanceof t.NativeType) {
+        // do nothing.
+        // coercing Native to any type.
     } else if(t1 instanceof t.BaseType && t2 instanceof t.BaseType) {
         var t1str = t1.aliased || t1.toString();
         var t2str = t2.aliased || t2.toString();
@@ -129,6 +133,166 @@ var occursInTypeArray = function(t1, types) {
     }).indexOf(true) >= 0;
 };
 
+// ### Helper functions for function definitions
+// 
+// recursively process where declarations.
+var analyseFunction = function(functionDecl, funcType, env, nonGeneric, data, aliases) {
+    var types = [];
+    var newEnv = _.clone(env);
+
+    var argNames = {};
+    _.each(functionDecl.args, function(arg, i) {
+        if(argNames[arg.name]) {
+            throw new Error("Repeated function argument '" + arg.name + "'");
+        }
+
+        var argType;
+        if(arg.type) {
+            argType = nodeToType(arg.type, env, aliases);
+        } else {
+            argType = funcType.types[i];
+        }
+        newEnv[arg.name] = argType;
+        argNames[arg.name] = argType;
+        types.push(argType);
+    });
+
+    var newData = _.clone(data);
+
+    analyseWhereDataDecls(functionDecl.whereDecls, newEnv, nonGeneric, newData, aliases);
+
+    var whereFunctionTypeMap =
+        analyseWhereFunctions(functionDecl.whereDecls, newEnv, nonGeneric, newData, aliases);
+
+    for(var name in whereFunctionTypeMap) {
+        newEnv[name] = whereFunctionTypeMap[name];
+    }
+
+    var scopeTypes = _.map(withoutComments(functionDecl.body), function(expression) {
+        return analyse(expression, newEnv, nonGeneric, newData, aliases);
+    });
+
+    var resultType = scopeTypes[scopeTypes.length - 1];
+    types.push(resultType);
+
+    var annotationType;
+    if(functionDecl.type) {
+        annotationType = nodeToType(functionDecl.type, env, aliases);
+        unify(resultType, annotationType);
+    }
+
+    return new t.FunctionType(types);
+};
+var analyseWhereFunctions = function(whereDecls, env, nonGeneric, data, aliases) {
+    var newNonGeneric = nonGeneric.slice();
+
+    var newEnv = _.clone(env);
+
+    var functionDecls = _.filter(whereDecls, function(whereDecl) {
+        return whereDecl instanceof n.Function;
+    });
+
+    _.each(functionDecls, function(functionDecl) {
+        var funcTypeAndNonGenerics = createTemporaryFunctionType(functionDecl);
+        var funcType = funcTypeAndNonGenerics[0];
+
+        newNonGeneric = newNonGeneric.concat(funcTypeAndNonGenerics[1]);
+
+        newEnv[functionDecl.name] = funcType;
+    });
+
+    var functionTypes = {};
+    _.each(functionDecls, function(functionDecl) {
+        var functionType = newEnv[functionDecl.name];
+
+        functionTypes[functionDecl.name] =
+            analyseFunction(functionDecl, functionType, newEnv, newNonGeneric, data, aliases);
+    });
+
+    return functionTypes;
+};
+var createTemporaryFunctionType = function(node) {
+    var nonGeneric = [];
+
+    var tempTypes = _.map(node.args, function(arg) {
+        var typeVar = new t.Variable();
+
+        if (!arg.type) {
+            nonGeneric.push(typeVar);
+        }
+
+        return typeVar;
+    });
+
+    tempTypes.push(new t.Variable());
+
+    return [new t.FunctionType(tempTypes), nonGeneric];
+};
+var analyseWhereDataDecls = function(whereDecls, env, nonGeneric, data, aliases) {
+    var dataDecls = _.filter(whereDecls, function(whereDecl) {
+        return whereDecl instanceof n.Data;
+    });
+
+    _.each(dataDecls, function(dataDecl) {
+        var nameType = new t.TagNameType(dataDecl.name);
+        var types = [nameType];
+
+        if(env[dataDecl.name]) {
+            throw new Error("Multiple declarations of type constructor: " + dataDecl.name);
+        }
+
+        var argNames = {};
+        var argEnv = _.clone(env);
+        _.each(dataDecl.args, function(arg) {
+            if(argNames[arg.name]) {
+                throw new Error("Repeated type variable '" + arg.name + "'");
+            }
+
+            var argType;
+            if(arg.type) {
+                argType = nodeToType(arg, argEnv, aliases);
+            } else {
+                argType = new t.Variable();
+            }
+            argEnv[arg.name] = argType;
+            argNames[arg.name] = argType;
+            types.push(argType);
+        });
+
+        env[dataDecl.name] = new t.TagType(types);
+    });
+
+    _.each(dataDecls, function(dataDecl) {
+        var type = env[dataDecl.name];
+        var newEnv = _.clone(env);
+
+        _.each(dataDecl.args, function(arg, i) {
+            var argType = type.types[i + 1];
+
+            newEnv[arg.name] = argType;
+        });
+
+        _.each(dataDecl.tags, function(tag) {
+            if(data[tag.name]) {
+                throw new Error("Multiple declarations for data constructor: " + tag.name);
+            }
+
+            data[tag.name] = [];
+            _.each(tag.vars, function(v, i) {
+                data[tag.name][i] = nodeToType(v, newEnv, aliases);
+            });
+            env[tag.name] = type;
+        });
+    });
+};
+
+// Want to skip typing of comments in bodies
+var withoutComments = function(xs) {
+    return _.filter(xs, function(x) {
+        return !(x instanceof n.Comment);
+    });
+};
+
 // ### Type analysis
 //
 // `analyse` is the core inference function. It takes an AST node and returns
@@ -149,52 +313,21 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
         //
         // We create temporary types for recursive definitions.
         visitFunction: function() {
-            var types = [];
             var newNonGeneric = nonGeneric.slice();
 
             var newEnv = _.clone(env);
 
-            var tempTypes = [];
-            for(var i = 0; i < node.args.length; i++) {
-                tempTypes.push(new t.Variable());
-            }
-            tempTypes.push(new t.Variable());
-            if(node.name) {
-                newEnv[node.name] = new t.FunctionType(tempTypes);
-            }
+            var funcTypeAndNonGenerics = createTemporaryFunctionType(node);
+            var funcType = funcTypeAndNonGenerics[0];
 
-            var argNames = {};
-            _.each(node.args, function(arg, i) {
-                if(argNames[arg.name]) {
-                    throw new Error("Repeated function argument '" + arg.name + "'");
-                }
+            newNonGeneric = newNonGeneric.concat(funcTypeAndNonGenerics[1]);
 
-                var argType;
-                if(arg.type) {
-                    argType = nodeToType(arg.type, env, aliases);
-                } else {
-                    argType = tempTypes[i];
-                    newNonGeneric.push(argType);
-                }
-                newEnv[arg.name] = argType;
-                argNames[arg.name] = argType;
-                types.push(argType);
-            });
-
-            var scopeTypes = _.map(node.body, function(expression) {
-                return analyse(expression, newEnv, newNonGeneric, data, aliases);
-            });
-
-            var resultType = scopeTypes[scopeTypes.length - 1];
-            types.push(resultType);
-
-            var annotationType;
-            if(node.type) {
-                annotationType = nodeToType(node.type, env, aliases);
-                unify(resultType, annotationType);
+            if (node.name) {
+                newEnv[node.name] = funcType;
             }
 
-            var functionType = new t.FunctionType(types);
+            var functionType = analyseFunction(node, funcType, newEnv, newNonGeneric, data, aliases);
+
             if(node.name) {
                 env[node.name] = functionType;
             }
@@ -202,12 +335,12 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             return functionType;
         },
         visitIfThenElse: function() {
-            var ifTrueScopeTypes = _.map(node.ifTrue, function(expression) {
+            var ifTrueScopeTypes = _.map(withoutComments(node.ifTrue), function(expression) {
                 return analyse(expression, env, nonGeneric, data, aliases);
             });
             var ifTrueType = ifTrueScopeTypes[ifTrueScopeTypes.length - 1];
 
-            var ifFalseScopeTypes = _.map(node.ifFalse, function(expression) {
+            var ifFalseScopeTypes = _.map(withoutComments(node.ifFalse), function(expression) {
                 return analyse(expression, env, nonGeneric, data, aliases);
             });
             var ifFalseType = ifFalseScopeTypes[ifFalseScopeTypes.length - 1];
@@ -221,11 +354,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
         // Ensures that all argument types `unify` with the defined function and
         // returns the function's result type.
         visitCall: function() {
-            var types = [];
-
-            _.each(node.args, function(arg) {
-                var argType = analyse(arg, env, nonGeneric, data, aliases);
-                types.push(argType);
+            var types = _.map(node.args, function(arg) {
+                return analyse(arg, env, nonGeneric, data, aliases);
             });
 
             var funType = analyse(node.func, env, nonGeneric, data, aliases);
@@ -301,19 +431,14 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             // TODO: Make cleaner
             return env[node.value.value].props['return'].types[1];
         },
-        visitAccess: function() {
+        visitPropertyAccess: function() {
             var valueType = analyse(node.value, env, nonGeneric, data, aliases);
 
             if(prune(valueType) instanceof t.NativeType) {
                 return new t.NativeType();
             }
 
-            if(prune(valueType) instanceof t.ArrayType) {
-                var accessType = analyse(node.property, env, nonGeneric, data, aliases);
-                unify(accessType, new t.NumberType());
-                return prune(valueType).type;
-            }
-
+            // TODO: Properly generate property constraints
             if(valueType instanceof t.ObjectType) {
                 if(!valueType.props[node.property]) {
                     valueType.props[node.property] = new t.Variable();
@@ -326,6 +451,19 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
 
             return prune(valueType).getPropertyType(node.property);
         },
+        visitAccess: function() {
+            var valueType = analyse(node.value, env, nonGeneric, data, aliases);
+
+            if(prune(valueType) instanceof t.NativeType) {
+                return new t.NativeType();
+            }
+
+            unify(valueType, new t.ArrayType(new t.Variable()));
+
+            var accessType = analyse(node.property, env, nonGeneric, data, aliases);
+            unify(accessType, new t.NumberType());
+            return prune(valueType).type;
+        },
         visitBinaryGenericOperator: function() {
             var leftType = analyse(node.left, env, nonGeneric, data, aliases);
             var rightType = analyse(node.right, env, nonGeneric, data, aliases);
@@ -337,12 +475,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var resultType = new t.NumberType();
             var leftType = analyse(node.left, env, nonGeneric, data, aliases);
             var rightType = analyse(node.right, env, nonGeneric, data, aliases);
-            if(!(prune(leftType) instanceof t.NativeType)) {
-                unify(resultType, leftType);
-            }
-            if(!(prune(rightType) instanceof t.NativeType)) {
-                unify(resultType, rightType);
-            }
+            unify(leftType, resultType);
+            unify(rightType, resultType);
 
             return resultType;
         },
@@ -350,12 +484,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var resultType = new t.BooleanType();
             var leftType = analyse(node.left, env, nonGeneric, data, aliases);
             var rightType = analyse(node.right, env, nonGeneric, data, aliases);
-            if(!(prune(leftType) instanceof t.NativeType)) {
-                unify(resultType, leftType);
-            }
-            if(!(prune(rightType) instanceof t.NativeType)) {
-                unify(resultType, rightType);
-            }
+            unify(leftType, resultType);
+            unify(rightType, resultType);
 
             return resultType;
         },
@@ -363,12 +493,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             var resultType = new t.StringType();
             var leftType = analyse(node.left, env, nonGeneric, data, aliases);
             var rightType = analyse(node.right, env, nonGeneric, data, aliases);
-            if(!(prune(leftType) instanceof t.NativeType)) {
-                unify(resultType, leftType);
-            }
-            if(!(prune(rightType) instanceof t.NativeType)) {
-                unify(resultType, rightType);
-            }
+            unify(leftType, resultType);
+            unify(rightType, resultType);
 
             return resultType;
         },
@@ -392,45 +518,7 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             return new t.ObjectType(combinedTypes);
         },
         visitData: function() {
-            var nameType = new t.TagNameType(node.name);
-            var types = [nameType];
-
-            if(env[node.name]) {
-                throw new Error("Multiple declarations of type constructor: " + node.name);
-            }
-
-            var newEnv = _.clone(env);
-
-            var argNames = {};
-            _.map(node.args, function(arg) {
-                if(argNames[arg.name]) {
-                    throw new Error("Repeated type variable '" + arg.name + "'");
-                }
-
-                var argType;
-                if(arg.type) {
-                    argType = nodeToType(arg, newEnv, aliases);
-                } else {
-                    argType = new t.Variable();
-                }
-                newEnv[arg.name] = argType;
-                argNames[arg.name] = argType;
-                types.push(argType);
-            });
-
-            var type = new t.TagType(types);
-            env[node.name] = newEnv[node.name] = type;
-            _.each(node.tags, function(tag) {
-                if(data[tag.name]) {
-                    throw new Error("Multiple declarations for data constructor: " + tag.name);
-                }
-
-                data[tag.name] = [];
-                _.each(tag.vars, function(v, i) {
-                    data[tag.name][i] = nodeToType(v, newEnv, aliases);
-                });
-                env[tag.name] = type;
-            });
+            analyseWhereDataDecls([node], env, nonGeneric, data, aliases);
 
             return new t.NativeType();
         },
@@ -444,6 +532,9 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                 var newNonGeneric = nonGeneric.slice();
 
                 var tagType = newEnv[nodeCase.pattern.tag.value];
+                if(!tagType) {
+                    throw new Error("Couldn't find the tag: " + nodeCase.pattern.tag.value);
+                }
                 unify(value, fresh(prune(tagType), newNonGeneric));
 
                 var argNames = {};
@@ -460,6 +551,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
 
                         v.accept({
                             visitIdentifier: function() {
+                                if(v.value == '_') return;
+
                                 if(argNames[v.value]) {
                                     throw new Error('Repeated variable "' + v.value + '" in pattern');
                                 }
@@ -467,8 +560,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                                 if(v.value in data) {
                                     unify(currentValue, fresh(prune(newEnv[v.value]), newNonGeneric));
                                 } else {
-                                    newEnv[v.value] = currentValue;
-                                    newNonGeneric.push(newEnv[v.value]);
+                                    newEnv[v.value] = data[p.tag.value][i];
+                                    newNonGeneric.push(currentValue);
                                 }
                                 argNames[v.value] = newEnv[v.value];
                             },
@@ -549,6 +642,9 @@ var nodeToType = function(n, env, aliases) {
             return new t.FunctionType(_.map(tf.args, function(v) {
                 return nodeToType(v, env, aliases);
             }));
+        },
+        visitTypeArray: function(ta) {
+            return new t.ArrayType(nodeToType(ta.value, env, aliases));
         },
         visitTypeName: function(tn) {
             if(tn.value in aliases) {

@@ -1,0 +1,31 @@
+let f x =
+  let r: Number = g 1
+  r
+where
+  g y =
+    if (x == 0) then
+      h y
+    else
+      x + y + (z ())
+  where
+    z () = 3
+  h y =
+    if (x == 1) then
+      g y
+    else
+      x * y
+
+console.log (f 2)
+
+let g x =
+  evenToNumber (SuccEven (SuccOdd Zero))
+where
+  evenToNumber y = match y
+    case Zero = 0
+    case (SuccEven odd) = (oddToNumber odd) + 1
+  oddToNumber z = match z
+    case (SuccOdd even) = (evenToNumber even) + 1
+  data Even = Zero | SuccEven Odd
+  data Odd = SuccOdd Even
+ 
+console.log(g 0)

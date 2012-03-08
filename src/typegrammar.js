@@ -7,7 +7,13 @@ var bnf = {
         ["IDENTIFIER optTypeParamList", "$$ = new yy.TypeName($1, $2);"],
         ["FUNCTION ( optTypeFunctionArgList )", "$$ = new yy.TypeFunction($3);"],
         ["GENERIC", "$$ = new yy.Generic($1);"],
+        ["[ type ]", "$$ = new yy.TypeArray($2);"],
+        ["( typeList )", "$$ = new yy.TypeObject($2);"],
         ["{ optTypePairs }", "$$ = new yy.TypeObject($2);"]
+    ],
+    "typeList": [
+        ["type", "$$ = [$1];"],
+        ["typeList , type", "$$ = $1; $1.push($3);"]
     ],
     "optTypeParamList": [
         ["", "$$ = [];"],
@@ -45,6 +51,7 @@ var bnf = {
         ["RETURN", "$$ = $1;"],
         ["MACRO", "$$ = $1;"],
         ["WITH", "$$ = $1;"],
+        ["WHERE", "$$ = $1;"],
         ["IDENTIFIER", "$$ = $1;"]
     ]
 };
@@ -71,6 +78,7 @@ var grammar = {
         ],
 
         "type": bnf.type,
+        "typeList": bnf.typeList,
         "optTypeParamList": bnf.optTypeParamList,
         "typeParamList": bnf.typeParamList,
         "optTypeFunctionArgList": bnf.optTypeFunctionArgList,
