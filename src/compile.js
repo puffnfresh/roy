@@ -46,7 +46,6 @@ var splitComments = function(body) {
 };
 
 // Compile an abstract syntax tree (AST) node to JavaScript.
-var data = {};
 var indent = 0;
 var getIndent = function(extra) {
     if(!extra) {
@@ -76,7 +75,10 @@ var popIndent = function() {
     return getIndent();
 };
 
-var compileNode = function(n) {
+var compileNodeWithEnv = function(n, env) {
+    var compileNode = function(n) {
+        return compileNodeWithEnv(n, env);
+    };
     return n.accept({
         // Function definition to JavaScript function.
         visitFunction: function() {
@@ -156,9 +158,6 @@ var compileNode = function(n) {
             return compileNode(n.name) + " = " + compileNode(n.value) + ";";
         },
         visitData: function() {
-            _.each(n.tags, function(tag) {
-                data[tag.name] = n.name;
-            });
             var defs = _.map(n.tags, compileNode);
             return defs.join(";\n");
         },
@@ -239,8 +238,11 @@ var compileNode = function(n) {
             var setters = _.map(args, function(v, i) {
                 return "this._" + i + " = " + v;
             });
-            var settersString = (setters.length == 0 ? "" : setters.join(";") + ";");
-            return "var " + n.name + " = function(" + args.join(", ") + "){" + settersString + "}";
+            pushIndent();
+            var constructorString = "if(!(this instanceof " + n.name + ")) {\n" + getIndent(1) + "return new " + n.name + "(" + args.join(", ") + ");\n" + getIndent() + "}";
+            var settersString = (setters.length == 0 ? "" : "\n" + getIndent() + setters.join(";\n" + getIndent()) + ";");
+            popIndent();
+            return "var " + n.name + " = function(" + args.join(", ") + ") {\n" + getIndent(1) + constructorString + settersString + getIndent() + "\n}";
         },
         visitMatch: function() {
             var flatMap = function(a, f) {
@@ -255,7 +257,7 @@ var compileNode = function(n) {
 
                         return a.accept({
                             visitIdentifier: function() {
-                                if(a.value in data || a.value == '_') return [];
+                                if(env[a.value] instanceof types.TagType || a.value == '_') return [];
 
                                 var accessors = _.map(nextVarPath, function(x) {
                                     return "._" + x;
@@ -277,7 +279,7 @@ var compileNode = function(n) {
                         nextPatternPath.push(i);
                         return a.accept({
                             visitIdentifier: function() {
-                                if(a.value in data) {
+                                if(env[a.value] instanceof types.TagType) {
                                     return [{path: nextPatternPath, tag: a}];
                                 }
                                 return [];
@@ -322,10 +324,6 @@ var compileNode = function(n) {
         },
         // Call to JavaScript call.
         visitCall: function() {
-            if(data[n.func.value]) {
-                // Is a tag
-                return 'new ' + n.func.value + "(" + _.map(n.args, compileNode).join(", ") + ")";
-            }
             return compileNode(n.func) + "(" + _.map(n.args, compileNode).join(", ") + ")";
         },
         visitPropertyAccess: function() {
@@ -358,13 +356,7 @@ var compileNode = function(n) {
             return n.value;
         },
         visitIdentifier: function() {
-            var prefix = '';
-            var suffix = '';
-            if(data[n.value]) {
-                prefix = 'new ';
-                suffix = '()';
-            }
-            return prefix + n.value + suffix;
+            return n.value;
         },
         visitNumber: function() {
             return n.value;
@@ -429,7 +421,7 @@ var compile = function(source, env, data, aliases, opts) {
         output.push('"use strict";');
     }
     _.each(ast, function(v) {
-        var compiled = compileNode(v);
+        var compiled = compileNodeWithEnv(v, env);
         if(compiled) {
             output.push(compiled + (v instanceof nodes.Comment ? '' : ';'));
         }

@@ -18,7 +18,8 @@ where
 console.log (f 2)
 
 let g x =
-  evenToNumber (SuccEven (SuccOdd Zero))
+  let zero = Zero ()
+  evenToNumber (SuccEven (SuccOdd zero))
 where
   evenToNumber y = match y
     case Zero = 0
@@ -28,4 +29,4 @@ where
   data Even = Zero | SuccEven Odd
   data Odd = SuccOdd Even
  
-console.log(g 0)
+console.log (g 0)
