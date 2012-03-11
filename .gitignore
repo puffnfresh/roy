@@ -2,12 +2,11 @@ node_modules
 src/parser.js
 src/typeparser.js
 examples/*.js
-examples/*.roym
 test/*.js
 lib/*.js
-lib/*.roym
 roy.brianmckenna.org
 bundled-roy.js
 .DS_Store
 *~
 *.swp
+*.roym
