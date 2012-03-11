@@ -268,20 +268,20 @@ var analyseWhereDataDecls = function(whereDecls, env, nonGeneric, data, aliases)
 
         _.each(dataDecl.args, function(arg, i) {
             var argType = type.types[i + 1];
-
             newEnv[arg.name] = argType;
         });
 
         _.each(dataDecl.tags, function(tag) {
-            if(data[tag.name]) {
+            if(env[tag.name]) {
                 throw new Error("Multiple declarations for data constructor: " + tag.name);
             }
 
-            data[tag.name] = [];
+            var tagTypes = [];
             _.each(tag.vars, function(v, i) {
-                data[tag.name][i] = nodeToType(v, newEnv, aliases);
+                tagTypes[i] = nodeToType(v, newEnv, aliases);
             });
-            env[tag.name] = type;
+            tagTypes.push(type);
+            env[tag.name] = new t.FunctionType(tagTypes);
         });
     });
 };
@@ -366,11 +366,8 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
             if(prune(funType) instanceof t.TagType) {
                 var mappings = {};
                 var tagType = fresh(env[node.func.value], nonGeneric, mappings);
-                var dataType = _.map(data[node.func.value], function(t) {
-                    return fresh(t, nonGeneric, mappings);
-                });
 
-                _.each(dataType, function(x, i) {
+                _.each(tagType, function(x, i) {
                     if(!types[i]) throw new Error("Not enough arguments to " + node.func.value);
 
                     var index = tagType.types.indexOf(x);
@@ -535,12 +532,12 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                 if(!tagType) {
                     throw new Error("Couldn't find the tag: " + nodeCase.pattern.tag.value);
                 }
-                unify(value, fresh(prune(tagType), newNonGeneric));
+                unify(value, fresh(_.last(prune(tagType).types), newNonGeneric));
 
                 var argNames = {};
                 var addVarsToEnv = function(p, lastPath) {
                     _.each(p.vars, function(v, i) {
-                        var index = tagType.types.indexOf(data[p.tag.value][i]);
+                        var index = tagType.types.indexOf(env[p.tag.value][i]);
                         var path = lastPath.slice();
                         path.push(index);
 
@@ -557,16 +554,13 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                                     throw new Error('Repeated variable "' + v.value + '" in pattern');
                                 }
 
-                                if(v.value in data) {
-                                    unify(currentValue, fresh(prune(newEnv[v.value]), newNonGeneric));
-                                } else {
-                                    newEnv[v.value] = data[p.tag.value][i];
-                                    newNonGeneric.push(currentValue);
-                                }
+                                newEnv[v.value] = env[p.tag.value][i];
+                                newNonGeneric.push(currentValue);
                                 argNames[v.value] = newEnv[v.value];
                             },
                             visitPattern: function() {
-                                unify(currentValue, fresh(prune(newEnv[v.tag.value]), newNonGeneric));
+                                var resultType = fresh(_.last(prune(newEnv[v.tag.value]).types), newNonGeneric);
+                                unify(currentValue, resultType);
 
                                 addVarsToEnv(v, path);
                             }
@@ -576,7 +570,12 @@ var analyse = function(node, env, nonGeneric, data, aliases) {
                 addVarsToEnv(nodeCase.pattern, []);
 
                 var caseType = analyse(nodeCase.value, newEnv, newNonGeneric, data, aliases);
-                unify(resultType, caseType);
+                if(caseType instanceof t.FunctionType && caseType.types.length == 1) {
+                    // For tags that don't have arguments
+                    unify(resultType, _.last(caseType.types));
+                } else {
+                    unify(resultType, caseType);
+                }
             });
             return resultType;
         },

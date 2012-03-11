@@ -257,7 +257,7 @@ var compileNodeWithEnv = function(n, env) {
 
                         return a.accept({
                             visitIdentifier: function() {
-                                if(env[a.value] instanceof types.TagType || a.value == '_') return [];
+                                if(a.value == '_') return [];
 
                                 var accessors = _.map(nextVarPath, function(x) {
                                     return "._" + x;
@@ -279,9 +279,6 @@ var compileNodeWithEnv = function(n, env) {
                         nextPatternPath.push(i);
                         return a.accept({
                             visitIdentifier: function() {
-                                if(env[a.value] instanceof types.TagType) {
-                                    return [{path: nextPatternPath, tag: a}];
-                                }
                                 return [];
                             },
                             visitPattern: function() {
