@@ -385,9 +385,8 @@ var compileNodeWithEnv = function(n, env) {
     });
 };
 
-var compile = function(source, env, data, aliases, opts) {
+var compile = function(source, env, aliases, opts) {
     if(!env) env = {};
-    if(!data) data = {};
     if(!aliases) aliases = {};
     if(!opts) opts = {};
 
@@ -397,7 +396,7 @@ var compile = function(source, env, data, aliases, opts) {
     ast = macroexpand(ast, env, opts);
 
     // Typecheck the AST. Any type errors will throw an exception.
-    var resultType = typecheck(ast, env, data, aliases);
+    var resultType = typecheck(ast, env, aliases);
 
     // Export types
     ast = _.map(ast, function(n) {
@@ -458,7 +457,6 @@ var nodeRepl = function(opts) {
     var repl = readline.createInterface(stdin, stdout);
 
     var env = {};
-    var data = {};
     var sources = {};
     var aliases = {};
     var sandbox = getSandbox();
@@ -504,7 +502,7 @@ var nodeRepl = function(opts) {
                 // Load
                 filename = metacommand[1];
                 source = fs.readFileSync(filename, 'utf8');
-                compiled = compile(source, env, data, aliases, {nodejs: true, filename: ".", run: true});
+                compiled = compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
                 break;
             case ":t":
                 if(metacommand[1] in env) {
@@ -548,7 +546,7 @@ var nodeRepl = function(opts) {
                 });
 
                 // Just eval it
-                compiled = compile(line, env, data, aliases, {nodejs: true, filename: ".", run: true});
+                compiled = compile(line, env, aliases, {nodejs: true, filename: ".", run: true});
                 break;
             }
 
@@ -651,7 +649,6 @@ var main = function() {
 
     var exported;
     var env = {};
-    var data = {};
     var aliases = {};
     var sandbox = getSandbox();
 
@@ -686,7 +683,7 @@ var main = function() {
         }
 
         exported = {};
-        var compiled = compile(source, env, data, aliases, {nodejs: true, filename: filename, run: run, exported: exported});
+        var compiled = compile(source, env, aliases, {nodejs: true, filename: filename, run: run, exported: exported});
         if(run) {
             // Execute the JavaScript output.
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
