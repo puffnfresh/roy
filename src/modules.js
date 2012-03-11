@@ -1,6 +1,7 @@
 var lexer = require('./lexer'),
     typeparser = require('./typeparser').parser,
     nodes = require('./nodes').nodes,
+    types = require('./types'),
     _ = require('underscore');
 
 var resolveNodeModule = function(moduleName, filename) {
@@ -42,6 +43,9 @@ exports.loadModule = function(moduleName, mode, argument) {
 
 exports.exportType = function(arg, env, exported, nodejs) {
     var name = arg.value;
+    if(env[name] instanceof types.TagType) {
+        throw new Error("Can't export " + JSON.stringify(name) + " (it's a type) - can only export constructors");
+    }
     exported[name] = env[name];
     var scope = nodejs ? "exports" : "this";
     return new nodes.Assignment(new nodes.Access(new nodes.Identifier(scope), new nodes.String(JSON.stringify(name))), arg);
