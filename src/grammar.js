@@ -105,12 +105,8 @@ var grammar = {
 
         // data Maybe a = Some a | None
         "dataDecl": [
-            ["DATA IDENTIFIER optParamList = dataList", "$$ = new yy.Data($2, $3, $5);"],
-            ["DATA IDENTIFIER optParamList = INDENT dataList outdentOrEof", "$$ = new yy.Data($2, $3, $6);"]
-        ],
-        "optParamList": [
-            ["", "$$ = [];"],
-            ["paramList", "$$ = $1;"]
+            ["DATA IDENTIFIER optDataParamList = dataList", "$$ = new yy.Data($2, $3, $5);"],
+            ["DATA IDENTIFIER optDataParamList = INDENT dataList outdentOrEof", "$$ = new yy.Data($2, $3, $6);"]
         ],
         "dataList": [
             ["IDENTIFIER optTypeParamList", "$$ = [new yy.Tag($1, $2)];"],
@@ -130,6 +126,8 @@ var grammar = {
         "optTypeFunctionArgList": typegrammar.optTypeFunctionArgList,
         "typeFunctionArgList": typegrammar.typeFunctionArgList,
         "optTypePairs": typegrammar.optTypePairs,
+        "dataParamList": typegrammar.dataParamList,
+        "optDataParamList": typegrammar.optDataParamList,
 
         "macro": [
             ["MACRO IDENTIFIER = expression", "$$ = new yy.Macro($2, [$4]);"],

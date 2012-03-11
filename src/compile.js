@@ -567,6 +567,19 @@ var nodeRepl = function(opts) {
     repl.prompt();
 };
 
+var writeModule = function(env, exported, filename) {
+    var fs = require('fs');
+
+    var moduleOutput = _.map(_.filter(env, function(x) {
+        return x instanceof types.TagType;
+    }), function(x) {
+        return 'type ' + x.toString();
+    }).concat(_.map(exported, function(v, k) {
+        return k + ': ' + v.toString();
+    })).join('\n') + '\n';
+    fs.writeFile(filename, moduleOutput, 'utf8');
+};
+
 var main = function() {
     var argv = process.argv.slice(2);
 
@@ -658,11 +671,6 @@ var main = function() {
                 env[k] = new types.Variable();
                 env[k] = nodeToType(v, env, aliases);
             });
-            _.each(moduleTypes.data, function(v, k) {
-                data[k] = _.map(v, function(d) {
-                    return nodeToType(d, env, aliases);
-                });
-            });
         });
     }
 
@@ -685,17 +693,8 @@ var main = function() {
         } else {
             // Write the JavaScript output.
             fs.writeFile(filename.replace(extensions, '.js'), compiled.output, 'utf8');
-
-            var moduleOutput = _.map(exported, function(v, k) {
-                if(data[k]) {
-                    return 'case ' + k + ' ' + _.map(data[k], function(d) {
-                        return d.toString();
-                    }).join(' ') + ': ' + v.toString();
-                }
-                return k + ': ' + v.toString();
-            }).join('\n') + '\n';
-            fs.writeFile(filename.replace(extensions, '.roym'), moduleOutput, 'utf8');
         }
+        writeModule(env, exported, filename.replace(extensions, '.roym'));
     });
 };
 exports.main = main;

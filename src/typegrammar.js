@@ -1,5 +1,4 @@
-var sys = require('sys'),
-    Parser = require('jison').Parser;
+var Parser = require('jison').Parser;
 
 var bnf = {
     // For type annotations
@@ -40,6 +39,14 @@ var bnf = {
         ["keywordOrIdentifier : type", "$$ = {}; $$[$1] = $3;"],
         ["optTypePairs , keywordOrIdentifier : type", "$$ = $1; $1[$3] = $5;"]
     ],
+    "dataParamList": [
+        ["IDENTIFIER", "$$ = [new yy.Arg($1)];"],
+        ["dataParamList IDENTIFIER", "$$ = $1; $1.push(new yy.Arg($2));"],
+    ],
+    "optDataParamList": [
+        ["", "$$ = [];"],
+        ["dataParamList", "$$ = $1;"]
+    ],
     "keywordOrIdentifier": [
         ["THEN", "$$ = $1;"],
         ["ELSE", "$$ = $1;"],
@@ -67,14 +74,14 @@ var grammar = {
             ["body EOF", "return $1;"]
         ],
         "body": [
-            ["pair", "$$ = {data: {}, env: {}}; if($1.data) { $$.data[$1.name] = $1.params; } $$.env[$1.name] = $1.type;"],
-            ["body TERMINATOR pair", "$$ = $1; if($3.data) { $$.data[$3.name] = $3.params; } $$.env[$3.name] = $3.type;"],
+            ["pair", "$$ = {types: {}, env: {}}; if($1.data) { $$.types[$1.name] = $1.params; } else { $$.env[$1.name] = $1.type; }"],
+            ["body TERMINATOR pair", "$$ = $1; if($3.data) { $$.types[$3.name] = $3.params; } else { $$.env[$3.name] = $3.type; }"],
             ["body TERMINATOR", "$$ = $1;"]
         ],
 
         "pair": [
             ["IDENTIFIER : type", "$$ = {name: $1, type: $3, data: false};"],
-            ["CASE IDENTIFIER optTypeParamList : type", "$$ = {name: $2, params: $3, type: $5, data: true};"]
+            ["TYPE IDENTIFIER optDataParamList", "$$ = {name: $2, params: $3, data: true};"]
         ],
 
         "type": bnf.type,
@@ -84,6 +91,8 @@ var grammar = {
         "optTypeFunctionArgList": bnf.optTypeFunctionArgList,
         "typeFunctionArgList": bnf.typeFunctionArgList,
         "optTypePairs": bnf.optTypePairs,
+        "dataParamList": bnf.dataParamList,
+        "optDataParamList": bnf.optDataParamList,
         "keywordOrIdentifier": bnf.keywordOrIdentifier
     }
 };
