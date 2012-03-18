@@ -435,7 +435,7 @@ var compile = function(source, env, aliases, opts) {
 exports.compile = compile;
 
 var getSandbox = function() {
-    var sandbox = {require: require};
+    var sandbox = {require: require, exports: exports};
 
     var name;
     for(name in global) {
@@ -568,13 +568,12 @@ var nodeRepl = function(opts) {
 var writeModule = function(env, exported, filename) {
     var fs = require('fs');
 
-    var moduleOutput = _.map(_.filter(env, function(x) {
-        return x instanceof types.TagType;
-    }), function(x) {
-        return 'type ' + x.toString().replace(/#/g, '');
-    }).concat(_.map(exported, function(v, k) {
+    var moduleOutput = _.map(exported, function(v, k) {
+        if(v instanceof types.TagType) {
+            return 'type ' + v.toString().replace(/#/g, '');
+        }
         return k + ': ' + v.toString();
-    })).join('\n') + '\n';
+    }).join('\n') + '\n';
     fs.writeFile(filename, moduleOutput, 'utf8');
 };
 
