@@ -390,6 +390,8 @@ var compile = function(source, env, aliases, opts) {
     if(!aliases) aliases = {};
     if(!opts) opts = {};
 
+    if(!opts.exported) opts.exported = {};
+
     // Parse the file to an AST.
     var tokens = lexer.tokenise(source);
     var ast = parser.parse(tokens);
