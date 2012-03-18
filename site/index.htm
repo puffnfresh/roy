@@ -102,6 +102,7 @@
           <option value="gcd">Greatest common divisor</option>
           <option value="data">Tagged unions</option>
           <option value="structural">Structural</option>
+          <option value="module">Module</option>
           <option value="tracemonad">Tracing monad</option>
           <option value="ajaxmonad">Ajax monad</option>
           <option value="deferredmonad">Deferred monad</option>
@@ -153,7 +154,11 @@
         var royCompile = function() {
             var jscode;
             try {
-                jscode = roy.compile(document.getElementById("roycode").value, {}, {}, {}, {}, {modules: {"dom": "document: {documentURI: String, getElementById: Function(String,{getAttribute: Function(String,String), innerHTML: String, innerText: String, tagName: String})}\n"}}).output;
+                jscode = roy.compile(document.getElementById("roycode").value, {}, {}, {
+                    modules: {
+                       dom: "document: {documentURI: String, getElementById: Function(String,{getAttribute: Function(String,String), innerHTML: String, innerText: String, tagName: String})}\n"
+                   }
+                }).output;
             } catch(e) {
                 jscode = e;
             }
