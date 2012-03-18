@@ -56,6 +56,24 @@ exports.nodes = {
             }
         };
     },
+    Generic: function(value) {
+        this.value = value;
+
+        this.accept = function(a) {
+            if(a.visitGeneric) {
+                return a.visitGeneric(this);
+            }
+        };
+    },
+    TypeFunction: function(args) {
+        this.args = args;
+
+        this.accept = function(a) {
+            if(a.visitTypeFunction) {
+                return a.visitTypeFunction(this);
+            }
+        };
+    },
     TypeName: function(value, args) {
         this.value = value;
         this.args = args;
@@ -153,6 +171,16 @@ exports.nodes = {
         this.accept = function(a) {
             if(a.visitPattern) {
                 return a.visitPattern(this);
+            }
+        };
+    },
+    Assignment: function(name, value) {
+        this.name = name;
+        this.value = value;
+
+        this.accept = function(a) {
+            if(a.visitAssignment) {
+                return a.visitAssignment(this);
             }
         };
     },

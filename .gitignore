@@ -1,5 +1,6 @@
 node_modules
 src/parser.js
+src/typeparser.js
 examples/*.js
 test/*.js
 lib/*.js
@@ -8,3 +9,4 @@ bundled-roy.js
 .DS_Store
 *~
 *.swp
+*.roym

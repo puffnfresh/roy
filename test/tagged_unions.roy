@@ -2,7 +2,7 @@
 
 data A = B | C
 
-let x = B
+let x = B ()
 
 console.log (match x
   case B = "x is B"

@@ -11,7 +11,7 @@ console.log (xor (Right (Right 100)))
 
 data XX = X
 data YY = Y XX
-let yy = Y X
+let yy = Y (X ())
 let idXX (x:XX) = x
 match yy
   case (Y x) = idXX x

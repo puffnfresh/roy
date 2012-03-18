@@ -87,7 +87,7 @@ let optionMonad = {
 data Either a b = Left a | Right b
 
 // Math constants.
-let π = Math.PI
+let π: Number = Math.PI
 let π2 = π * 2
 // tauday.com
 let τ = π2

@@ -1,0 +1,8 @@
+// Roy modules have a descriptor format.
+// The demo site manually supplies the 'dom' descriptor.
+
+import "dom"
+
+let button = document.getElementById "jsrun"
+
+console.log (button.getAttribute "value")

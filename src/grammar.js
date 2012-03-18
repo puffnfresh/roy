@@ -1,5 +1,6 @@
 var sys = require('sys'),
-    Parser = require('jison').Parser;
+    Parser = require('jison').Parser,
+    typegrammar = require('./typegrammar').bnf;
 
 var grammar = {
     "startSymbol": "program",
@@ -104,12 +105,8 @@ var grammar = {
 
         // data Maybe a = Some a | None
         "dataDecl": [
-            ["DATA IDENTIFIER optParamList = dataList", "$$ = new yy.Data($2, $3, $5);"],
-            ["DATA IDENTIFIER optParamList = INDENT dataList outdentOrEof", "$$ = new yy.Data($2, $3, $6);"]
-        ],
-        "optParamList": [
-            ["", "$$ = [];"],
-            ["paramList", "$$ = $1;"]
+            ["DATA IDENTIFIER optDataParamList = dataList", "$$ = new yy.Data($2, $3, $5);"],
+            ["DATA IDENTIFIER optDataParamList = INDENT dataList outdentOrEof", "$$ = new yy.Data($2, $3, $6);"]
         ],
         "dataList": [
             ["IDENTIFIER optTypeParamList", "$$ = [new yy.Tag($1, $2)];"],
@@ -121,32 +118,16 @@ var grammar = {
             ["TYPE IDENTIFIER = type", "$$ = new yy.Type($2, $4);"]
         ],
 
-        // For type annotations
-        "type": [
-            ["IDENTIFIER optTypeParamList", "$$ = new yy.TypeName($1, $2);"],
-            ["[ type ]", "$$ = new yy.TypeArray($2);"],
-            ["( typeList )", "$$ = new yy.TypeObject($2);"],
-            ["{ optTypePairs }", "$$ = new yy.TypeObject($2);"]
-        ],
-        "typeList": [
-            ["type", "$$ = [$1];"],
-            ["typeList , type", "$$ = $1; $1.push($3);"]
-        ],
-        "optTypeParamList": [
-            ["", "$$ = [];"],
-            ["typeParamList", "$$ = $1;"]
-        ],
-        "typeParamList": [
-            ["IDENTIFIER", "$$ = [new yy.TypeName($1, [])];"],
-            ["( type )", "$$ = [$2];"],
-            ["typeParamList IDENTIFIER", "$$ = $1; $1.push(new yy.TypeName($2, []));"],
-            ["typeParamList ( type )", "$$ = $1; $1.push($3);"]
-        ],
-        "optTypePairs": [
-            ["", "$$ = {};"],
-            ["keywordOrIdentifier : type", "$$ = {}; $$[$1] = $3;"],
-            ["optTypePairs , keywordOrIdentifier : type", "$$ = $1; $1[$3] = $5;"]
-        ],
+        // For type annotations (from the typegrammar module)
+        "type": typegrammar.type,
+        "typeList": typegrammar.typeList,
+        "optTypeParamList": typegrammar.optTypeParamList,
+        "typeParamList": typegrammar.typeParamList,
+        "optTypeFunctionArgList": typegrammar.optTypeFunctionArgList,
+        "typeFunctionArgList": typegrammar.typeFunctionArgList,
+        "optTypePairs": typegrammar.optTypePairs,
+        "dataParamList": typegrammar.dataParamList,
+        "optDataParamList": typegrammar.optDataParamList,
 
         "macro": [
             ["MACRO IDENTIFIER = expression", "$$ = new yy.Macro($2, [$4]);"],
@@ -244,20 +225,7 @@ var grammar = {
             ["OUTDENT", ""],
             ["EOF", ""]
         ],
-        "keywordOrIdentifier": [
-            ["THEN", "$$ = $1;"],
-            ["ELSE", "$$ = $1;"],
-            ["DATA", "$$ = $1;"],
-            ["TYPE", "$$ = $1;"],
-            ["MATCH", "$$ = $1;"],
-            ["CASE", "$$ = $1;"],
-            ["DO", "$$ = $1;"],
-            ["RETURN", "$$ = $1;"],
-            ["MACRO", "$$ = $1;"],
-            ["WITH", "$$ = $1;"],
-            ["WHERE", "$$ = $1;"],
-            ["IDENTIFIER", "$$ = $1;"]
-        ],
+        "keywordOrIdentifier": typegrammar.keywordOrIdentifier,
         "identifier": [
             ["IDENTIFIER", "$$ = new yy.Identifier($1);"]
         ]

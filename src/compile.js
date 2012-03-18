@@ -1,15 +1,20 @@
 var typecheck = require('./typeinference').typecheck,
-    nodes = require('./nodes').nodes,
+    macroexpand = require('./macroexpand').macroexpand,
+    loadModule = require('./modules').loadModule,
+    exportType = require('./modules').exportType,
     types = require('./types'),
+    nodeToType = require('./typeinference').nodeToType,
+    nodes = require('./nodes').nodes,
     parser = require('./parser').parser,
+    typeparser = require('./typeparser').parser,
     lexer = require('./lexer'),
     _ = require('underscore');
 
 // Assigning the nodes to `parser.yy` allows the grammar to access the nodes from
 // the `yy` namespace.
-parser.yy = nodes;
+parser.yy = typeparser.yy = nodes;
 
-parser.lexer =  {
+parser.lexer = typeparser.lexer =  {
     "lex": function() {
         var token = this.tokens[this.pos] ? this.tokens[this.pos++] : ['EOF'];
         this.yytext = token[1];
@@ -41,8 +46,6 @@ var splitComments = function(body) {
 };
 
 // Compile an abstract syntax tree (AST) node to JavaScript.
-var data = {};
-var macros = {};
 var indent = 0;
 var getIndent = function(extra) {
     if(!extra) {
@@ -71,7 +74,11 @@ var popIndent = function() {
     indent--;
     return getIndent();
 };
-var compileNode = function(n) {
+
+var compileNodeWithEnv = function(n, env) {
+    var compileNode = function(n) {
+        return compileNodeWithEnv(n, env);
+    };
     return n.accept({
         // Function definition to JavaScript function.
         visitFunction: function() {
@@ -147,10 +154,10 @@ var compileNode = function(n) {
         visitLet: function() {
             return "var " + n.name + " = " + compileNode(n.value);
         },
+        visitAssignment: function() {
+            return compileNode(n.name) + " = " + compileNode(n.value) + ";";
+        },
         visitData: function() {
-            _.each(n.tags, function(tag) {
-                data[tag.name] = n.name;
-            });
             var defs = _.map(n.tags, compileNode);
             return defs.join(";\n");
         },
@@ -182,12 +189,6 @@ var compileNode = function(n) {
                 return v.accept(serializeNode);
             };
             return serialize(n.value);
-        },
-        visitMacro: function() {
-            var init = n.body.slice(0, n.body.length - 1);
-            var last = n.body[n.body.length - 1];
-            var code = _.map(init, compileNode).join('\n') + '\nreturn ' + compileNode(last) + ';';
-            macros[n.name] = 'var nodes = this.nodes; ' + code;
         },
         visitReturn: function() {
             return "__monad__.return(" + compileNode(n.value) + ");";
@@ -237,8 +238,11 @@ var compileNode = function(n) {
             var setters = _.map(args, function(v, i) {
                 return "this._" + i + " = " + v;
             });
-            var settersString = (setters.length == 0 ? "" : setters.join(";") + ";");
-            return "var " + n.name + " = function(" + args.join(", ") + "){" + settersString + "}";
+            pushIndent();
+            var constructorString = "if(!(this instanceof " + n.name + ")) {\n" + getIndent(1) + "return new " + n.name + "(" + args.join(", ") + ");\n" + getIndent() + "}";
+            var settersString = (setters.length == 0 ? "" : "\n" + getIndent() + setters.join(";\n" + getIndent()) + ";");
+            popIndent();
+            return "var " + n.name + " = function(" + args.join(", ") + ") {\n" + getIndent(1) + constructorString + settersString + getIndent() + "\n}";
         },
         visitMatch: function() {
             var flatMap = function(a, f) {
@@ -253,7 +257,7 @@ var compileNode = function(n) {
 
                         return a.accept({
                             visitIdentifier: function() {
-                                if(a.value in data || a.value == '_') return [];
+                                if(a.value == '_') return [];
 
                                 var accessors = _.map(nextVarPath, function(x) {
                                     return "._" + x;
@@ -275,9 +279,6 @@ var compileNode = function(n) {
                         nextPatternPath.push(i);
                         return a.accept({
                             visitIdentifier: function() {
-                                if(a.value in data) {
-                                    return [{path: nextPatternPath, tag: a}];
-                                }
                                 return [];
                             },
                             visitPattern: function() {
@@ -320,17 +321,6 @@ var compileNode = function(n) {
         },
         // Call to JavaScript call.
         visitCall: function() {
-            if(macros[n.func.value]) {
-                // Is a macro
-                var f = new Function(macros[n.func.value]);
-                var tree = f.apply({nodes: nodes}, n.args);
-                // TODO: Give an actual env
-                typecheck([tree], {});
-                return compileNode(tree);
-            } else if(data[n.func.value]) {
-                // Is a tag
-                return 'new ' + n.func.value + "(" + _.map(n.args, compileNode).join(", ") + ")";
-            }
             return compileNode(n.func) + "(" + _.map(n.args, compileNode).join(", ") + ")";
         },
         visitPropertyAccess: function() {
@@ -363,13 +353,7 @@ var compileNode = function(n) {
             return n.value;
         },
         visitIdentifier: function() {
-            var prefix = '';
-            var suffix = '';
-            if(data[n.value]) {
-                prefix = 'new ';
-                suffix = '()';
-            }
-            return prefix + n.value + suffix;
+            return n.value;
         },
         visitNumber: function() {
             return n.value;
@@ -401,30 +385,48 @@ var compileNode = function(n) {
     });
 };
 
-var compile = function(source, env, data, aliases, opts) {
+var compile = function(source, env, aliases, opts) {
     if(!env) env = {};
-    if(!data) data = {};
     if(!aliases) aliases = {};
     if(!opts) opts = {};
 
     // Parse the file to an AST.
     var tokens = lexer.tokenise(source);
     var ast = parser.parse(tokens);
+    ast = macroexpand(ast, env, opts);
 
     // Typecheck the AST. Any type errors will throw an exception.
-    var resultType = typecheck(ast, env, data, aliases);
+    var resultType = typecheck(ast, env, aliases);
+
+    // Export types
+    ast = _.map(ast, function(n) {
+        if(n instanceof nodes.Call && n.func.value == 'export') {
+            return exportType(n.args[0], env, opts.exported, opts.nodejs);
+        }
+        return n;
+    });
 
     // Output strict JavaScript.
     var output = [];
+
+    if(!opts.nodejs) {
+        output.push("(function() {");
+    }
+
     if(opts.strict) {
         output.push('"use strict";');
     }
     _.each(ast, function(v) {
-        var compiled = compileNode(v);
+        var compiled = compileNodeWithEnv(v, env);
         if(compiled) {
             output.push(compiled + (v instanceof nodes.Comment ? '' : ';'));
         }
     });
+
+    if(!opts.nodejs) {
+        output.push("})();");
+    }
+
     // Add a newline at the end
     output.push("");
 
@@ -433,7 +435,7 @@ var compile = function(source, env, data, aliases, opts) {
 exports.compile = compile;
 
 var getSandbox = function() {
-    var sandbox = {require: require};
+    var sandbox = {require: require, exports: exports};
 
     var name;
     for(name in global) {
@@ -455,7 +457,6 @@ var nodeRepl = function(opts) {
     var repl = readline.createInterface(stdin, stdout);
 
     var env = {};
-    var data = {};
     var sources = {};
     var aliases = {};
     var sandbox = getSandbox();
@@ -501,7 +502,7 @@ var nodeRepl = function(opts) {
                 // Load
                 filename = metacommand[1];
                 source = fs.readFileSync(filename, 'utf8');
-                compiled = compile(source, env, data, aliases);
+                compiled = compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
                 break;
             case ":t":
                 if(metacommand[1] in env) {
@@ -545,7 +546,7 @@ var nodeRepl = function(opts) {
                 });
 
                 // Just eval it
-                compiled = compile(line, env, data, aliases);
+                compiled = compile(line, env, aliases, {nodejs: true, filename: ".", run: true});
                 break;
             }
 
@@ -562,6 +563,18 @@ var nodeRepl = function(opts) {
         repl.prompt();
     });
     repl.prompt();
+};
+
+var writeModule = function(env, exported, filename) {
+    var fs = require('fs');
+
+    var moduleOutput = _.map(exported, function(v, k) {
+        if(v instanceof types.TagType) {
+            return 'type ' + v.toString().replace(/#/g, '');
+        }
+        return k + ': ' + v.toString();
+    }).join('\n') + '\n';
+    fs.writeFile(filename, moduleOutput, 'utf8');
 };
 
 var main = function() {
@@ -630,18 +643,33 @@ var main = function() {
         return;
     }
 
-    // Include the standard library
-    if(includePrelude) {
-        argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
-    }
-
     var extensions = /\.l?roy$/;
     var literateExtension = /\.lroy$/;
 
+    var exported;
     var env = {};
-    var data = {};
     var aliases = {};
     var sandbox = getSandbox();
+
+    if(run) {
+        // Include the standard library
+        if(includePrelude) {
+            argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
+        }
+    } else {
+        var modules = [];
+        if(!argv.length || argv[0] != 'lib/prelude.roy') {
+            modules.push('./lib/prelude');
+        }
+        _.each(modules, function(module) {
+            var moduleTypes = loadModule(module, 'require', '.');
+            _.each(moduleTypes.env, function(v, k) {
+                env[k] = new types.Variable();
+                env[k] = nodeToType(v, env, aliases);
+            });
+        });
+    }
+
     _.each(argv, function(filename) {
         // Read the file content.
         var source = fs.readFileSync(filename, 'utf8');
@@ -653,7 +681,8 @@ var main = function() {
             console.assert(filename.match(extensions), 'Filename must end with ".roy" or ".lroy"');
         }
 
-        var compiled = compile(source, env, data, aliases);
+        exported = {};
+        var compiled = compile(source, env, aliases, {nodejs: true, filename: filename, run: run, exported: exported});
         if(run) {
             // Execute the JavaScript output.
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
@@ -661,6 +690,7 @@ var main = function() {
             // Write the JavaScript output.
             fs.writeFile(filename.replace(extensions, '.js'), compiled.output, 'utf8');
         }
+        writeModule(env, exported, filename.replace(extensions, '.roym'));
     });
 };
 exports.main = main;
