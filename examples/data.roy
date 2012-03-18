@@ -1,12 +1,14 @@
 data Maybe a =
   Some a | None
 
+let none = None ()
+
 let printSomething m = match m
   case (Some x) = console.log x
   case None = console.log "Empty"
 
 printSomething (Some 1)
-printSomething None
+printSomething none
 
 data Either a b =
   Left a | Right b
@@ -31,11 +33,12 @@ let getBool b ifTrue ifFalse = match b
   case True = ifTrue
   case False = ifFalse
 
-console.log (getBool True 1 2)
-console.log (getBool False 1 2)
+console.log (getBool (True ()) 1 2)
+console.log (getBool (False ()) 1 2)
 
 data MyList a = Empty | Many a (MyList a)
 
-console.log (Many true (Many true Empty))
+let empty = Empty ()
+console.log (Many true (Many true empty))
 // Won't compile:
 // console.log (Many "TEST" (Many true Empty))
