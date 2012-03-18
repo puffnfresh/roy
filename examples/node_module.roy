@@ -1,0 +1,3 @@
+import "./structural"
+
+console.log (structural.obj.x + structural.obj.y)
