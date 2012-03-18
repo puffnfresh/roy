@@ -134,7 +134,7 @@ var occursInTypeArray = function(t1, types) {
 };
 
 // ### Helper functions for function definitions
-// 
+//
 // recursively process where declarations.
 var analyseFunction = function(functionDecl, funcType, env, nonGeneric, data, aliases) {
     var types = [];
