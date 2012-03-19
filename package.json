@@ -17,7 +17,7 @@
     "roy": "./roy"
   },
   "scripts": {
-    "install": "node src/grammar.js"
+    "install": "node src/grammar.js && node src/typegrammar.js"
   },
   "homepage": "http://roy.brianmckenna.org/",
   "dependencies": {
