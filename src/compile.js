@@ -661,7 +661,7 @@ var main = function() {
     } else {
         var modules = [];
         if(!argv.length || argv[0] != 'lib/prelude.roy') {
-            modules.push('./lib/prelude');
+            modules.push(path.dirname(__dirname) + '/lib/prelude');
         }
         _.each(modules, function(module) {
             var moduleTypes = loadModule(module, 'require', '.');
