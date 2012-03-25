@@ -75,7 +75,8 @@ var popIndent = function() {
     return getIndent();
 };
 
-var compileNodeWithEnv = function(n, env) {
+var compileNodeWithEnv = function(n, env, opts) {
+    if(!opts) opts = {};
     var compileNode = function(n) {
         return compileNodeWithEnv(n, env);
     };
@@ -321,6 +322,9 @@ var compileNodeWithEnv = function(n, env) {
         },
         // Call to JavaScript call.
         visitCall: function() {
+            if(n.func.value == 'import') {
+                return importModule(JSON.parse(n.args[0].value), env, opts);
+            }
             return compileNode(n.func) + "(" + _.map(n.args, compileNode).join(", ") + ")";
         },
         visitPropertyAccess: function() {
@@ -384,6 +388,7 @@ var compileNodeWithEnv = function(n, env) {
         }
     });
 };
+exports.compileNodeWithEnv = compileNodeWithEnv;
 
 var compile = function(source, env, aliases, opts) {
     if(!env) env = {};
@@ -419,7 +424,7 @@ var compile = function(source, env, aliases, opts) {
         output.push('"use strict";');
     }
     _.each(ast, function(v) {
-        var compiled = compileNodeWithEnv(v, env);
+        var compiled = compileNodeWithEnv(v, env, opts);
         if(compiled) {
             output.push(compiled + (v instanceof nodes.Comment ? '' : ';'));
         }
@@ -577,6 +582,42 @@ var writeModule = function(env, exported, filename) {
         return k + ': ' + v.toString();
     }).join('\n') + '\n';
     fs.writeFile(filename, moduleOutput, 'utf8');
+};
+
+var importModule = function(name, env, opts) {
+    if(opts.nodejs) {
+        // Need to convert to absolute paths for the CLI
+        if(opts.run) {
+            var path = require("path");
+            name = path.resolve(path.dirname(opts.filename), name);
+        }
+
+        var moduleTypes = loadModule(name, opts.filename);
+        _.each(moduleTypes.types, function(v, k) {
+            var dataType = [new types.TagNameType(k)];
+            _.each(function() {
+                dataType.push(new types.Variable());
+            });
+            env[k] = new types.TagType(dataType);
+        });
+        var variable = name.substr(name.lastIndexOf("/") + 1);
+        env[variable] = new types.Variable();
+        var props = {};
+        _.each(moduleTypes.env, function(v, k) {
+            props[k] = nodeToType(v, env, {});
+        });
+        env[variable] = new types.ObjectType(props);
+
+        console.log("Using sync CommonJS module:", name);
+
+        return variable + " = require(" + JSON.stringify(name) + ")";
+    } else {
+        var moduleTypes = loadModule(name, opts.modules);
+        _.each(moduleTypes.env, function(v, k) {
+            env[k] = nodeToType(v, env, {});
+        });
+        return "// Using module: " + name;
+    }
 };
 
 var main = function() {

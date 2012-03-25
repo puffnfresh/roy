@@ -21,20 +21,8 @@ var resolveNodeModule = function(moduleName, filename) {
     }
 };
 
-exports.loadModule = function(moduleName, mode, argument) {
-    var source;
-    switch(mode) {
-    case "require":
-        source = require('fs').readFileSync(resolveNodeModule(moduleName, argument) + '.roym', 'utf8');
-        break;
-    case "amd":
-        throw new Error("TODO: Implement AMD support");
-        break;
-    case "browser":
-    default:
-        source = argument[moduleName];
-        break;
-    }
+exports.loadModule = function(moduleName, argument) {
+    var source = argument[moduleName] || require('fs').readFileSync(resolveNodeModule(moduleName, argument) + '.roym', 'utf8');
 
     var tokens = lexer.tokenise(source);
     var moduleTypes = typeparser.parse(tokens);
