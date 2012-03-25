@@ -21,8 +21,9 @@ var resolveNodeModule = function(moduleName, filename) {
     }
 };
 
-exports.loadModule = function(moduleName, argument) {
-    var source = argument[moduleName] || require('fs').readFileSync(resolveNodeModule(moduleName, argument) + '.roym', 'utf8');
+exports.loadModule = function(moduleName, opts) {
+    if(!opts.modules) opts.modules = {};
+    var source = opts.modules[moduleName] || require('fs').readFileSync(resolveNodeModule(moduleName, opts.filename) + '.roym', 'utf8');
 
     var tokens = lexer.tokenise(source);
     var moduleTypes = typeparser.parse(tokens);

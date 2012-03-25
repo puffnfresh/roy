@@ -585,6 +585,16 @@ var writeModule = function(env, exported, filename) {
 };
 
 var importModule = function(name, env, opts) {
+    var addTypesToEnv = function(moduleTypes) {
+        _.each(moduleTypes, function(v, k) {
+            var dataType = [new types.TagNameType(k)];
+            _.each(function() {
+                dataType.push(new types.Variable());
+            });
+            env[k] = new types.TagType(dataType);
+        });
+    };
+
     if(opts.nodejs) {
         // Need to convert to absolute paths for the CLI
         if(opts.run) {
@@ -592,14 +602,8 @@ var importModule = function(name, env, opts) {
             name = path.resolve(path.dirname(opts.filename), name);
         }
 
-        var moduleTypes = loadModule(name, opts.filename);
-        _.each(moduleTypes.types, function(v, k) {
-            var dataType = [new types.TagNameType(k)];
-            _.each(function() {
-                dataType.push(new types.Variable());
-            });
-            env[k] = new types.TagType(dataType);
-        });
+        var moduleTypes = loadModule(name, opts);
+        addTypesToEnv(moduleTypes.types);
         var variable = name.substr(name.lastIndexOf("/") + 1);
         env[variable] = new types.Variable();
         var props = {};
@@ -612,11 +616,15 @@ var importModule = function(name, env, opts) {
 
         return variable + " = require(" + JSON.stringify(name) + ")";
     } else {
-        var moduleTypes = loadModule(name, opts.modules);
+        var moduleTypes = loadModule(name, opts);
+        addTypesToEnv(moduleTypes.types);
         _.each(moduleTypes.env, function(v, k) {
             env[k] = nodeToType(v, env, {});
         });
-        return "// Using module: " + name;
+
+        if(console) console.log("Using browser module:", name);
+
+        return "";
     }
 };
 
@@ -644,6 +652,7 @@ var main = function() {
     var path = require('path');
     var source;
     var vm;
+    var browserModules = false;
     var run = false;
     var includePrelude = true;
     switch(argv[0]) {
@@ -679,6 +688,11 @@ var main = function() {
         run = true;
         argv.shift();
         break;
+    case "-b":
+    case "--browser":
+        browserModules = true;
+        argv.shift();
+        break;
     case "-c":
     case "--color":
         opts.colorConsole = true;
@@ -705,7 +719,7 @@ var main = function() {
             modules.push(path.dirname(__dirname) + '/lib/prelude');
         }
         _.each(modules, function(module) {
-            var moduleTypes = loadModule(module, 'require', '.');
+            var moduleTypes = loadModule(module, {filename: '.'});
             _.each(moduleTypes.env, function(v, k) {
                 env[k] = new types.Variable();
                 env[k] = nodeToType(v, env, aliases);
@@ -725,7 +739,12 @@ var main = function() {
         }
 
         exported = {};
-        var compiled = compile(source, env, aliases, {nodejs: true, filename: filename, run: run, exported: exported});
+        var compiled = compile(source, env, aliases, {
+            nodejs: !browserModules,
+            filename: filename,
+            run: run,
+            exported: exported
+        });
         if(run) {
             // Execute the JavaScript output.
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
