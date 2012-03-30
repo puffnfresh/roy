@@ -8,6 +8,7 @@ var typecheck = require('./typeinference').typecheck,
     parser = require('./parser').parser,
     typeparser = require('./typeparser').parser,
     lexer = require('./lexer'),
+    fs = require('fs'),
     _ = require('underscore');
 
 // Assigning the nodes to `parser.yy` allows the grammar to access the nodes from
@@ -241,7 +242,7 @@ var compileNodeWithEnv = function(n, env, opts) {
             });
             pushIndent();
             var constructorString = "if(!(this instanceof " + n.name + ")) {\n" + getIndent(1) + "return new " + n.name + "(" + args.join(", ") + ");\n" + getIndent() + "}";
-            var settersString = (setters.length == 0 ? "" : "\n" + getIndent() + setters.join(";\n" + getIndent()) + ";");
+            var settersString = (setters.length === 0 ? "" : "\n" + getIndent() + setters.join(";\n" + getIndent()) + ";");
             popIndent();
             return "var " + n.name + " = function(" + args.join(", ") + ") {\n" + getIndent(1) + constructorString + settersString + getIndent() + "\n}";
         },
@@ -452,9 +453,46 @@ var getSandbox = function() {
     return sandbox;
 };
 
+var getFileContents = function(filename) {
+  var source,
+      err,
+      exts = ["", ".roy", ".lroy"];
+
+  function tryFile(fn) {
+    var src;
+    try {
+      src = fs.readFileSync(fn, 'utf8');
+    } catch(e) {
+      err = e;
+      return null;
+    }
+    return src;
+  }
+
+  var filenames = _(exts).map(function(ext){ return filename + ext; });
+
+  // check to see if an extension is specified, if so, don't bother checking
+  // others
+  if (/\..+$/.test(filename)) {
+    source = tryFile(filename);
+    filenames = [filename];
+  }
+  else {
+    for (var i = 0; i < filenames.length; ++i) {
+      source = tryFile(filenames[i]);
+      if (source !== null) break;
+    }
+  }
+
+  if (source === null) {
+    throw new Error("File(s) not found: " + filenames.join(", "));
+  }
+
+  return source;
+};
+
 var nodeRepl = function(opts) {
     var readline = require('readline'),
-        fs = require('fs'),
         path = require('path'),
         vm = require('vm'),
         prettyPrint = require('./prettyprint').prettyPrint;
@@ -508,13 +546,7 @@ var nodeRepl = function(opts) {
             case ":l":
                 // Load
                 filename = metacommand[1];
-
-                try {
-                  source = fs.readFileSync(filename, 'utf8');
-                } catch (e) {
-                  source = fs.readFileSync(filename + '.roy', 'utf8');
-                }
-
+                source = getFileContents(filename);
                 compiled = compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
                 break;
             case ":t":
@@ -532,7 +564,7 @@ var nodeRepl = function(opts) {
                     if(metacommand[1]){
                         colorLog(33, metacommand[1], "is not defined.");
                     }else{
-                        console.log("Usage :s command ")
+                        console.log("Usage :s command ");
                         console.log(":s [identifier] :: show original code about identifier.");
                     }
                 }
@@ -655,7 +687,6 @@ var main = function() {
         return;
     }
 
-    var path = require('path');
     var source;
     var vm;
     var browserModules = false;
