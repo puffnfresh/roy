@@ -23,8 +23,14 @@ var resolveNodeModule = function(moduleName, filename) {
 
 exports.loadModule = function(moduleName, opts) {
     if(!opts.modules) opts.modules = {};
-    var source = opts.modules[moduleName] || require('fs').readFileSync(resolveNodeModule(moduleName, opts.filename) + '.roym', 'utf8');
-
+    var path = require('path'),
+        targetFile = resolveNodeModule(moduleName, opts.filename) + '.roym',
+        source = '';
+    
+    if (path.existsSync(targetFile)) {
+        source = opts.modules[moduleName] || require('fs').readFileSync(targetFile, 'utf8');
+    }
+    
     var tokens = lexer.tokenise(source);
     var moduleTypes = typeparser.parse(tokens);
     return moduleTypes;
