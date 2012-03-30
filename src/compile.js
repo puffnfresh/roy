@@ -662,6 +662,7 @@ var main = function() {
         console.log(info.version);
         process.exit();
         break;
+    case "--help":
     case "-h":
         console.log("Roy: " + info.description + "\n");
         console.log("-v        : show current version");
