@@ -508,7 +508,13 @@ var nodeRepl = function(opts) {
             case ":l":
                 // Load
                 filename = metacommand[1];
-                source = fs.readFileSync(filename, 'utf8');
+
+                try {
+                  source = fs.readFileSync(filename, 'utf8');
+                } catch (e) {
+                  source = fs.readFileSync(filename + '.roy', 'utf8');
+                }
+
                 compiled = compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
                 break;
             case ":t":
