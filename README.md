@@ -57,10 +57,10 @@ MIT
 
 ## Resources
 * Roy website: http://roy.brianmckenna.org/
+* Roy Google Group: http://groups.google.com/group/roylang
 * Roy docs: http://guide.roylang.org/
 * Roy Twitter: http://twitter.com/roylangjs
 * Bitbucket repo: https://bitbucket.org/puffnfresh/roy
 * GitHub repo: https://github.com/pufuwozu/roy
 * Brian's blog: http://brianmckenna.org/
-* altJS Google Group: http://groups.google.com/group/altjs
 * altJS channel: irc://irc.freenode.net/altJS
