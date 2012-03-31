@@ -8,7 +8,6 @@ var typecheck = require('./typeinference').typecheck,
     parser = require('./parser').parser,
     typeparser = require('./typeparser').parser,
     lexer = require('./lexer'),
-    fs = require('fs'),
     _ = require('underscore');
 
 // Assigning the nodes to `parser.yy` allows the grammar to access the nodes from
@@ -454,41 +453,31 @@ var getSandbox = function() {
 };
 
 var getFileContents = function(filename) {
-  var source,
-      err,
-      exts = ["", ".roy", ".lroy"];
+    var path = require('path'),
+        exts = ["", ".roy", ".lroy"],
+        filenames = _.map(exts, function(ext){
+            return filename + ext;
+        }),
+        source,
+        err,
+        i;
 
-  function tryFile(fn) {
-    var src;
-    try {
-      src = fs.readFileSync(fn, 'utf8');
-    } catch(e) {
-      err = e;
-      return null;
+    // Check to see if an extension is specified, if so, don't bother
+    // checking others
+    if (/\..+$/.test(filename)) {
+        source = fs.readFileSync(filename, 'utf8');
+        filenames = [filename];
+    } else {
+        source = _.find(filenames, function(filename) {
+            return path.existsSync(filename);
+        });
     }
-    return src;
-  }
 
-  var filenames = _(exts).map(function(ext){ return filename + ext; });
-
-  // check to see if an extension is specified, if so, don't bother checking
-  // others
-  if (/\..+$/.test(filename)) {
-    source = tryFile(filename);
-    filenames = [filename];
-  }
-  else {
-    for (var i = 0; i < filenames.length; ++i) {
-      source = tryFile(filenames[i]);
-      if (source !== null) break;
+    if(source == null) {
+        throw new Error("File(s) not found: " + filenames.join(", "));
     }
-  }
 
-  if (source === null) {
-    throw new Error("File(s) not found: " + filenames.join(", "));
-  }
-
-  return source;
+    return source;
 };
 
 var nodeRepl = function(opts) {
