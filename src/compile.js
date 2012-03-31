@@ -163,6 +163,11 @@ var compileNodeWithEnv = function(n, env, opts) {
             return defs.join(";\n");
         },
         visitExpression: function() {
+            // No need to retain parenthesis for operations of higher
+            // precendence in JS
+            if(n.value instanceof nodes.Function || n.value instanceof nodes.Call) {
+                return compileNode(n.value);
+            }
             return '(' + compileNode(n.value) + ')';
         },
         visitReplacement: function() {
