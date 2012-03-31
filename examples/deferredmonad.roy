@@ -1,21 +1,18 @@
 let deferred = {
-  return: \x -> $.when(x)
+  return: \x -> $.when x
   bind: \x f ->
-    let dfd = $.Deferred()
-    x.done(\val -> 
-      (f val).done(\val2 -> dfd.resolve val2)
+    let dfd = $.Deferred ()
+    x.done (\val ->
+      (f val).done dfd.resolve
     )
-    dfd.promise()
+    dfd.promise ()
 }
 
-let v = (do deferred
+let v = do deferred
   val <- $.ajax 'examples/helloworld.roy'
   val2 <- $.ajax 'examples/alias.roy'
   return val ++ val2
-)
 
-(do deferred
-  text <- v
-  console.log text
-  return text
+v.done (\x ->
+  console.log x
 )
