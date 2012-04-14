@@ -25,7 +25,7 @@ var t = require('./types'),
 // In case #2, do a deep unification on the type, using recursion.
 //
 // If neither constraint can be met, the process will throw an error message.
-var unify = function(t1, t2) {
+var unify = function(t1, t2, lineno) {
     var alias = t1.aliased || t2.aliased;
     var i;
     t1 = prune(t1);
@@ -38,7 +38,7 @@ var unify = function(t1, t2) {
             t1.instance = t2;
         }
     } else if(t1 instanceof t.BaseType && t2 instanceof t.Variable) {
-        unify(t2, t1);
+        unify(t2, t1, lineno);
     } else if(t1 instanceof t.NativeType || t2 instanceof t.NativeType) {
         // do nothing.
         // coercing Native to any type.
@@ -46,18 +46,18 @@ var unify = function(t1, t2) {
         var t1str = t1.aliased || t1.toString();
         var t2str = t2.aliased || t2.toString();
         if(t1.name != t2.name || t1.types.length != t2.types.length) {
-            throw new Error("Type error: " + t1str + " is not " + t2str);
+            throw new Error("Type error on line " + lineno + ": " + t1str + " is not " + t2str);
         }
         if(t1 instanceof t.ObjectType) {
             for(i in t2.props) {
                 if(!(i in t1.props)) {
-                    throw new Error("Type error: " + t1str + " is not " + t2str);
+                    throw new Error("Type error on line " + lineno + ": " + t1str + " is not " + t2str);
                 }
-                unify(t1.props[i], t2.props[i]);
+                unify(t1.props[i], t2.props[i], lineno);
             }
         }
         for(i = 0; i < Math.min(t1.types.length, t2.types.length); i++) {
-            unify(t1.types[i], t2.types[i]);
+            unify(t1.types[i], t2.types[i], lineno);
         }
         if(alias) t1.aliased = t2.aliased = alias;
     } else {
@@ -176,7 +176,7 @@ var analyseFunction = function(functionDecl, funcType, env, nonGeneric, aliases)
     var annotationType;
     if(functionDecl.type) {
         annotationType = nodeToType(functionDecl.type, env, aliases);
-        unify(resultType, annotationType);
+        unify(resultType, annotationType, functionDecl.lineno);
     }
 
     return new t.FunctionType(types);
@@ -343,7 +343,7 @@ var analyse = function(node, env, nonGeneric, aliases) {
             });
             var ifFalseType = ifFalseScopeTypes[ifFalseScopeTypes.length - 1];
 
-            unify(ifTrueType, ifFalseType);
+            unify(ifTrueType, ifFalseType, node.lineno);
 
             return ifTrueType;
         },
@@ -380,7 +380,7 @@ var analyse = function(node, env, nonGeneric, aliases) {
 
             var resultType = new t.Variable();
             types.push(resultType);
-            unify(new t.FunctionType(types), funType);
+            unify(new t.FunctionType(types), funType, node.lineno);
 
             return resultType;
         },
@@ -396,7 +396,7 @@ var analyse = function(node, env, nonGeneric, aliases) {
                 if(prune(valueType) instanceof t.NativeType) {
                     valueType = annotationType;
                 } else {
-                    unify(valueType, annotationType);
+                    unify(valueType, annotationType, node.lineno);
                 }
             }
 
@@ -411,7 +411,7 @@ var analyse = function(node, env, nonGeneric, aliases) {
                 if(prune(valueType) instanceof t.NativeType) {
                     return env[node.name];
                 } else {
-                    unify(valueType, env[node.name]);
+                    unify(valueType, env[node.name], node.lineno);
                 }
             } else {
                 env[node.name] = valueType;
@@ -441,7 +441,7 @@ var analyse = function(node, env, nonGeneric, aliases) {
             } else {
                 var propObj = {};
                 propObj[node.property] = new t.Variable();
-                unify(valueType, new t.ObjectType(propObj));
+                unify(valueType, new t.ObjectType(propObj), node.lineno);
             }
 
             return prune(valueType).getPropertyType(node.property);
@@ -453,16 +453,16 @@ var analyse = function(node, env, nonGeneric, aliases) {
                 return new t.NativeType();
             }
 
-            unify(valueType, new t.ArrayType(new t.Variable()));
+            unify(valueType, new t.ArrayType(new t.Variable()), node.lineno);
 
             var accessType = analyse(node.property, env, nonGeneric, aliases);
-            unify(accessType, new t.NumberType());
+            unify(accessType, new t.NumberType(), node.lineno);
             return prune(valueType).type;
         },
         visitBinaryGenericOperator: function() {
             var leftType = analyse(node.left, env, nonGeneric, aliases);
             var rightType = analyse(node.right, env, nonGeneric, aliases);
-            unify(leftType, rightType);
+            unify(leftType, rightType, node.lineno);
 
             return new t.BooleanType();
         },
@@ -470,8 +470,8 @@ var analyse = function(node, env, nonGeneric, aliases) {
             var resultType = new t.NumberType();
             var leftType = analyse(node.left, env, nonGeneric, aliases);
             var rightType = analyse(node.right, env, nonGeneric, aliases);
-            unify(leftType, resultType);
-            unify(rightType, resultType);
+            unify(leftType, resultType, node.left.lineno);
+            unify(rightType, resultType, node.right.lineno);
 
             return resultType;
         },
@@ -479,8 +479,8 @@ var analyse = function(node, env, nonGeneric, aliases) {
             var resultType = new t.BooleanType();
             var leftType = analyse(node.left, env, nonGeneric, aliases);
             var rightType = analyse(node.right, env, nonGeneric, aliases);
-            unify(leftType, resultType);
-            unify(rightType, resultType);
+            unify(leftType, resultType, node.left.lineno);
+            unify(rightType, resultType, node.right.lineno);
 
             return resultType;
         },
@@ -488,8 +488,8 @@ var analyse = function(node, env, nonGeneric, aliases) {
             var resultType = new t.StringType();
             var leftType = analyse(node.left, env, nonGeneric, aliases);
             var rightType = analyse(node.right, env, nonGeneric, aliases);
-            unify(leftType, resultType);
-            unify(rightType, resultType);
+            unify(leftType, resultType, node.left.lineno);
+            unify(rightType, resultType, node.right.lineno);
 
             return resultType;
         },
@@ -499,8 +499,8 @@ var analyse = function(node, env, nonGeneric, aliases) {
             var combinedTypes = {};
 
             var emptyObjectType = new t.ObjectType({});
-            unify(leftType, emptyObjectType);
-            unify(rightType, emptyObjectType);
+            unify(leftType, emptyObjectType, node.left.lineno);
+            unify(rightType, emptyObjectType, node.right.lineno);
 
             var name;
             for(name in leftType.props) {
@@ -530,7 +530,7 @@ var analyse = function(node, env, nonGeneric, aliases) {
                 if(!tagType) {
                     throw new Error("Couldn't find the tag: " + nodeCase.pattern.tag.value);
                 }
-                unify(value, fresh(_.last(prune(tagType).types), newNonGeneric));
+                unify(value, fresh(_.last(prune(tagType).types), newNonGeneric), nodeCase.lineno);
 
                 var argNames = {};
                 var addVarsToEnv = function(p, lastPath) {
@@ -558,7 +558,7 @@ var analyse = function(node, env, nonGeneric, aliases) {
                             },
                             visitPattern: function() {
                                 var resultType = fresh(_.last(prune(newEnv[v.tag.value]).types), newNonGeneric);
-                                unify(currentValue, resultType);
+                                unify(currentValue, resultType, v.lineno);
 
                                 addVarsToEnv(v, path);
                             }
@@ -570,9 +570,9 @@ var analyse = function(node, env, nonGeneric, aliases) {
                 var caseType = analyse(nodeCase.value, newEnv, newNonGeneric, aliases);
                 if(caseType instanceof t.FunctionType && caseType.types.length == 1) {
                     // For tags that don't have arguments
-                    unify(resultType, _.last(caseType.types));
+                    unify(resultType, _.last(caseType.types), nodeCase.lineno);
                 } else {
-                    unify(resultType, caseType);
+                    unify(resultType, caseType, nodeCase.lineno);
                 }
             });
             return resultType;
@@ -607,7 +607,7 @@ var analyse = function(node, env, nonGeneric, aliases) {
         visitArray: function() {
             var valueType = new t.Variable();
             _.each(node.values, function(v) {
-                unify(valueType, analyse(v, env, nonGeneric, aliases));
+                unify(valueType, analyse(v, env, nonGeneric, aliases), v.lineno);
             });
             return new t.ArrayType(valueType);
         },
@@ -672,7 +672,7 @@ var nodeToType = function(n, env, aliases) {
                 envType = fresh(prune(envType));
                 _.forEach(tn.args, function(v, k) {
                     var argType = nodeToType(v, env, aliases);
-                    unify(envType.types[1 + k], argType);
+                    unify(envType.types[1 + k], argType, v.lineno);
                 });
                 return envType;
             }

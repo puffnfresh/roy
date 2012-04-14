@@ -2,6 +2,10 @@ var sys = require('sys'),
     Parser = require('jison').Parser,
     typegrammar = require('./typegrammar').bnf;
 
+var n = function(s) {
+    return s + "$$.lineno = yylineno;"
+};
+
 var grammar = {
     "startSymbol": "program",
 
@@ -29,7 +33,7 @@ var grammar = {
         "line": [
             ["statement", "$$ = $1;"],
             ["expression", "$$ = $1;"],
-            ["COMMENT", "$$ = new yy.Comment($1);"]
+            ["COMMENT", n("$$ = new yy.Comment($1);")]
         ],
         "block": [
             ["INDENT body outdentOrEof", "$$ = $2;"]
@@ -41,8 +45,8 @@ var grammar = {
         ],
         "doLine": [
             ["line", "$$ = $1;"],
-            ["IDENTIFIER LEFTARROW expression", "$$ = new yy.Bind($1, $3);"],
-            ["RETURN expression", "$$ = new yy.Return($2);"]
+            ["IDENTIFIER LEFTARROW expression", n("$$ = new yy.Bind($1, $3);")],
+            ["RETURN expression", n("$$ = new yy.Return($2);")]
         ],
         "doBlock": [
             ["INDENT doBody outdentOrEof", "$$ = $2;"]
@@ -56,25 +60,25 @@ var grammar = {
         ],
         "expression": [
             ["innerExpression", "$$ = $1;"],
-            ["LAMBDA paramList optType RIGHTARROW expression", "$$ = new yy.Function(undefined, $2, [$5], $3);"],
-            ["LAMBDA paramList optType RIGHTARROW block", "$$ = new yy.Function(undefined, $2, $5, $3);"],
-            ["MATCH innerExpression INDENT caseList outdentOrEof", "$$ = new yy.Match($2, $4);"],
-            ["DO innerExpression doBlock", "$$ = new yy.Do($2, $3);"],
+            ["LAMBDA paramList optType RIGHTARROW expression", n("$$ = new yy.Function(undefined, $2, [$5], $3);")],
+            ["LAMBDA paramList optType RIGHTARROW block", n("$$ = new yy.Function(undefined, $2, $5, $3);")],
+            ["MATCH innerExpression INDENT caseList outdentOrEof", n("$$ = new yy.Match($2, $4);")],
+            ["DO innerExpression doBlock", n("$$ = new yy.Do($2, $3);")],
             ["ifThenElse", "$$ = $1;"]
         ],
         "callArgument": [
-            ["( expression )", "$$ = new yy.Expression($2);"],
-            ["& ( expression )", "$$ = new yy.Replacement($3);"],
-            ["[| expression |]", "$$ = new yy.Quoted($2);"],
+            ["( expression )", n("$$ = new yy.Expression($2);")],
+            ["& ( expression )", n("$$ = new yy.Replacement($3);")],
+            ["[| expression |]", n("$$ = new yy.Quoted($2);")],
             ["accessor", "$$ = $1;"],
-            ["callArgument ! callArgument", "$$ = new yy.Access($1, $3);"],
-            ["callArgument MATH callArgument", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
-            ["callArgument CONCAT callArgument", "$$ = new yy.BinaryStringOperator($2, $1, $3);"],
-            ["callArgument + callArgument", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
-            ["callArgument - callArgument", "$$ = new yy.BinaryNumberOperator($2, $1, $3);"],
-            ["callArgument BOOLOP callArgument", "$$ = new yy.BinaryBooleanOperator($2, $1, $3);"],
-            ["callArgument COMPARE callArgument", "$$ = new yy.BinaryGenericOperator($2, $1, $3);"],
-            ["callArgument WITH callArgument", "$$ = new yy.With($1, $3);"],
+            ["callArgument ! callArgument", n("$$ = new yy.Access($1, $3);")],
+            ["callArgument MATH callArgument", n("$$ = new yy.BinaryNumberOperator($2, $1, $3);")],
+            ["callArgument CONCAT callArgument", n("$$ = new yy.BinaryStringOperator($2, $1, $3);")],
+            ["callArgument + callArgument", n("$$ = new yy.BinaryNumberOperator($2, $1, $3);")],
+            ["callArgument - callArgument", n("$$ = new yy.BinaryNumberOperator($2, $1, $3);")],
+            ["callArgument BOOLOP callArgument", n("$$ = new yy.BinaryBooleanOperator($2, $1, $3);")],
+            ["callArgument COMPARE callArgument", n("$$ = new yy.BinaryGenericOperator($2, $1, $3);")],
+            ["callArgument WITH callArgument", n("$$ = new yy.With($1, $3);")],
             ["literal", "$$ = $1;"]
         ],
         "innerExpression": [
@@ -87,10 +91,10 @@ var grammar = {
         ],
         "pattern": [
             ["innerPattern", "$$ = $1;"],
-            ["identifier", "$$ = new yy.Pattern($1, []);"]
+            ["identifier", n("$$ = new yy.Pattern($1, []);")]
         ],
         "innerPattern": [
-            ["( identifier patternIdentifiers )", "$$ = new yy.Pattern($2, $3);"]
+            ["( identifier patternIdentifiers )", n("$$ = new yy.Pattern($2, $3);")]
         ],
         "patternIdentifiers": [
             ["identifier", "$$ = [$1];"],
@@ -99,14 +103,14 @@ var grammar = {
             ["patternIdentifiers identifier", "$$ = $1; $1.push($2);"]
         ],
         "ifThenElse": [
-            ["IF innerExpression THEN block TERMINATOR ELSE block", "$$ = new yy.IfThenElse($2, $4, $7);"],
-            ["IF innerExpression THEN innerExpression ELSE innerExpression", "$$ = new yy.IfThenElse($2, [$4], [$6]);"]
+            ["IF innerExpression THEN block TERMINATOR ELSE block", n("$$ = new yy.IfThenElse($2, $4, $7);")],
+            ["IF innerExpression THEN innerExpression ELSE innerExpression", n("$$ = new yy.IfThenElse($2, [$4], [$6]);")]
         ],
 
         // data Maybe a = Some a | None
         "dataDecl": [
-            ["DATA IDENTIFIER optDataParamList = dataList", "$$ = new yy.Data($2, $3, $5);"],
-            ["DATA IDENTIFIER optDataParamList = INDENT dataList outdentOrEof", "$$ = new yy.Data($2, $3, $6);"]
+            ["DATA IDENTIFIER optDataParamList = dataList", n("$$ = new yy.Data($2, $3, $5);")],
+            ["DATA IDENTIFIER optDataParamList = INDENT dataList outdentOrEof", n("$$ = new yy.Data($2, $3, $6);")]
         ],
         "dataList": [
             ["IDENTIFIER optTypeParamList", "$$ = [new yy.Tag($1, $2)];"],
@@ -115,7 +119,7 @@ var grammar = {
 
         // type Person = {firstName: String, lastName: String}
         "typeDecl": [
-            ["TYPE IDENTIFIER = type", "$$ = new yy.Type($2, $4);"]
+            ["TYPE IDENTIFIER = type", n("$$ = new yy.Type($2, $4);")]
         ],
 
         // For type annotations (from the typegrammar module)
@@ -130,16 +134,16 @@ var grammar = {
         "optDataParamList": typegrammar.optDataParamList,
 
         "macro": [
-            ["MACRO IDENTIFIER = expression", "$$ = new yy.Macro($2, [$4]);"],
-            ["MACRO IDENTIFIER = block", "$$ = new yy.Macro($2, $4);"]
+            ["MACRO IDENTIFIER = expression", n("$$ = new yy.Macro($2, [$4]);")],
+            ["MACRO IDENTIFIER = block", n("$$ = new yy.Macro($2, $4);")]
         ],
         "letFunction": [
-            ["LET IDENTIFIER paramList optType = block optWhere", "$$ = new yy.Function($2, $3, $6, $4, $7);"],
-            ["LET IDENTIFIER paramList optType = expression", "$$ = new yy.Function($2, $3, [$6], $4, []);"]
+            ["LET IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Function($2, $3, $6, $4, $7);")],
+            ["LET IDENTIFIER paramList optType = expression", n("$$ = new yy.Function($2, $3, [$6], $4, []);")]
         ],
         "letBinding": [
-            ["LET IDENTIFIER optType = expression", "$$ = new yy.Let($2, $5, $3);"],
-            ["LET IDENTIFIER optType = INDENT expression outdentOrEof", "$$ = new yy.Let($2, $6, $3);"]
+            ["LET IDENTIFIER optType = expression", n("$$ = new yy.Let($2, $5, $3);")],
+            ["LET IDENTIFIER optType = INDENT expression outdentOrEof", n("$$ = new yy.Let($2, $6, $3);")]
         ],
         "paramList": [
             ["( )", "$$ = [];"],
@@ -148,8 +152,8 @@ var grammar = {
             ["paramList param", "$$ = $1; $1.push($2);"]
         ],
         "param": [
-            ["IDENTIFIER", "$$ = new yy.Arg($1);"],
-            ["( IDENTIFIER : type )", "$$ = new yy.Arg($2, $4);"]
+            ["IDENTIFIER", n("$$ = new yy.Arg($1);")],
+            ["( IDENTIFIER : type )", n("$$ = new yy.Arg($2, $4);")]
         ],
         "optType": [
             ["", ""],
@@ -165,13 +169,13 @@ var grammar = {
         ],
         "whereDecl": [
             ["dataDecl", "$$ = $1;"],
-            ["IDENTIFIER paramList optType = block optWhere", "$$ = new yy.Function($1, $2, $5, $3, $6);"],
-            ["IDENTIFIER paramList optType = expression", "$$ = new yy.Function($1, $2, [$5], $3, []);"]
+            ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Function($1, $2, $5, $3, $6);")],
+            ["IDENTIFIER paramList optType = expression", n("$$ = new yy.Function($1, $2, [$5], $3, []);")]
         ],
 
         "call": [
-            ["accessor argList", "$$ = new yy.Call($1, $2);"],
-            ["( expression ) argList", "$$ = new yy.Call($2, $4);"]
+            ["accessor argList", n("$$ = new yy.Call($1, $2);")],
+            ["( expression ) argList", n("$$ = new yy.Call($2, $4);")]
         ],
         "argList": [
             ["( )", "$$ = [];"],
@@ -180,19 +184,19 @@ var grammar = {
             ["argList callArgument", "$$ = $1; $1.push($2);"]
         ],
         "tuple": [
-            ["( innerExpression , tupleList )", "$4.unshift($2); $$ = new yy.Tuple($4);"]
+            ["( innerExpression , tupleList )", n("$4.unshift($2); $$ = new yy.Tuple($4);")]
         ],
         "tupleList": [
             ["innerExpression", "$$ = [$1];"],
             ["tupleList , innerExpression", "$$ = $1; $1.push($3);"]
         ],
         "literal": [
-            ["NUMBER", "$$ = new yy.Number($1);"],
-            ["STRING", "$$ = new yy.String($1);"],
-            ["BOOLEAN", "$$ = new yy.Boolean($1);"],
+            ["NUMBER", n("$$ = new yy.Number($1);")],
+            ["STRING", n("$$ = new yy.String($1);")],
+            ["BOOLEAN", n("$$ = new yy.Boolean($1);")],
             ["tuple", "$$ = $1;"],
-            ["[ optValues ]", "$$ = new yy.Array($2);"],
-            ["{ optPairs }", "$$ = new yy.Object($2);"]
+            ["[ optValues ]", n("$$ = new yy.Array($2);")],
+            ["{ optPairs }", n("$$ = new yy.Object($2);")]
         ],
         "optValues": [
             ["", "$$ = [];"],
@@ -217,9 +221,9 @@ var grammar = {
             ["TERMINATOR", ""]
         ],
         "accessor": [
-            ["IDENTIFIER", "$$ = new yy.Identifier($1);"],
-            ["accessor . keywordOrIdentifier", "$$ = new yy.PropertyAccess($1, $3);"],
-            ["( expression ) . keywordOrIdentifier", "$$ = new yy.PropertyAccess($2, $5);"]
+            ["IDENTIFIER", n("$$ = new yy.Identifier($1);")],
+            ["accessor . keywordOrIdentifier", n("$$ = new yy.PropertyAccess($1, $3);")],
+            ["( expression ) . keywordOrIdentifier", n("$$ = new yy.PropertyAccess($2, $5);")]
         ],
         "outdentOrEof": [
             ["OUTDENT", ""],
@@ -227,7 +231,7 @@ var grammar = {
         ],
         "keywordOrIdentifier": typegrammar.keywordOrIdentifier,
         "identifier": [
-            ["IDENTIFIER", "$$ = new yy.Identifier($1);"]
+            ["IDENTIFIER", n("$$ = new yy.Identifier($1);")]
         ]
     }
 };
