@@ -1,4 +1,6 @@
 node_modules
+dist
+docs/guide/_build/
 src/parser.js
 src/typeparser.js
 examples/*.js
