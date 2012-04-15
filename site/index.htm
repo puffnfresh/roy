@@ -12,9 +12,14 @@
         color: #111;
         background: #FFFFEE;
     }
-    textarea, pre {
-        font-size: 0.8em;
+    .CodeMirror, pre {
         font-family: 'Droid Sans Mono', monospace;
+    }
+    pre {
+        font-size: 0.8em;
+    }
+    .CodeMirror {
+        background: #FFF;
     }
     .header div {
         width: 33em;
@@ -50,7 +55,7 @@
         font-size: 1.1em;
         color: #88CC66;
     }
-    pre {
+    #jscode, #output {
         overflow: auto;
     }
     .content {
@@ -61,6 +66,11 @@
     </style>
     <script src="http://www.google-analytics.com/ga.js" async="async"></script>
     <script src="bundled-roy.js"></script>
+    <script src="codemirror2/lib/codemirror.js"></script>
+    <script src="codemirror2/lib/util/runmode.js"></script>
+    <script src="codemirror2/mode/roy/roy.js"></script>
+    <script src="codemirror2/mode/javascript/javascript.js"></script>
+    <link rel="stylesheet" href="codemirror2/lib/codemirror.css" />
     <link href="http://fonts.googleapis.com/css?family=Droid+Sans:bold,Droid+Sans+Mono" rel="stylesheet" type="text/css" />
     <link href="http://fonts.googleapis.com/css?family=Pacifico" rel="stylesheet" type="text/css" />
     <script>
@@ -108,9 +118,9 @@
           <option value="deferredmonad">Deferred monad</option>
         </select>
       </div>
-      <textarea id="roycode" rows="15" cols="60"></textarea>
+      <div id="roycode"></div>
       <h3>JavaScript</h3>
-      <pre id="jscode"></pre>
+      <pre id="jscode" class="cm-s-default"></pre>
       <input id="jsrun" type="button" value="Run" />
       <h3>Output</h3>
       <pre id="output"></pre>
@@ -142,6 +152,11 @@
         };
     });
     (function() {
+        var editor = CodeMirror(document.getElementById("roycode"), {
+              mode: "roy",
+              onChange: royCompile,
+              lineNumbers: true
+        });
         var addEvent = function(s, e, c) {
             var el = document.getElementById(s);
             if(el.addEventListener) {
@@ -152,23 +167,19 @@
         };
         var examples = {};
         var royCompile = function() {
-            var jscode;
+            var code;
             try {
-                jscode = roy.compile(document.getElementById("roycode").value, {}, {}, {
+                code = roy.compile(editor.getValue(), {}, {}, {
                     modules: {
                        dom: "document: {documentURI: String, getElementById: Function(String,{getAttribute: Function(String,String), innerHTML: String, innerText: String, tagName: String})}\n"
                    }
                 }).output;
+                CodeMirror.runMode(code, "javascript", document.getElementById("jscode"));
             } catch(e) {
-                jscode = e;
+                document.getElementById("jscode").innerHTML = e;
             }
 
-            // Works in Firefox
-            document.getElementById("jscode").innerHTML = jscode;
-            // Works in IE
-            document.getElementById("jscode").innerText = jscode;
-
-            return jscode;
+            return code;
         };
         var sendRequest = function(url, callback) {
             var request = new XMLHttpRequest();
@@ -184,12 +195,12 @@
             var value = document.getElementById("exampleselect").value;
             if(!value) return;
             if(examples[value]) {
-                document.getElementById("roycode").value = examples[value];
+                editor.setValue(examples[value]);
                 royCompile();
             } else {
                 sendRequest("examples/" + value + ".roy", function(request) {
                      examples[value] = request.responseText;
-                     document.getElementById("roycode").value = examples[value];
+                     editor.setValue(examples[value]);
                      royCompile();
                 });
             }
