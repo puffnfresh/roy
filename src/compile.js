@@ -427,9 +427,28 @@ var compile = function(source, env, aliases, opts) {
     if(opts.strict) {
         output.push('"use strict";');
     }
+
+    var outputLine = output.length + 1;
     _.each(ast, function(v) {
-        var compiled = compileNodeWithEnv(v, env, opts);
+        var compiled = compileNodeWithEnv(v, env, opts),
+            j, lineCount = compiled.split('\n').length;
+
         if(compiled) {
+            if(opts.sourceMap && v.lineno > 1) {
+                opts.sourceMap.addMapping({
+                    source: opts.filename,
+                    original: {
+                        line: v.lineno - 1,
+                        column: 0
+                    },
+                    generated: {
+                        line: outputLine,
+                        column: 0
+                    }
+                });
+            }
+            outputLine += lineCount;
+
             output.push(compiled + (v instanceof nodes.Comment ? '' : ';'));
         }
     });
@@ -771,20 +790,26 @@ var main = function() {
         }
 
         exported = {};
+        var outputPath = filename.replace(extensions, '.js');
+        var SourceMapGenerator = require('source-map').SourceMapGenerator;
+        var sourceMap = new SourceMapGenerator({file: path.basename(outputPath)});
+
         var compiled = compile(source, env, aliases, {
             nodejs: !browserModules,
             filename: filename,
             run: run,
-            exported: exported
+            exported: exported,
+            sourceMap: sourceMap
         });
         if(run) {
             // Execute the JavaScript output.
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
         } else {
             // Write the JavaScript output.
-            fs.writeFile(filename.replace(extensions, '.js'), compiled.output, 'utf8');
+            fs.writeFile(outputPath, compiled.output + '//@ sourceMappingURL=' + path.basename(outputPath) + '.map\n', 'utf8');
+            fs.writeFile(outputPath + '.map', sourceMap.toString(), 'utf8');
+            writeModule(env, exported, filename.replace(extensions, '.roym'));
         }
-        writeModule(env, exported, filename.replace(extensions, '.roym'));
     });
 };
 exports.main = main;
