@@ -418,7 +418,6 @@ var compile = function(source, env, aliases, opts) {
         return n;
     });
 
-    // Output strict JavaScript.
     var output = [];
 
     if(!opts.nodejs) {
