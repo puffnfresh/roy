@@ -36,10 +36,12 @@ var identifierToken = function() {
         case 'Function':
         case 'let':
         case 'if':
+        case 'instance':
         case 'then':
         case 'else':
         case 'data':
         case 'type':
+        case 'typeclass':
         case 'match':
         case 'case':
         case 'do':

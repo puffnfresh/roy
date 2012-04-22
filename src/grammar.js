@@ -52,10 +52,12 @@ var grammar = {
             ["INDENT doBody outdentOrEof", "$$ = $2;"]
         ],
         "statement": [
-            ["letFunction", "$$ = $1;"],
-            ["letBinding", "$$ = $1;"],
+            ["LET function", "$$ = $2;"],
+            ["LET binding", "$$ = $2;"],
             ["dataDecl", "$$ = $1;"],
             ["typeDecl", "$$ = $1;"],
+            ["typeClassDecl", "$$ = $1;"],
+            ["instanceDecl", "$$ = $1;"],
             ["macro", "$$ = $1;"]
         ],
         "expression": [
@@ -133,17 +135,29 @@ var grammar = {
         "dataParamList": typegrammar.dataParamList,
         "optDataParamList": typegrammar.optDataParamList,
 
+        "typeClassDecl": [
+            ["TYPECLASS IDENTIFIER GENERIC { INDENT typeClassLines outdentOrEof TERMINATOR }", "$$ = new yy.TypeClass($2, new yy.Generic($3), $6);"]
+        ],
+        "typeClassLines": [
+            ["IDENTIFIER : type", "$$ = {}; $$[$1] = $3;"],
+            ["typeClassLines TERMINATOR IDENTIFIER : type", "$$ = $1; $1[$3] = $5;"]
+        ],
+
+        "instanceDecl": [
+            ["INSTANCE IDENTIFIER = IDENTIFIER type object", "$$ = new yy.Instance($2, $4, $5, $6);"]
+        ],
+
         "macro": [
             ["MACRO IDENTIFIER = expression", n("$$ = new yy.Macro($2, [$4]);")],
             ["MACRO IDENTIFIER = block", n("$$ = new yy.Macro($2, $4);")]
         ],
-        "letFunction": [
-            ["LET IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Function($2, $3, $6, $4, $7);")],
-            ["LET IDENTIFIER paramList optType = expression", n("$$ = new yy.Function($2, $3, [$6], $4, []);")]
+        "function": [
+            ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Function($1, $2, $5, $3, $6);")],
+            ["IDENTIFIER paramList optType = expression", n("$$ = new yy.Function($1, $2, [$5], $3, []);")]
         ],
-        "letBinding": [
-            ["LET IDENTIFIER optType = expression", n("$$ = new yy.Let($2, $5, $3);")],
-            ["LET IDENTIFIER optType = INDENT expression outdentOrEof", n("$$ = new yy.Let($2, $6, $3);")]
+        "binding": [
+            ["IDENTIFIER optType = expression", n("$$ = new yy.Let($1, $4, $2);")],
+            ["IDENTIFIER optType = INDENT expression outdentOrEof", n("$$ = new yy.Let($1, $5, $2);")]
         ],
         "paramList": [
             ["( )", "$$ = [];"],
@@ -196,6 +210,9 @@ var grammar = {
             ["BOOLEAN", n("$$ = new yy.Boolean($1);")],
             ["tuple", "$$ = $1;"],
             ["[ optValues ]", n("$$ = new yy.Array($2);")],
+            ["object", "$$ = $1;"]
+        ],
+        "object": [
             ["{ optPairs }", n("$$ = new yy.Object($2);")]
         ],
         "optValues": [

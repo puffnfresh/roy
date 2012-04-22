@@ -155,6 +155,9 @@ var compileNodeWithEnv = function(n, env, opts) {
         visitLet: function() {
             return "var " + n.name + " = " + compileNode(n.value);
         },
+        visitInstance: function() {
+            return "var " + n.name + " = " + compileNode(n.object);
+        },
         visitAssignment: function() {
             return compileNode(n.name) + " = " + compileNode(n.value) + ";";
         },
@@ -362,7 +365,11 @@ var compileNodeWithEnv = function(n, env, opts) {
             return n.value;
         },
         visitIdentifier: function() {
-            return n.value;
+            var typeClassAccessor = '';
+            if(n.typeClassInstance) {
+                typeClassAccessor = n.typeClassInstance + '.';
+            }
+            return typeClassAccessor + n.value;
         },
         visitNumber: function() {
             return n.value;

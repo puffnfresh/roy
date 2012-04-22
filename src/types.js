@@ -181,3 +181,18 @@ NativeType.prototype = new BaseType();
 NativeType.prototype.constructor = NativeType;
 NativeType.prototype.name = "Native";
 exports.NativeType = NativeType;
+
+var TypeClassType = function(types) {
+    this.types = types;
+};
+TypeClassType.prototype = new BaseType();
+TypeClassType.prototype.constructor = TypeClassType;
+TypeClassType.prototype.map = function(f) {
+    return _.map(this.types, f);
+};
+TypeClassType.prototype.toString = function() {
+    return _.map(this.types, function(t) {
+        return t.toString();
+    }).join(' ');
+};
+exports.TypeClassType = TypeClassType;

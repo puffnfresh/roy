@@ -1,0 +1,11 @@
+typeclass Monoid #a {
+  append: Function(#a, #a, #a)
+  empty: #a
+}
+
+instance stringMonoid = Monoid String {
+  append: \x y -> x ++ y
+  empty: ""
+}
+
+console.log (append "Hello!" empty)

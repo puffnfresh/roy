@@ -56,6 +56,29 @@ exports.nodes = {
             }
         };
     },
+    TypeClass: function(name, generic, types) {
+        this.name = name;
+        this.generic = generic;
+        this.types = types;
+
+        this.accept = function(a) {
+            if(a.visitTypeClass) {
+                return a.visitTypeClass(this);
+            }
+        };
+    },
+    Instance: function(name, typeClassName, typeName, object) {
+        this.name = name;
+        this.typeClassName = typeClassName;
+        this.typeName = typeName;
+        this.object = object;
+
+        this.accept = function(a) {
+            if(a.visitInstance) {
+                return a.visitInstance(this);
+            }
+        };
+    },
     Generic: function(value) {
         this.value = value;
 
