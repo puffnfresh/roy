@@ -438,9 +438,11 @@ var compile = function(source, env, aliases, opts) {
     var outputLine = output.length + 1;
     _.each(ast, function(v) {
         var compiled = compileNodeWithEnv(v, env, opts),
-            j, lineCount = compiled.split('\n').length;
+            j, lineCount;
 
         if(compiled) {
+            lineCount = compiled.split('\n').length;
+
             if(opts.sourceMap && v.lineno > 1) {
                 opts.sourceMap.addMapping({
                     source: opts.filename,
