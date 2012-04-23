@@ -541,7 +541,7 @@ var nodeRepl = function(opts) {
     // Include the standard library
     var fs = require('fs');
     var prelude = fs.readFileSync(path.dirname(__dirname) + '/lib/prelude.roy', 'utf8');
-    vm.runInNewContext(compile(prelude, env).output, sandbox, 'eval');
+    vm.runInNewContext(compile(prelude, env, {}, {nodejs: true}).output, sandbox, 'eval');
     repl.setPrompt('roy> ');
     repl.on('close', function() {
         stdin.destroy();
