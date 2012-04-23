@@ -17,8 +17,8 @@ var macroexpand = function(ast, env, opts) {
             visitCall: function() {
                 if(!macros[n.func.value]) return;
 
-                var f = new Function(macros[n.func.value]);
-                var tree = f.apply({}, n.args);
+                var f = new Function('var nodes = this.nodes; ' + macros[n.func.value]);
+                var tree = f.apply({nodes: nodes}, n.args);
 
                 return tree;
             }
