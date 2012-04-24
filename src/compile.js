@@ -447,7 +447,7 @@ var compile = function(source, env, aliases, opts) {
                 opts.sourceMap.addMapping({
                     source: opts.filename,
                     original: {
-                        line: v.lineno - 1,
+                        line: v.lineno,
                         column: 0
                     },
                     generated: {
