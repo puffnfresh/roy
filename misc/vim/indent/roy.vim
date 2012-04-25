@@ -28,11 +28,6 @@ function! GetRoyIndent()
   let ind = indent(lnum)
   let line = getline(lnum)
 
-  let i = match(line, '\.*\(if\)\.*') 
-  if i >= 0
-    let ind = i + &sw
-  endif
-
   if match(line, '\.*{\s*$') >= 0
     let ind += &sw
   endif
@@ -41,7 +36,7 @@ function! GetRoyIndent()
     let ind += &sw
   endif
 
-  let i = match(line, '^\s*\(where\|else\|do\)')
+  let i = match(line, '^\s*\(if\|where\|else\|do\)')
   if i >= 0
     let ind += &sw
   endif
