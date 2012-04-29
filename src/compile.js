@@ -330,10 +330,14 @@ var compileNodeWithEnv = function(n, env, opts) {
         },
         // Call to JavaScript call.
         visitCall: function() {
+            var typeClasses = '';
+            if(n.typeClassInstance) {
+                typeClasses = n.typeClassInstance + ', ';
+            }
             if(n.func.value == 'import') {
                 return importModule(JSON.parse(n.args[0].value), env, opts);
             }
-            return compileNode(n.func) + "(" + _.map(n.args, compileNode).join(", ") + ")";
+            return compileNode(n.func) + "(" + typeClasses + _.map(n.args, compileNode).join(", ") + ")";
         },
         visitPropertyAccess: function() {
             return compileNode(n.value) + "." + n.property;

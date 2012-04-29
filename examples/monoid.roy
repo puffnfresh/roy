@@ -8,4 +8,23 @@ instance stringMonoid = Monoid String {
   empty: ""
 }
 
-console.log (append "Hello!" empty)
+instance productMonoid = Monoid {product: Number} {
+  append: \x y -> {product: x.product * y.product}
+  empty: {product: 1}
+}
+
+instance sumMonoid = Monoid {sum: Number} {
+  append: \x y -> {sum: x.sum + y.sum}
+  empty: {sum: 0}
+}
+
+console.log (append (append "Hello!" empty) empty)
+
+let f x = append empty x
+let g x = f x
+
+console.log (g "TEST")
+
+console.log (append {product: 10} (append {product: 2} empty)).product
+
+console.log (append {sum: 1} empty).sum
