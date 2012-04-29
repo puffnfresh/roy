@@ -333,13 +333,20 @@ var analyse = function(node, env, nonGeneric, aliases, constraints) {
             return functionType;
         },
         visitIfThenElse: function() {
+            // if statements are compiled into (function() {...})(), thus they introduce a new environment.
+            var newEnv = _.clone(env);
+
+            var conditionType = analyse(node.condition, newEnv, nonGeneric, aliases, constraints);
+
+            unify(conditionType, new t.BooleanType(), node.condition.lineno);
+
             var ifTrueScopeTypes = _.map(withoutComments(node.ifTrue), function(expression) {
-                return analyse(expression, env, nonGeneric, aliases, constraints);
+                return analyse(expression, newEnv, nonGeneric, aliases, constraints);
             });
             var ifTrueType = ifTrueScopeTypes[ifTrueScopeTypes.length - 1];
 
             var ifFalseScopeTypes = _.map(withoutComments(node.ifFalse), function(expression) {
-                return analyse(expression, env, nonGeneric, aliases, constraints);
+                return analyse(expression, newEnv, nonGeneric, aliases, constraints);
             });
             var ifFalseType = ifFalseScopeTypes[ifFalseScopeTypes.length - 1];
 
