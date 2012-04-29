@@ -236,7 +236,7 @@ var compileNodeWithEnv = function(n, env, opts) {
             }
             return "(function(){\n" + pushIndent() + "var __monad__ = " +
                 compileNode(n.value) + ";\n" + getIndent() +
-                (!firstBind ? 'return ' : '') + compiledInit.join('\n' + getIndent()) +
+                (!firstBind ? 'return ' : '') + compiledInit.join(';\n' + getIndent()) + '\n' + getIndent() +
                 (firstBind ? 'return ' + compileNode(firstBind) : '') + "\n" +
                 popIndent() + "})()";
         },
