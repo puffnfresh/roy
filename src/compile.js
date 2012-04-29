@@ -655,6 +655,7 @@ var importModule = function(name, env, opts) {
         });
     };
 
+    var moduleTypes;
     if(opts.nodejs) {
         // Need to convert to absolute paths for the CLI
         if(opts.run) {
@@ -662,7 +663,7 @@ var importModule = function(name, env, opts) {
             name = path.resolve(path.dirname(opts.filename), name);
         }
 
-        var moduleTypes = loadModule(name, opts);
+        moduleTypes = loadModule(name, opts);
         addTypesToEnv(moduleTypes.types);
         var variable = name.substr(name.lastIndexOf("/") + 1);
         env[variable] = new types.Variable();
@@ -676,7 +677,7 @@ var importModule = function(name, env, opts) {
 
         return variable + " = require(" + JSON.stringify(name) + ")";
     } else {
-        var moduleTypes = loadModule(name, opts);
+        moduleTypes = loadModule(name, opts);
         addTypesToEnv(moduleTypes.types);
         _.each(moduleTypes.env, function(v, k) {
             env[k] = nodeToType(v, env, {});

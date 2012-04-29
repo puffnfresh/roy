@@ -3,7 +3,7 @@ var sys = require('sys'),
     typegrammar = require('./typegrammar').bnf;
 
 var n = function(s) {
-    return s + "$$.lineno = yylineno;"
+    return s + "$$.lineno = yylineno;";
 };
 
 var grammar = {
