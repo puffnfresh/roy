@@ -8,7 +8,9 @@
 // Type variable and built-in types are defined in the `types` module.
 var t = require('./types'),
     n = require('./nodes').nodes,
-    _ = require('underscore');
+    _ = require('underscore'),
+    getFreeVariables = require('./freeVariables').getFreeVariables,
+    stronglyConnectedComponents = require('./tarjan').stronglyConnectedComponents;
 
 // ### Unification
 //
@@ -179,36 +181,53 @@ var analyseFunction = function(functionDecl, funcType, env, nonGeneric, aliases,
         unify(resultType, annotationType, functionDecl.lineno);
     }
 
-    return new t.FunctionType(types);
-};
-var analyseWhereFunctions = function(whereDecls, env, nonGeneric, aliases, constraints) {
-    var newNonGeneric = nonGeneric.slice();
+    var functionType = new t.FunctionType(types);
 
+    unify(funcType, functionType, functionDecl.lineno);
+
+    return functionType;
+};
+
+var analyseWhereFunctions = function(whereDecls, env, nonGeneric, aliases, constraints) {
     var newEnv = _.clone(env);
 
     var functionDecls = _.filter(whereDecls, function(whereDecl) {
         return whereDecl instanceof n.Function;
     });
 
-    _.each(functionDecls, function(functionDecl) {
-        var funcTypeAndNonGenerics = createTemporaryFunctionType(functionDecl);
-        var funcType = funcTypeAndNonGenerics[0];
+    var dependencyGraph = createDependencyGraph(functionDecls);
 
-        newNonGeneric = newNonGeneric.concat(funcTypeAndNonGenerics[1]);
-
-        newEnv[functionDecl.name] = funcType;
-    });
+    var components = stronglyConnectedComponents(dependencyGraph);
 
     var functionTypes = {};
-    _.each(functionDecls, function(functionDecl) {
-        var functionType = newEnv[functionDecl.name];
 
-        functionTypes[functionDecl.name] =
-            analyseFunction(functionDecl, functionType, newEnv, newNonGeneric, aliases);
-    });
+    _.each(components, function(component) {
+               var newNonGeneric = nonGeneric.slice();
+
+               var functionDecls = _.map(component, function(vertex) {
+                                             return vertex.declaration;
+                                         });
+
+               _.each(functionDecls, function(functionDecl) {
+                          var funcTypeAndNonGenerics = createTemporaryFunctionType(functionDecl);
+                          var funcType = funcTypeAndNonGenerics[0];
+
+                          newNonGeneric = newNonGeneric.concat(funcTypeAndNonGenerics[1]);
+
+                          newEnv[functionDecl.name] = funcType;
+                      });
+
+               _.each(functionDecls, function(functionDecl) {
+                          var functionType = newEnv[functionDecl.name];
+
+                          functionTypes[functionDecl.name] =
+                              analyseFunction(functionDecl, functionType, newEnv, newNonGeneric, aliases);
+                      });
+           });
 
     return functionTypes;
 };
+
 var createTemporaryFunctionType = function(node) {
     var nonGeneric = [];
 
@@ -222,10 +241,47 @@ var createTemporaryFunctionType = function(node) {
         return typeVar;
     });
 
-    tempTypes.push(new t.Variable());
+    var resultType = new t.Variable();
+
+    tempTypes.push(resultType);
+
+    nonGeneric.push(resultType);
 
     return [new t.FunctionType(tempTypes), nonGeneric];
 };
+
+var createDependencyGraph = function(functionDecls) {
+    var verticesMap = {};
+
+    _.each(functionDecls, function(declaration) {
+               verticesMap[declaration.name] = {
+                   id: declaration.name,
+                   declaration: declaration
+               };
+           });
+
+    var vertices = _.values(verticesMap);
+
+    var edges = {};
+
+    _.each(vertices, function(vertex) {
+               var freeVariables = getFreeVariables(vertex.declaration);
+
+               var followings = _.map(freeVariables, function(value, identifier) {
+                                          return verticesMap[identifier];
+                                      });
+
+               followings = _.without(followings, undefined);
+
+               edges[vertex.declaration.name] = followings;
+           });
+
+    return {
+        vertices: vertices,
+        edges: edges
+    };
+};
+
 var analyseWhereDataDecls = function(whereDecls, env, nonGeneric, aliases, constraints) {
     var dataDecls = _.filter(whereDecls, function(whereDecl) {
         return whereDecl instanceof n.Data;

@@ -5,20 +5,34 @@ let child_process = require 'child_process'
 let dir = "test"
 let files = fs.readdirSync dir
 
-let tests = files.filter (λx →
+let royTests = files.filter (λx →
   (x.lastIndexOf '.roy') == (x.length - 4)
 )
 
-tests.forEach (λt →
-  let name = path.join dir t
-  let outFile = (path.join dir (path.basename t '.roy')) ++ '.out'
-  child_process.exec (process.argv ! 0) ++ ' ./roy -r ' ++ name (λerror stdout stderr →
-    if error then
+let jsTests = files.filter (λx →
+  (x.lastIndexOf '.js') == (x.length - 3)
+)
+
+let doTest = λtest command outFile →
+  let name = path.join dir test
+  child_process.exec command (λerror stdout stderr →
+    if error != undefined then
       console.log "Error:" name error.message
     else
       let expected = fs.readFileSync outFile 'utf8'
       let actual = stdout.toString ()
-      console.assert actual == expected "Output of " ++ t ++ ": " ++ (JSON.stringify actual) ++ " does not match " ++ (JSON.stringify expected)
+      console.assert actual == expected "Output of " ++ test ++ ": " ++ (JSON.stringify actual) ++ " does not match " ++ (JSON.stringify expected)
       console.log "Pass:" name
   )
+
+royTests.forEach (λt →
+  let name = path.join dir t
+  let outFile = (path.join dir (path.basename t '.roy')) ++ '.out'
+  doTest t (process.argv ! 0) ++ ' ./roy -r ' ++ name outFile
+)
+
+jsTests.forEach (λt →
+  let name = path.join dir t
+  let outFile = (path.join dir (path.basename t '.js')) ++ '.out'
+  doTest t (process.argv ! 0) ++ ' ' ++ name outFile
 )
