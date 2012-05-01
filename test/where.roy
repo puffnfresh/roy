@@ -22,10 +22,11 @@ let g x =
   evenToNumber (SuccEven (SuccOdd zero))
 where
   evenToNumber y = match y
-    case Zero = 0
+    case Zero = if id true then id 0 else id 0
     case (SuccEven odd) = (oddToNumber odd) + 1
   oddToNumber z = match z
     case (SuccOdd even) = (evenToNumber even) + 1
+  id x = x
   data Even = Zero | SuccEven Odd
   data Odd = SuccOdd Even
  
