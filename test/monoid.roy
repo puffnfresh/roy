@@ -18,13 +18,11 @@ instance sumMonoid = Monoid {sum: Number} {
   empty: {sum: 0}
 }
 
-console.log (append (append "Hello!" empty) empty)
-
-let f x = append empty x
+let f x = append (append x empty) x
 let g x = f x
 
+console.log (append (append "Hello!" empty) empty)
+
 console.log (g "TEST")
-
-console.log (append {product: 10} (append {product: 2} empty)).product
-
-console.log (append {sum: 1} empty).sum
+console.log (g (append {product: 2} empty)).product
+console.log (g {sum: 1}).sum
