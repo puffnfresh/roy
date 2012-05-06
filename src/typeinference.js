@@ -758,26 +758,6 @@ var nodeToType = function(n, env, aliases) {
 };
 exports.nodeToType = nodeToType;
 
-// TODO: Properly check equality
-var areTypesEqual = function(a, b) {
-    a = t.prune(a);
-    b = t.prune(b);
-
-    if(a.name != b.name) {
-        return false;
-    }
-
-    if(!a.types && !b.types) return true;
-
-    for(i = 0; i < a.types.length; i++) {
-        if(!areTypesEqual(a.types[i], b.types[i])) {
-            return false;
-        }
-    }
-
-    return true;
-};
-
 var functionTypeClassConstraint = function(constraint, env) {
     return constraint.type;
 };
@@ -825,7 +805,9 @@ var solveTypeClassConstraint = function(constraint, env, unsolvedCallback) {
             return false;
         }
 
-        if(!areTypesEqual(instanceTypeClass, t.typeClassInstance.type)) {
+        try {
+            unify(instanceTypeClass.fresh(), t.typeClassInstance.type.fresh());
+        } catch(e) {
             return false;
         }
 
