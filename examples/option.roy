@@ -6,7 +6,7 @@ let optionMonad = {
     Some x
   bind: \x f -> match x
     case (Some a) = f a
-    case None = None
+    case None = None ()
 }
 
 console.log (do optionMonad
