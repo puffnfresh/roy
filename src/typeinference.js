@@ -452,6 +452,9 @@ var analyse = function(node, env, nonGeneric, aliases, constraints) {
             unify(typeClassType.type, instanceType);
             var objectType = analyse(node.object, env, nonGeneric, aliases, constraints);
             _.each(objectType.props, function(propType, key) {
+                if(!env[key]) {
+                    throw new Error("Instance couldn't find " + JSON.stringify(key) + " in environment");
+                }
                 unify(propType, env[key].fresh(nonGeneric));
             });
 
