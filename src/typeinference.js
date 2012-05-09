@@ -455,6 +455,9 @@ var analyse = function(node, env, nonGeneric, aliases, constraints) {
                 if(!env[key]) {
                     throw new Error("Instance couldn't find " + JSON.stringify(key) + " in environment");
                 }
+                if(env[key].typeClass != node.typeClassName) {
+                    throw new Error(JSON.stringify(key) + " doesn't exist on type-class " + JSON.stringify(node.typeClassName));
+                }
                 unify(propType, env[key].fresh(nonGeneric));
             });
 
