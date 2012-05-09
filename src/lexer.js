@@ -162,7 +162,10 @@ var literalToken = function() {
     switch(tag) {
     case '<':
         next = chunk.slice(0, 2);
-        if(next == '<-') {
+        if(next == '<=') {
+            tokens.push(['COMPARE', next, lineno]);
+            return 2;
+        } else if(next == '<-') {
             tokens.push(['LEFTARROW', next, lineno]);
             return 2;
         } else if(next == '<<') {
@@ -173,7 +176,10 @@ var literalToken = function() {
         return 1;
     case '>':
         next = chunk.slice(0, 2);
-        if(next == '>>') {
+        if(next == '>=') {
+            tokens.push(['COMPARE', next, lineno]);
+            return 2;
+        } else if(next == '>>') {
             tokens.push(['MATH', next, lineno]);
             return 2;
         }
