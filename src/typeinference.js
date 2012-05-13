@@ -654,6 +654,15 @@ var analyse = function(node, env, nonGeneric, aliases, constraints) {
             var name = node.value;
 
             if(!env[name]) {
+                if(console && console.info) {
+                    console.info(
+                        "Roy info: Identifier " +
+                            JSON.stringify(name) +
+                            " on line " +
+                            node.lineno +
+                            " is unknown - dynamically typed"
+                    );
+                }
                 return new t.NativeType();
             }
 
