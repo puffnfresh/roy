@@ -293,23 +293,3 @@ exports.tokenise = function(source) {
     tokens.push(['EOF', '', lineno]);
     return tokens;
 };
-
-if(!module.parent) {
-    exports.tokenise([
-        "// Testing",
-        " ",
-        "let x =",
-        " 8",
-        " if true then 10 else 100",
-        " if true then",
-        "  false",
-        " else",
-        "  true",
-        " // Inner comment",
-        " console.log 10 * 20",
-        " console.log [1, 2, 3].length",
-        " true",
-        "console.log 'example'"
-    ].join("\n"));
-    console.log(tokens);
-}
