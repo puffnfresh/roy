@@ -28,5 +28,4 @@ optimise-bundle:
 # Tests
 
 test: all
-	./roy -r run-tests.roy
-	./node_modules/jasmine-node/bin/jasmine-node test/spec
+	./node_modules/jasmine-node/bin/jasmine-node --verbose test

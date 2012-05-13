@@ -29,5 +29,5 @@ where
   id x = x
   data Even = Zero | SuccEven Odd
   data Odd = SuccOdd Even
- 
+
 console.log (g 0)

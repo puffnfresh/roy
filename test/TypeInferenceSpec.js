@@ -1,8 +1,8 @@
 describe('type inference', function(){
-    var typeinference = require('../../src/typeinference'),
-        types = require('../../src/types');
-        lexer = require('../../src/lexer');
-        parser = require('../../src/parser');
+    var typeinference = require('../src/typeinference'),
+        types = require('../src/types');
+        lexer = require('../src/lexer');
+        parser = require('../src/parser');
 
     beforeEach(function() {
         this.addMatchers({

@@ -1,4 +1,4 @@
-// Uses `Option a` from stdlib
+data Option a = Some a | None
 
 let optionMonad = {
   return: λx →

@@ -4,8 +4,6 @@ docs/guide/_build/
 src/parser.js
 src/typeparser.js
 examples/*.js
-test/*.js
-!test/tarjan.js
 lib/*.js
 roy.brianmckenna.org
 bundled-roy.js
