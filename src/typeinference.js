@@ -522,6 +522,13 @@ var analyse = function(node, env, nonGeneric, aliases, constraints) {
             unify(accessType, new t.NumberType(), node.lineno);
             return t.prune(valueType).type;
         },
+        visitUnaryBooleanOperator: function() {
+            var resultType = new t.BooleanType();
+            var valueType = analyse(node.value, env, nonGeneric, aliases, constraints);
+            unify(valueType, resultType, node.value.lineno);
+
+            return resultType;
+        },
         visitBinaryGenericOperator: function() {
             var leftType = analyse(node.left, env, nonGeneric, aliases, constraints);
             var rightType = analyse(node.right, env, nonGeneric, aliases, constraints);

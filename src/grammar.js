@@ -71,6 +71,7 @@ var grammar = {
         "callArgument": [
             ["( expression )", n("$$ = new yy.Expression($2);")],
             ["& ( expression )", n("$$ = new yy.Replacement($3);")],
+            ["! ( expression )", n("$$ = new yy.UnaryBooleanOperator($1, $3);")],
             ["[| expression |]", n("$$ = new yy.Quoted($2);")],
             ["accessor", "$$ = $1;"],
             ["callArgument @ callArgument", n("$$ = new yy.Access($1, $3);")],

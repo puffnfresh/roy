@@ -270,6 +270,16 @@ exports.nodes = {
             }
         };
     },
+    UnaryBooleanOperator: function(name, value) {
+        this.name = name;
+        this.value = value;
+
+        this.accept = function(a) {
+            if(a.visitUnaryBooleanOperator) {
+                return a.visitUnaryBooleanOperator(this);
+            }
+        };
+    },
     BinaryGenericOperator: function(name, left, right) {
         this.name = name;
         this.left = left;

@@ -345,6 +345,9 @@ var compileNodeWithEnv = function(n, env, opts) {
         visitAccess: function() {
             return compileNode(n.value) + "[" + compileNode(n.property) + "]";
         },
+        visitUnaryBooleanOperator: function() {
+            return [n.name, compileNode(n.value)].join(" ");
+        },
         visitBinaryGenericOperator: function() {
             return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
         },
