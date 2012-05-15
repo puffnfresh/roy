@@ -44,6 +44,12 @@ var roy = {};
     load["./types"] = function(exports) {
         //= src/types.js
     };
+    load["./tarjan"] = function(exports) {
+        //= src/tarjan.js
+    };
+    load["./freeVariables"] = function(exports) {
+        //= src/freeVariables.js
+    };
 
     roy.lexer = require("./lexer");
     roy.compile = require("./compile").compile;
