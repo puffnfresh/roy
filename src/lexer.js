@@ -263,6 +263,7 @@ var literalToken = function() {
     case '⇒':
         tokens.push(['RIGHTFATARROW', tag, lineno]);
         return 1;
+    case '@':
     case ']':
     case ':':
     case '.':

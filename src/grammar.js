@@ -15,7 +15,7 @@ var grammar = {
         ["right", "IF", "ELSE"],
         ["left", "BOOLOP"],
         ["left", "COMPARE", "WITH"],
-        ["left", "+", "-", "!"],
+        ["left", "+", "-", "@"],
         ["left", "MATH", "CONCAT"],
         ["left", "."]
     ],
@@ -73,7 +73,7 @@ var grammar = {
             ["& ( expression )", n("$$ = new yy.Replacement($3);")],
             ["[| expression |]", n("$$ = new yy.Quoted($2);")],
             ["accessor", "$$ = $1;"],
-            ["callArgument ! callArgument", n("$$ = new yy.Access($1, $3);")],
+            ["callArgument @ callArgument", n("$$ = new yy.Access($1, $3);")],
             ["callArgument MATH callArgument", n("$$ = new yy.BinaryNumberOperator($2, $1, $3);")],
             ["callArgument CONCAT callArgument", n("$$ = new yy.BinaryStringOperator($2, $1, $3);")],
             ["callArgument + callArgument", n("$$ = new yy.BinaryNumberOperator($2, $1, $3);")],
