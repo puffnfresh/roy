@@ -4,6 +4,9 @@ describe('type inference', function(){
         lexer = require('../src/lexer');
         parser = require('../src/parser');
 
+    // TODO: Remove
+    var compile = require('../src/compile');
+
     beforeEach(function() {
         this.addMatchers({
             toStringEqual: function(expected) {

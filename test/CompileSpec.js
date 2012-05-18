@@ -54,6 +54,9 @@ describe('compiler', function(){
         it('deep_matching.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/deep_matching');
         });
+        it('structural_constraints.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/structural_constraints');
+        });
         it('functions.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/functions');
         });

@@ -1,0 +1,8 @@
+(\builder ->
+  (builder "Hello").id (\x ->
+    console.log x (builder x).world
+  )
+) {
+  id: \x -> x
+  world: "World"
+}
