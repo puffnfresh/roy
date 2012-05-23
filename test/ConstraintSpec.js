@@ -34,5 +34,11 @@ describe('constraint generation', function(){
             // Assumption for the `print` identifier
             expect(state.assumptions['print']).toNotEqual(undefined);
         });
+        it('function', function() {
+            var state = generate('\\x -> x');
+            expect(state.constraints.length).toEqual(1);
+            expect(state.constraints[0].a instanceof types.Variable).toBe(true);
+            expect(state.constraints[0].b instanceof types.Variable).toBe(true);
+        });
     });
 });

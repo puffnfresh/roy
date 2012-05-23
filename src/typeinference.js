@@ -52,9 +52,9 @@ InferenceState.prototype.withAssumptions = function(assumptions) {
 };
 
 // ## Inference type
-function InferenceType(type, state) {
-    this.type = type;
+function StateType(state, type) {
     this.state = state;
+    this.type = type;
 }
 
 // ## InferenceState generation
@@ -63,7 +63,7 @@ function generate(node) {
     // For nodes that don't introduce constraints nor assumptions
     function withEmptyState(type) {
         return function() {
-            return new InferenceType(type, InferenceState.empty);
+            return new StateType(InferenceState.empty, type);
         };
     };
 
@@ -74,29 +74,60 @@ function generate(node) {
 
             assumptions[node.value] = type;
 
-            return new InferenceType(
-                type,
-                InferenceState.empty.withAssumptions(assumptions)
+            return new StateType(
+                InferenceState
+                    .empty
+                    .withAssumptions(assumptions),
+                type
             );
         },
         visitCall: function() {
-            var funcType = generate(node.func),
-                nodeTypes = _.map(node.args, generate),
-                argTypes = _.map(nodeTypes, function(a) { return a.type; }),
-                argStates  = _.map(nodeTypes, function(a) { return a.state; }),
+            var funcStateType = generate(node.func),
+                nodeStateTypes = _.map(node.args, generate),
+                argTypes = _.map(nodeStateTypes, function(a) { return a.type; }),
+                argStates  = _.map(nodeStateTypes, function(a) { return a.state; }),
                 type = new t.Variable();
 
-            return new InferenceType(
-                type,
+            return new StateType(
                 InferenceState
                     .concat(argStates)
-                    .append(funcType.state)
+                    .append(funcStateType.state)
                     .withConstraints([
                         new EqualityConstraint(
-                            funcType.type,
+                            funcStateType.type,
                             new t.FunctionType([].concat(argTypes, [type]))
                         )
-                    ])
+                    ]),
+                type
+            );
+        },
+        visitFunction: function() {
+            var bodyStateType =_.reduce(node.body, function(stateType, node) {
+                    var generatedStateType = generate(node);
+                    return new StateType(
+                        stateType.state.append(generatedStateType.state),
+                        generatedStateType.type
+                    );
+                }, new StateType(InferenceState.empty)),
+                argNames = _.map(node.args, function(a) { return a.name; }),
+                assumptionsNotInArgs = {},
+                constraints = [],
+                type = new t.Variable();
+
+            _.each(bodyStateType.state.assumptions, function(v, k) {
+                if(argNames.indexOf(k) != -1) {
+                    constraints.push(new EqualityConstraint(v, type));
+                } else {
+                    assumptionsNotInArgs[k] = v;
+                }
+            });
+
+            return new StateType(
+                InferenceState
+                    .empty
+                    .withAssumptions(assumptionsNotInArgs)
+                    .withConstraints(constraints),
+                type
             );
         },
 
