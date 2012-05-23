@@ -3,8 +3,8 @@ var _ = require('underscore'),
     t = require('./types');
 
 // ### Constraints
-function Constraint() {}
-Constraint.prototype.constructor = Constraint;
+// We generate constraints from the bottom-up over the AST. The
+// type-checking phase is just trying to solve these constraints.
 
 // #### Equality constraints
 // `a` and `b` must be equal.
@@ -12,46 +12,104 @@ function EqualityConstraint(a, b) {
     this.a = a;
     this.b = b;
 }
-EqualityConstraint.prototype.constructor = EqualityConstraint;
 
+// #### Implicit constraints
+function ImplicitConstraint(a, b, s) {
+    this.a = a;
+    this.b = b;
+    this.s = s;
+}
 
-function generate(node, constraints, assumptions) {
-    function nothingNew() {
-        return {
-            constraints: constraints,
-            assumptions: assumptions
+// #### Explicit constraints
+function ExplicitConstraint(a, s) {
+    this.a = a;
+    this.s = s;
+}
+
+// ## Inference state
+// Immutable state monoid containing both the current constraints and
+// assumptions
+function InferenceState(constraints, assumptions) {
+    this.constraints = constraints || [];
+    this.assumptions = assumptions || {};
+}
+InferenceState.empty = new InferenceState();
+InferenceState.concat = function(states) {
+    return _.reduce(states, function(accum, state) {
+        return accum.append(state);
+    }, InferenceState.empty);
+};
+InferenceState.prototype.append = function(state) {
+    var constraints = [].concat(this.constraints, state.constraints);
+    var assumptions = _.extend(_.clone(this.assumptions), state.assumptions);
+    return new InferenceState(constraints, assumptions);
+};
+InferenceState.prototype.withConstraints = function(constraints) {
+    return new InferenceState([].concat(this.constraints, constraints), this.assumptions);
+};
+InferenceState.prototype.withAssumptions = function(assumptions) {
+    return new InferenceState(this.constraints, _.extend(_.clone(this.assumptions), assumptions));
+};
+
+// ## Inference type
+function InferenceType(type, state) {
+    this.type = type;
+    this.state = state;
+}
+
+// ## InferenceState generation
+// Takes an AST node and generates a new InferenceType.
+function generate(node) {
+    // For nodes that don't introduce constraints nor assumptions
+    function withEmptyState(type) {
+        return function() {
+            return new InferenceType(type, InferenceState.empty);
         };
     };
 
-    function addAssumptions(f) {
-        return function() {
-            return {
-                constraints: constraints,
-                assumptions: f(node)
-            };
-        };
-    }
-
     return node.accept({
-        visitIdentifier: addAssumptions(function() {
-            var assumptions = {};
-            assumptions[node.value] = new t.Variable();
-            return assumptions;
-        }),
-        visitBoolean: nothingNew,
-        visitNumber: nothingNew,
-        visitString: nothingNew
+        visitIdentifier: function() {
+            var type = new t.Variable(),
+                assumptions = {};
+
+            assumptions[node.value] = type;
+
+            return new InferenceType(
+                type,
+                InferenceState.empty.withAssumptions(assumptions)
+            );
+        },
+        visitCall: function() {
+            var funcType = generate(node.func),
+                nodeTypes = _.map(node.args, generate),
+                argTypes = _.map(nodeTypes, function(a) { return a.type; }),
+                argStates  = _.map(nodeTypes, function(a) { return a.state; }),
+                type = new t.Variable();
+
+            return new InferenceType(
+                type,
+                InferenceState
+                    .concat(argStates)
+                    .append(funcType.state)
+                    .withConstraints([
+                        new EqualityConstraint(
+                            funcType.type,
+                            new t.FunctionType([].concat(argTypes, [type]))
+                        )
+                    ])
+            );
+        },
+
+        visitBoolean: withEmptyState(new t.BooleanType()),
+        visitNumber: withEmptyState(new t.NumberType()),
+        visitString: withEmptyState(new t.StringType())
     });
 }
 
 // Run inference on an array of AST nodes.
 var typecheck = function(nodes) {
-    var result = _.reduce(nodes, function(accum, node) {
-        return generate(node, accum.constraints, accum.assumptions);
-    }, {
-        constraints: [],
-        assumptions: {}
-    });
-    return result;
+    return _.reduce(nodes, function(state, node) {
+        return state.append(generate(node).state);
+    }, InferenceState.empty);
 };
 exports.typecheck = typecheck;
