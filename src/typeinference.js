@@ -176,16 +176,14 @@ function generate(nodes, monomorphic) {
                 _.has(body.state.assumptions, node.name) ? [
                     new ImplicitConstraint(
                         value.type,
-                        body.type,
+                        body.state.assumptions[node.name],
                         monomorphic
                     )
                 ] : [];
 
             return new StateType(
-                InferenceState
-                    .empty
+                value.state
                     .withAssumptions(assumptionsWithoutLet)
-                    .withConstraints(value.state.constraints)
                     .withConstraints(body.state.constraints)
                     .withConstraints(constraintsFromLet),
                 body.type
