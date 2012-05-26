@@ -1,4 +1,4 @@
-describe('constraint generation', function(){
+describe('constraint generation', function() {
     var typeinference = require('../src/typeinference'),
         lexer = require('../src/lexer');
         parser = require('../src/parser'),
@@ -29,16 +29,22 @@ describe('constraint generation', function(){
             expect(state.constraints.length).toEqual(1);
             expect(state.constraints[0].a instanceof types.Variable).toBe(true);
             expect(state.constraints[0].b instanceof types.FunctionType).toBe(true);
-            expect(state.constraints[0].b instanceof types.FunctionType).toBe(true);
 
             // Assumption for the `print` identifier
-            expect(state.assumptions['print']).toNotEqual(undefined);
+            expect(state.assumptions['print']).not.toBeUndefined(undefined);
         });
         it('function', function() {
             var state = generate('\\x -> x');
             expect(state.constraints.length).toEqual(1);
             expect(state.constraints[0].a instanceof types.Variable).toBe(true);
             expect(state.constraints[0].b instanceof types.Variable).toBe(true);
+        });
+        it('let bindings', function() {
+            var state = generate('let x = 100\nx');
+            expect(state.constraints.length).toEqual(1);
+            expect(state.constraints[0].a instanceof types.NumberType).toBe(true);
+            expect(state.constraints[0].b instanceof types.Variable).toBe(true);
+            expect(state.constraints[0].s).toEqual([]);
         });
     });
 });

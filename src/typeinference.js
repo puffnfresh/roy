@@ -40,8 +40,8 @@ InferenceState.concat = function(states) {
     }, InferenceState.empty);
 };
 InferenceState.prototype.append = function(state) {
-    var constraints = [].concat(this.constraints, state.constraints);
-    var assumptions = _.extend(_.clone(this.assumptions), state.assumptions);
+    var constraints = [].concat(this.constraints, state.constraints),
+        assumptions = _.extend(_.clone(this.assumptions), state.assumptions);
     return new InferenceState(constraints, assumptions);
 };
 InferenceState.prototype.withConstraints = function(constraints) {
@@ -58,14 +58,34 @@ function StateType(state, type) {
 }
 
 // ## InferenceState generation
-// Takes an AST node and generates a new InferenceType.
-function generate(node) {
+// Takes a non-empty array of AST nodes and generates a new
+// InferenceType.
+function generate(nodes, monomorphic) {
+    var node = nodes[0];
+
+    monomorphic = monomorphic || [];
+
     // For nodes that don't introduce constraints nor assumptions
     function withEmptyState(type) {
         return function() {
             return new StateType(InferenceState.empty, type);
         };
-    };
+    }
+
+    // We always return the last node in a sequence except for let
+    // bindings.
+    function recurseIfMoreNodes(stateType) {
+        var generated;
+        if(nodes.length > 1) {
+            generated = generate(nodes.slice(1), monomorphic);
+            return new StateType(
+                stateType.state.append(generated.state),
+                generated.type
+            );
+        }
+
+        return stateType;
+    }
 
     return node.accept({
         visitIdentifier: function() {
@@ -74,21 +94,27 @@ function generate(node) {
 
             assumptions[node.value] = type;
 
-            return new StateType(
+            return recurseIfMoreNodes(new StateType(
                 InferenceState
                     .empty
                     .withAssumptions(assumptions),
                 type
-            );
+            ));
         },
         visitCall: function() {
-            var funcStateType = generate(node.func),
-                nodeStateTypes = _.map(node.args, generate),
-                argTypes = _.map(nodeStateTypes, function(a) { return a.type; }),
-                argStates  = _.map(nodeStateTypes, function(a) { return a.state; }),
+            var funcStateType = generate([node.func], monomorphic),
+                nodeStateTypes = _.map(node.args, function(a) {
+                    return generate([a], monomorphic);
+                }),
+                argTypes = _.map(nodeStateTypes, function(a) {
+                    return a.type;
+                }),
+                argStates  = _.map(nodeStateTypes, function(a) {
+                    return a.state;
+                }),
                 type = new t.Variable();
 
-            return new StateType(
+            return recurseIfMoreNodes(new StateType(
                 InferenceState
                     .concat(argStates)
                     .append(funcStateType.state)
@@ -99,20 +125,16 @@ function generate(node) {
                         )
                     ]),
                 type
-            );
+            ));
         },
         visitFunction: function() {
-            var bodyStateType =_.reduce(node.body, function(stateType, node) {
-                    var generatedStateType = generate(node);
-                    return new StateType(
-                        stateType.state.append(generatedStateType.state),
-                        generatedStateType.type
-                    );
-                }, new StateType(InferenceState.empty)),
-                argNames = _.map(node.args, function(a) { return a.name; }),
+            var type = new t.Variable(),
+                bodyStateType = generate(node.body, [].concat(monomorphic, [type])),
+                argNames = _.map(node.args, function(a) {
+                    return a.name;
+                }),
                 assumptionsNotInArgs = {},
-                constraints = [],
-                type = new t.Variable();
+                constraints = [];
 
             _.each(bodyStateType.state.assumptions, function(v, k) {
                 if(argNames.indexOf(k) != -1) {
@@ -122,12 +144,50 @@ function generate(node) {
                 }
             });
 
-            return new StateType(
+            return recurseIfMoreNodes(new StateType(
                 InferenceState
                     .empty
                     .withAssumptions(assumptionsNotInArgs)
                     .withConstraints(constraints),
                 type
+            ));
+        },
+        visitLet: function() {
+            var value = generate([node.value], monomorphic),
+                body,
+                assumptionsWithoutLet,
+                constraintsFromLet;
+
+            // let bindings can't be treated as an expression
+            if(nodes.length == 1) {
+                throw new Error("let binding without any children expressions");
+            }
+
+            body = generate(nodes.slice(1), monomorphic);
+            assumptionsWithoutLet = _.pick(
+                body.state.assumptions,
+                _.without(
+                    _.keys(body.state.assumptions),
+                    node.name
+                )
+            );
+            constraintsFromLet =
+                _.has(body.state.assumptions, node.name) ? [
+                    new ImplicitConstraint(
+                        value.type,
+                        body.type,
+                        monomorphic
+                    )
+                ] : [];
+
+            return new StateType(
+                InferenceState
+                    .empty
+                    .withAssumptions(assumptionsWithoutLet)
+                    .withConstraints(value.state.constraints)
+                    .withConstraints(body.state.constraints)
+                    .withConstraints(constraintsFromLet),
+                body.type
             );
         },
 
@@ -139,8 +199,6 @@ function generate(node) {
 
 // Run inference on an array of AST nodes.
 var typecheck = function(nodes) {
-    return _.reduce(nodes, function(state, node) {
-        return state.append(generate(node).state);
-    }, InferenceState.empty);
+    return generate(nodes).state;
 };
 exports.typecheck = typecheck;
