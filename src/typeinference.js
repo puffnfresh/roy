@@ -134,11 +134,11 @@ function generate(nodes, monomorphic) {
                     return a.name;
                 }),
                 assumptionsNotInArgs = {},
-                constraints = [];
+                constraintsFromAssumptions = [];
 
             _.each(bodyStateType.state.assumptions, function(v, k) {
                 if(argNames.indexOf(k) != -1) {
-                    constraints.push(new EqualityConstraint(v, type));
+                    constraintsFromAssumptions.push(new EqualityConstraint(v, type));
                 } else {
                     assumptionsNotInArgs[k] = v;
                 }
@@ -148,7 +148,8 @@ function generate(nodes, monomorphic) {
                 InferenceState
                     .empty
                     .withAssumptions(assumptionsNotInArgs)
-                    .withConstraints(constraints),
+                    .withConstraints(bodyStateType.state.constraints)
+                    .withConstraints(constraintsFromAssumptions),
                 type
             ));
         },
