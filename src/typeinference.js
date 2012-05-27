@@ -11,6 +11,12 @@ var _ = require('underscore'),
 function EqualityConstraint(a, b) {
     this.a = a;
     this.b = b;
+
+    this.solveOrder = 1;
+
+    this.fold = function(f, _a, _b) {
+        return f(this);
+    };
 }
 
 // #### Implicit constraints
@@ -18,15 +24,27 @@ function ImplicitConstraint(a, b, s) {
     this.a = a;
     this.b = b;
     this.s = s;
+
+    this.solveOrder = 2;
+
+    this.fold = function(_a, f, _b) {
+        return f(this);
+    };
 }
 
 // #### Explicit constraints
 function ExplicitConstraint(a, s) {
     this.a = a;
     this.s = s;
+
+    this.solveOrder = 3;
+
+    this.fold = function(_a, _b, f) {
+        return f(this);
+    };
 }
 
-// ## Inference state
+// ### Inference state
 // Immutable state monoid containing both the current constraints and
 // assumptions
 function InferenceState(constraints, assumptions) {
@@ -40,12 +58,12 @@ InferenceState.concat = function(states) {
     }, InferenceState.empty);
 };
 InferenceState.prototype.append = function(state) {
-    var constraints = [].concat(this.constraints, state.constraints),
+    var constraints = this.constraints.concat(state.constraints),
         assumptions = _.extend(_.clone(this.assumptions), state.assumptions);
     return new InferenceState(constraints, assumptions);
 };
 InferenceState.prototype.withConstraints = function(constraints) {
-    return new InferenceState([].concat(this.constraints, constraints), this.assumptions);
+    return new InferenceState(this.constraints.concat(constraints), this.assumptions);
 };
 InferenceState.prototype.withAssumptions = function(assumptions) {
     return new InferenceState(this.constraints, _.extend(_.clone(this.assumptions), assumptions));
@@ -121,15 +139,17 @@ function generate(nodes, monomorphic) {
                     .withConstraints([
                         new EqualityConstraint(
                             funcStateType.type,
-                            new t.FunctionType([].concat(argTypes, [type]))
+                            new t.FunctionType(argTypes.concat(type))
                         )
                     ]),
                 type
             ));
         },
         visitFunction: function() {
-            var type = new t.Variable(),
-                bodyStateType = generate(node.body, [].concat(monomorphic, [type])),
+            var types = _.map(_.range(node.args.length), function() {
+                    return new t.Variable()
+                }),
+                bodyStateType = generate(node.body, monomorphic.concat(types)),
                 argNames = _.map(node.args, function(a) {
                     return a.name;
                 }),
@@ -137,8 +157,11 @@ function generate(nodes, monomorphic) {
                 constraintsFromAssumptions = [];
 
             _.each(bodyStateType.state.assumptions, function(v, k) {
-                if(argNames.indexOf(k) != -1) {
-                    constraintsFromAssumptions.push(new EqualityConstraint(v, type));
+                var index = argNames.indexOf(k);
+                if(index != -1) {
+                    constraintsFromAssumptions.push(
+                        new EqualityConstraint(v, types[index])
+                    );
                 } else {
                     assumptionsNotInArgs[k] = v;
                 }
@@ -150,7 +173,7 @@ function generate(nodes, monomorphic) {
                     .withAssumptions(assumptionsNotInArgs)
                     .withConstraints(bodyStateType.state.constraints)
                     .withConstraints(constraintsFromAssumptions),
-                type
+                new t.FunctionType(types.concat(bodyStateType.type))
             ));
         },
         visitLet: function() {
@@ -195,9 +218,57 @@ function generate(nodes, monomorphic) {
         visitString: withEmptyState(new t.StringType())
     });
 }
+exports.generate = generate;
+
+function solve(constraints) {
+    var sortedConstraints = _.sortBy(constraints, function(c) {
+            return c.solveOrder;
+        }),
+        rest = sortedConstraints.slice(1),
+        constraint;
+
+    if(!constraints.length) return {};
+
+    constraint = sortedConstraints[0];
+    return constraint.fold(function() {
+        // Most General Unifier (mgu)
+        return mostGeneralUnifier(constraint.a, constraint.b);
+    }, function() {
+        // TODO: Implicit constraints
+    }, function() {
+        // TODO: Explicit constraints
+    });
+}
+
+function mostGeneralUnifier(a, b) {
+    var substitution = {};
+    if(a instanceof t.Variable) {
+        if(b instanceof t.Variable && a.id == b.id) {
+            return substitution;
+        }
+        substitution[a.id] = b;
+    }
+    return substitution;
+}
+
+function substitute(substitutions, type) {
+    if(type instanceof t.Variable && _.has(substitutions, type.id)) {
+        return substitutions[type.id];
+    } else if(type instanceof(t.FunctionType)) {
+        return new t.FunctionType(_.map(type.types, function(t) {
+            return substitute(substitutions, t);
+        }));
+    }
+    return type;
+}
+exports.substitute = substitute;
 
 // Run inference on an array of AST nodes.
-var typecheck = function(nodes) {
-    return generate(nodes).state;
-};
+function typecheck(nodes) {
+    var stateType = generate(nodes),
+        constraints = stateType.state.constraints,
+        substitutions = solve(constraints);
+
+    return substitute(substitutions, stateType.type);
+}
 exports.typecheck = typecheck;
