@@ -7,10 +7,10 @@ describe('constraint solving', function() {
             var type = lib.typecheck('x');
             expect(type instanceof types.Variable).toBe(true);
         });
-        /*it('calls', function() {
+        it('calls', function() {
             var type = lib.typecheck('print 100');
-            console.log(type);
-        });*/
+            expect(type instanceof types.Variable).toBe(true);
+        });
         describe('functions that implement', function() {
             it('identity', function() {
                 var type = lib.typecheck('\\x -> x');
