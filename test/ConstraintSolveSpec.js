@@ -11,6 +11,10 @@ describe('constraint solving', function() {
             var type = lib.typecheck('print 100');
             expect(type instanceof types.Variable).toBe(true);
         });
+        it('let bindings', function() {
+            var type = lib.typecheck('let x = 100\nx');
+            expect(type instanceof types.NumberType).toBe(true);
+        });
         describe('functions that implement', function() {
             it('identity', function() {
                 var type = lib.typecheck('\\x -> x');
@@ -24,10 +28,6 @@ describe('constraint solving', function() {
                 expect(type.types[0] instanceof types.Variable).toBe(true);
                 expect(type.types[1] instanceof types.NumberType).toBe(true);
             });
-        });
-        it('let bindings', function() {
-            var type = lib.typecheck('let x = 100\nx');
-            expect(type instanceof types.NumberType).toBe(true);
         });
     });
 });
