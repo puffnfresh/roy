@@ -20,10 +20,10 @@ function EqualityConstraint(a, b) {
 }
 
 // #### Implicit constraints
-function ImplicitConstraint(a, b, s) {
+function ImplicitConstraint(a, b, m) {
     this.a = a;
     this.b = b;
-    this.s = s;
+    this.m = m;
 
     this.solveOrder = 2;
 
@@ -42,6 +42,12 @@ function ExplicitConstraint(a, s) {
     this.fold = function(_a, _b, f) {
         return f(this);
     };
+}
+
+// ### Type scheme
+function Scheme(s, t) {
+    this.s = s;
+    this.t = t;
 }
 
 // ### Inference state
@@ -232,29 +238,70 @@ function solve(constraints) {
     constraint = sortedConstraints[0];
     return constraint.fold(function() {
         // Most General Unifier (mgu)
-        return mostGeneralUnifier(constraint.a, constraint.b);
+        var m = mostGeneralUnifier(constraint.a, constraint.b),
+            s = _.map(rest, function(r) {
+                return substitute(m, r);
+            });
+        return _.extend(m, solve(rest));
     }, function() {
-        // TODO: Implicit constraints
+        // Implicit constraints
+        return solve([new ExplicitConstraint(
+            constraint.a,
+            generalize(constraint.b, constraint.m)
+        )].concat(rest));
     }, function() {
-        // TODO: Explicit constraints
+        // Explicit constraints
+        return solve([new EqualityConstraint(
+            constraint.a,
+            instantiate(constraint.s)
+        )].concat(rest));
     });
 }
 
-function mostGeneralUnifier(a, b) {
-    var substitution = {};
-    if(a instanceof t.Variable) {
-        if(b instanceof t.Variable && a.id == b.id) {
-            return substitution;
-        }
-        substitution[a.id] = b;
+function free(type) {
+    if(type instanceof t.Variable) {
+        return [type.id];
+    } else if(type instanceof t.FunctionType) {
+        return [].concat.apply([], _.map(type.types, free));
     }
+}
+
+function instantiate(scheme) {
+    var substitutions = scheme.s.map(function() {
+        return new t.Variable();
+    });
+    return substitute(substitutions, scheme.t);
+}
+
+function generalize(type, monomorphic) {
+    return new Scheme(_.without(free(type), monomorphic), type);
+}
+
+function variableBind(a, b) {
+    var substitution = {};
+    if(b instanceof t.Variable && a.id == b.id) {
+        return substitution;
+    }
+    substitution[a.id] = b;
     return substitution;
 }
 
+function mostGeneralUnifier(a, b) {
+    if(a instanceof t.Variable) {
+        return variableBind(a, b);
+    } else if(b instanceof t.Variable) {
+        return variableBind(b, a);
+    }
+    return {};
+}
+
 function substitute(substitutions, type) {
-    if(type instanceof t.Variable && _.has(substitutions, type.id)) {
-        return substitutions[type.id];
-    } else if(type instanceof(t.FunctionType)) {
+    if(type instanceof t.Variable) {
+        if(_.has(substitutions, type.id)) {
+            return substitutions[type.id];
+        }
+        return type;
+    } else if(type instanceof t.FunctionType) {
         return new t.FunctionType(_.map(type.types, function(t) {
             return substitute(substitutions, t);
         }));
