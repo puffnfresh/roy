@@ -11,9 +11,19 @@ describe('constraint solving', function() {
             var type = lib.typecheck('print 100');
             expect(type instanceof types.Variable).toBe(true);
         });
-        it('let bindings', function() {
-            var type = lib.typecheck('let x = 100\nx');
+        it('binary number operator', function() {
+            var type = lib.typecheck('1 + 1');
             expect(type instanceof types.NumberType).toBe(true);
+        });
+        describe('let bindings', function() {
+            it('to primitives', function() {
+                var type = lib.typecheck('let x = 100\nx');
+                expect(type instanceof types.NumberType).toBe(true);
+            });
+            it('for binary number operator', function() {
+                var type = lib.typecheck('let x = 100\nx + 1');
+                expect(type instanceof types.NumberType).toBe(true);
+            });
         });
         describe('functions that implement', function() {
             it('identity', function() {

@@ -219,6 +219,29 @@ function generate(nodes, monomorphic) {
             );
         },
 
+        visitBinaryNumberOperator: function() {
+            var a = generate([node.left], monomorphic),
+                b = generate([node.right], monomorphic);
+
+            return recurseIfMoreNodes(new StateType(
+                InferenceState
+                    .empty
+                    .append(a.state)
+                    .append(b.state)
+                    .withConstraints([
+                        new EqualityConstraint(
+                            a.type,
+                            new t.NumberType()
+                        ),
+                        new EqualityConstraint(
+                            b.type,
+                            new t.NumberType()
+                        )
+                    ]),
+                new t.NumberType()
+            ));
+        },
+
         visitBoolean: withEmptyState(new t.BooleanType()),
         visitNumber: withEmptyState(new t.NumberType()),
         visitString: withEmptyState(new t.StringType())
