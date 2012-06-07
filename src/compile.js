@@ -421,7 +421,7 @@ var withoutTopLevelStatements = function(ast) {
                 return true;
             },
             visitFunction: function() {
-                console.log(n);
+                return n.name;
             },
             visitLet: function() {
                 return true;

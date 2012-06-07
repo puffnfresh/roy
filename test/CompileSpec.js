@@ -21,7 +21,7 @@ describe('compiler', function(){
         var expected = fixtureExpectedOutput(s);
         var compiled = fixtureCompilerOutput(s);
 
-        //console.debug(compiled);
+        //console.info(compiled);
 
         var child = child_process.spawn(processBin);
         child.stdin.write(compiled, 'utf8');

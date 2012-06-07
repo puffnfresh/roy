@@ -370,7 +370,7 @@ function generate(nodes, monomorphic) {
         visitString: withEmptyState(new t.StringType())
     });
 
-    if(!stateType) throw new Error("No StateType for: " + node.accept.toString());
+    if(!stateType) throw new Error("No StateType for: " + node.accept.toString().match(/visit([A-Za-z]+)/)[1]);
     return stateType;
 }
 exports.generate = generate;
@@ -445,6 +445,7 @@ function mostGeneralUnifier(a, b, node) {
         return variableBind(b, a);
     } else if(a instanceof t.FunctionType && b instanceof t.FunctionType) {
         return (function() {
+            // TODO: Make into a fold
             var subs1 = mostGeneralUnifier(a.types[0], b.types[0], node);
             var subs2 = mostGeneralUnifier(typeSubstitute(subs1, a.types[1]), typeSubstitute(subs1, b.types[1]))
             return _.extend(subs1, subs2);
