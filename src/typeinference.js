@@ -256,7 +256,7 @@ function generate(nodes, monomorphic) {
                             node
                         )
                     ]),
-                new t.NumberType()
+                ifTrue.type
             ));
         },
         visitPropertyAccess: function() {
