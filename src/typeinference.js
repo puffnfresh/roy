@@ -94,6 +94,28 @@ function withoutComments(nodes) {
     });
 }
 
+function generateAccessConstraints(recurseIfMoreNodes, monomorphic) {
+    return function(node) {
+        var value = generate([node.value], monomorphic),
+            type = new t.Variable(),
+            objectTypes = {};
+
+        objectTypes[node.property] = type;
+
+        return recurseIfMoreNodes(new StateType(
+            value.state
+                .withConstraints([
+                    new EqualityConstraint(
+                        value.type,
+                        new t.ObjectType(objectTypes),
+                        node
+                    )
+                ]),
+            type
+        ));
+    };
+}
+
 // ## InferenceState generation
 // Takes a non-empty array of AST nodes and generates a new
 // InferenceType.
@@ -259,25 +281,8 @@ function generate(nodes, monomorphic) {
                 ifTrue.type
             ));
         },
-        visitPropertyAccess: function() {
-            var value = generate([node.value], monomorphic),
-                type = new t.Variable(),
-                objectTypes = {};
-
-            objectTypes[node.property] = type;
-
-            return recurseIfMoreNodes(new StateType(
-                value.state
-                    .withConstraints([
-                        new EqualityConstraint(
-                            value.type,
-                            new t.ObjectType(objectTypes),
-                            node
-                        )
-                    ]),
-                type
-            ));
-        },
+        visitPropertyAccess: generateAccessConstraints(recurseIfMoreNodes, monomorphic),
+        visitAccess: generateAccessConstraints(recurseIfMoreNodes, monomorphic),
 
         visitExpression: function() {
             var value = generate([node.value], monomorphic);
