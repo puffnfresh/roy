@@ -81,11 +81,23 @@ function StateType(state, type) {
     this.type = type;
 }
 
+// Filter out comments.
+function withoutComments(nodes) {
+    return _.reject(nodes, function(n) {
+        return n.accept({
+            visitComment: function() {
+                return true;
+            }
+        });
+    });
+}
+
 // ## InferenceState generation
 // Takes a non-empty array of AST nodes and generates a new
 // InferenceType.
 function generate(nodes, monomorphic) {
-    var node = nodes[0];
+    var nodesWithoutComments = withoutComments(nodes),
+        node = nodesWithoutComments[0];
 
     monomorphic = monomorphic || [];
 
@@ -100,8 +112,8 @@ function generate(nodes, monomorphic) {
     // bindings.
     function recurseIfMoreNodes(stateType) {
         var generated;
-        if(nodes.length > 1) {
-            generated = generate(nodes.slice(1), monomorphic);
+        if(nodesWithoutComments.length > 1) {
+            generated = generate(nodesWithoutComments.slice(1), monomorphic);
             return new StateType(
                 stateType.state.append(generated.state),
                 generated.type
@@ -111,7 +123,7 @@ function generate(nodes, monomorphic) {
         return stateType;
     }
 
-    return node.accept({
+    var stateType = node.accept({
         visitIdentifier: function() {
             var type = new t.Variable(),
                 assumptions = {};
@@ -130,12 +142,8 @@ function generate(nodes, monomorphic) {
                 nodeStateTypes = _.map(node.args, function(a) {
                     return generate([a], monomorphic);
                 }),
-                argTypes = _.map(nodeStateTypes, function(a) {
-                    return a.type;
-                }),
-                argStates  = _.map(nodeStateTypes, function(a) {
-                    return a.state;
-                }),
+                argTypes = _.pluck(nodeStateTypes, 'type'),
+                argStates  = _.pluck(nodeStateTypes, 'state'),
                 type = new t.Variable();
 
             return recurseIfMoreNodes(new StateType(
@@ -189,11 +197,11 @@ function generate(nodes, monomorphic) {
                 constraintsFromLet;
 
             // let bindings can't be treated as an expression
-            if(nodes.length == 1) {
+            if(nodesWithoutComments.length == 1) {
                 throw new Error("let binding without any children expressions");
             }
 
-            body = generate(nodes.slice(1), monomorphic);
+            body = generate(nodesWithoutComments.slice(1), monomorphic);
             assumptionsWithoutLet = _.pick(
                 body.state.assumptions,
                 _.without(
@@ -219,6 +227,51 @@ function generate(nodes, monomorphic) {
             );
         },
 
+        visitIfThenElse: function() {
+            var condition = generate([node.condition], monomorphic),
+                ifTrue = generate(node.ifTrue, monomorphic),
+                ifFalse = generate(node.ifFalse, monomorphic);
+
+            return recurseIfMoreNodes(new StateType(
+                condition.state
+                    .append(ifTrue.state)
+                    .append(ifFalse.state)
+                    .withConstraints([
+                        new EqualityConstraint(
+                            condition.type,
+                            new t.BooleanType()
+                        ),
+                        new EqualityConstraint(
+                            ifTrue.type,
+                            ifFalse.type
+                        )
+                    ]),
+                new t.NumberType()
+            ));
+        },
+        visitPropertyAccess: function() {
+            var value = generate([node.value], monomorphic),
+                type = new t.Variable(),
+                objectTypes = {};
+
+            objectTypes[node.property] = type;
+
+            return recurseIfMoreNodes(new StateType(
+                value.state
+                    .withConstraints([
+                        new EqualityConstraint(
+                            value.type,
+                            new t.ObjectType(objectTypes)
+                        )
+                    ]),
+                type
+            ));
+        },
+
+        visitExpression: function() {
+            var value = generate([node.value], monomorphic);
+            return recurseIfMoreNodes(value);
+        },
         visitBinaryNumberOperator: function() {
             var a = generate([node.left], monomorphic),
                 b = generate([node.right], monomorphic);
@@ -241,11 +294,65 @@ function generate(nodes, monomorphic) {
                 new t.NumberType()
             ));
         },
+        visitBinaryGenericOperator: function() {
+            var a = generate([node.left], monomorphic),
+                b = generate([node.right], monomorphic);
 
+            return recurseIfMoreNodes(new StateType(
+                InferenceState
+                    .empty
+                    .append(a.state)
+                    .append(b.state)
+                    .withConstraints([
+                        new EqualityConstraint(
+                            a.type,
+                            b.type
+                        )
+                    ]),
+                new t.BooleanType()
+            ));
+        },
+
+        visitObject: function() {
+            var objectTypes = {},
+                objectStates = [];
+
+            _.each(node.values, function(v, k) {
+                var stateType = generate([v], monomorphic);
+                objectTypes[k] = stateType.type;
+                objectStates.push(stateType.state);
+            });
+
+            return recurseIfMoreNodes(new StateType(
+                InferenceState
+                    .concat(objectStates),
+                new t.ObjectType(objectTypes)
+            ));
+        },
+        visitArray: function() {
+            var valueStateTypes = _.map(node.values, function(v) {
+                    return generate([v], monomorphic);
+                }),
+                valueStates = _.pluck(valueStateTypes, 'state'),
+                type = valueStateTypes.length ? valueStateTypes[0].type : new t.Variable(),
+                equalityConstraints = _.map(valueStateTypes.slice(1), function(v) {
+                    return new EqualityConstraint(v.type, type);
+                });
+
+            return recurseIfMoreNodes(new StateType(
+                InferenceState
+                    .concat(valueStates)
+                    .withConstraints(equalityConstraints),
+                new t.ArrayType(type)
+            ));
+        },
         visitBoolean: withEmptyState(new t.BooleanType()),
         visitNumber: withEmptyState(new t.NumberType()),
         visitString: withEmptyState(new t.StringType())
     });
+
+    if(!stateType) throw new Error("No StateType for: " + node.accept.toString());
+    return stateType;
 }
 exports.generate = generate;
 
@@ -260,10 +367,11 @@ function solve(constraints) {
 
     constraint = sortedConstraints[0];
     return constraint.fold(function() {
-        // Most General Unifier (mgu)
+        // Equality constraints
+        // Use the Most General Unifier (mgu)
         var m = mostGeneralUnifier(constraint.a, constraint.b),
             s = _.map(rest, function(r) {
-                return substitute(m, r);
+                return constraintSubstitute(m, r);
             });
         return _.extend(m, solve(rest));
     }, function() {
@@ -293,7 +401,7 @@ function instantiate(scheme) {
     var substitutions = scheme.s.map(function() {
         return new t.Variable();
     });
-    return substitute(substitutions, scheme.t);
+    return typeSubstitute(substitutions, scheme.t);
 }
 
 function generalize(type, monomorphic) {
@@ -314,11 +422,34 @@ function mostGeneralUnifier(a, b) {
         return variableBind(a, b);
     } else if(b instanceof t.Variable) {
         return variableBind(b, a);
+    } else if(a.name != b.name) {
+        throw new Error("Type error: " + b.toString() + " is not " + a.toString());
     }
     return {};
 }
 
-function substitute(substitutions, type) {
+function constraintSubstitute(substitutions, constraint) {
+    return constraint.fold(function() {
+        return new EqualityConstraint(
+            typeSubstitute(substitutions, constraint.a),
+            typeSubstitute(substitutions, constraint.b)
+        );
+    }, function() {
+        return new ImplicitConstraint(
+            typeSubstitute(substitutions, constraint.a),
+            typeSubstitute(substitutions, constraint.b),
+            constraint.m
+        );
+    }, function() {
+        return new ExplicitConstraint(
+            typeSubstitute(substitutions, constraint.a),
+            constraint.s
+        );
+    });
+}
+
+function typeSubstitute(substitutions, type) {
+    var substituted;
     if(type instanceof t.Variable) {
         if(_.has(substitutions, type.id)) {
             return substitutions[type.id];
@@ -326,12 +457,28 @@ function substitute(substitutions, type) {
         return type;
     } else if(type instanceof t.FunctionType) {
         return new t.FunctionType(_.map(type.types, function(t) {
-            return substitute(substitutions, t);
+            return typeSubstitute(substitutions, t);
         }));
+    } else if(type instanceof t.ArrayType) {
+        return new t.ArrayType(typeSubstitute(substitutions, type.type));
+    } else if(type instanceof t.ObjectType) {
+        substituted = {};
+        _.each(type.props, function(v, k) {
+            substituted[k] = typeSubstitute(substitutions, v);
+        });
+        return new t.ObjectType(substituted);
+    } else if(type instanceof t.ArrayType) {
+        throw new Error("Not handled: " + type.toString());
+    } else if(type instanceof t.NumberType) {
+        return type;
+    } else if(type instanceof t.StringType) {
+        return type;
+    } else if(type instanceof t.BooleanType) {
+        return type;
     }
-    return type;
+    throw new Error("Not handled: " + type.toString());
 }
-exports.substitute = substitute;
+exports.substitute = typeSubstitute;
 
 // Run inference on an array of AST nodes.
 function typecheck(nodes) {
@@ -339,6 +486,6 @@ function typecheck(nodes) {
         constraints = stateType.state.constraints,
         substitutions = solve(constraints);
 
-    return substitute(substitutions, stateType.type);
+    return typeSubstitute(substitutions, stateType.type);
 }
 exports.typecheck = typecheck;

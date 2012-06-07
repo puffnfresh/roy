@@ -409,6 +409,22 @@ var compileNodeWithEnv = function(n, env, opts) {
 };
 exports.compileNodeWithEnv = compileNodeWithEnv;
 
+var withoutTopLevelStatements = function(ast) {
+    return _.reject(ast, function(n) {
+        return n.accept({
+            visitComment: function() {
+                return true;
+            },
+            visitFunction: function() {
+                console.log(n);
+            },
+            visitLet: function() {
+                return true;
+            }
+        });
+    });
+};
+
 var compile = function(source, env, aliases, opts) {
     if(!env) env = {};
     if(!aliases) aliases = {};
@@ -422,7 +438,10 @@ var compile = function(source, env, aliases, opts) {
     ast = macroexpand(ast, env, opts);
 
     // Typecheck the AST. Any type errors will throw an exception.
-    var resultType = typecheck(ast, env, aliases);
+    var resultType;
+    if(withoutTopLevelStatements(ast).length) {
+        resultType = typecheck(ast);
+    }
 
     // Export types
     ast = _.map(ast, function(n) {

@@ -43,12 +43,6 @@ describe('type inference', function(){
             expect(typeOfCode('true')).toStringEqual('Boolean');
         });
 
-        it('arrays of primitives', function(){
-            expect(typeOfCode('[""]')).toStringEqual('[String]');
-            expect(typeOfCode('[true, false]')).toStringEqual('[Boolean]');
-            expect(typeOfCode('[1, 2, 3]')).toStringEqual('[Number]');
-        });
-
         it('empty arrays as generic', function() {
             var type = typeOfCode('[]');
             expect(type instanceof types.ArrayType).toBe(true);
@@ -60,13 +54,25 @@ describe('type inference', function(){
             expect(typeOfCode('{a: 1}')).toStringEqual('{a: Number}');
             expect(typeOfCode('{a: 1, b: true}')).toStringEqual('{a: Number, b: Boolean}');
         });
+
+        describe('arrays of primitive', function(){
+            it('strings', function() {
+                expect(typeOfCode('[""]')).toStringEqual('[String]');
+            });
+            it('booleans', function() {
+                expect(typeOfCode('[true, false]')).toStringEqual('[Boolean]');
+            });
+            it('numbers', function() {
+                expect(typeOfCode('[1, 2, 3]')).toStringEqual('[Number]');
+            });
+        });
     });
 
     describe("shouldn't type literal", function() {
         it('heterogeneous arrays', function() {
             expect(function() {
                 typeOfCode('[1, true]')
-            }).toThrow(new Error("Type error on line 0: Number is not Boolean"));
+            }).toThrow(new Error("Type error: Number is not Boolean"));
         });
     });
 });
