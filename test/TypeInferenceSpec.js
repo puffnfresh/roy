@@ -72,7 +72,7 @@ describe('type inference', function(){
         it('heterogeneous arrays', function() {
             expect(function() {
                 typeOfCode('[1, true]')
-            }).toThrow(new Error("Type error: Number is not Boolean"));
+            }).toThrow(new Error("Type error on line 0: Number is not Boolean"));
         });
     });
 });

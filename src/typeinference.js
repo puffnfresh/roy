@@ -8,9 +8,10 @@ var _ = require('underscore'),
 
 // #### Equality constraints
 // `a` and `b` must be equal.
-function EqualityConstraint(a, b) {
+function EqualityConstraint(a, b, node) {
     this.a = a;
     this.b = b;
+    this.node = node;
 
     this.solveOrder = 1;
 
@@ -20,10 +21,10 @@ function EqualityConstraint(a, b) {
 }
 
 // #### Implicit constraints
-function ImplicitConstraint(a, b, m) {
+function ImplicitConstraint(a, b, monomorphic, node) {
     this.a = a;
     this.b = b;
-    this.m = m;
+    this.monomorphic = monomorphic;
 
     this.solveOrder = 2;
 
@@ -33,9 +34,10 @@ function ImplicitConstraint(a, b, m) {
 }
 
 // #### Explicit constraints
-function ExplicitConstraint(a, s) {
+function ExplicitConstraint(a, scheme, node) {
     this.a = a;
-    this.s = s;
+    this.scheme = scheme;
+    this.node = node;
 
     this.solveOrder = 3;
 
@@ -153,7 +155,8 @@ function generate(nodes, monomorphic) {
                     .withConstraints([
                         new EqualityConstraint(
                             funcStateType.type,
-                            new t.FunctionType(argTypes.concat(type))
+                            new t.FunctionType(argTypes.concat(type)),
+                            node
                         )
                     ]),
                 type
@@ -174,7 +177,11 @@ function generate(nodes, monomorphic) {
                 var index = argNames.indexOf(k);
                 if(index != -1) {
                     constraintsFromAssumptions.push(
-                        new EqualityConstraint(v, types[index])
+                        new EqualityConstraint(
+                            v,
+                            types[index],
+                            node
+                        )
                     );
                 } else {
                     assumptionsNotInArgs[k] = v;
@@ -215,6 +222,7 @@ function generate(nodes, monomorphic) {
                         value.type,
                         body.state.assumptions[node.name],
                         monomorphic
+                        node
                     )
                 ] : [];
 
@@ -239,11 +247,13 @@ function generate(nodes, monomorphic) {
                     .withConstraints([
                         new EqualityConstraint(
                             condition.type,
-                            new t.BooleanType()
+                            new t.BooleanType(),
+                            node
                         ),
                         new EqualityConstraint(
                             ifTrue.type,
-                            ifFalse.type
+                            ifFalse.type,
+                            node
                         )
                     ]),
                 new t.NumberType()
@@ -261,7 +271,8 @@ function generate(nodes, monomorphic) {
                     .withConstraints([
                         new EqualityConstraint(
                             value.type,
-                            new t.ObjectType(objectTypes)
+                            new t.ObjectType(objectTypes),
+                            node
                         )
                     ]),
                 type
@@ -284,11 +295,13 @@ function generate(nodes, monomorphic) {
                     .withConstraints([
                         new EqualityConstraint(
                             a.type,
-                            new t.NumberType()
+                            new t.NumberType(),
+                            node
                         ),
                         new EqualityConstraint(
                             b.type,
-                            new t.NumberType()
+                            new t.NumberType(),
+                            node
                         )
                     ]),
                 new t.NumberType()
@@ -306,7 +319,8 @@ function generate(nodes, monomorphic) {
                     .withConstraints([
                         new EqualityConstraint(
                             a.type,
-                            b.type
+                            b.type,
+                            node
                         )
                     ]),
                 new t.BooleanType()
@@ -336,7 +350,7 @@ function generate(nodes, monomorphic) {
                 valueStates = _.pluck(valueStateTypes, 'state'),
                 type = valueStateTypes.length ? valueStateTypes[0].type : new t.Variable(),
                 equalityConstraints = _.map(valueStateTypes.slice(1), function(v) {
-                    return new EqualityConstraint(v.type, type);
+                    return new EqualityConstraint(v.type, type, node);
                 });
 
             return recurseIfMoreNodes(new StateType(
@@ -369,22 +383,24 @@ function solve(constraints) {
     return constraint.fold(function() {
         // Equality constraints
         // Use the Most General Unifier (mgu)
-        var m = mostGeneralUnifier(constraint.a, constraint.b),
+        var m = mostGeneralUnifier(constraint.a, constraint.b, constraint.node),
             s = _.map(rest, function(r) {
-                return constraintSubstitute(m, r);
+                return constraintSubstitute(m, r, constraint.node);
             });
         return _.extend(m, solve(rest));
     }, function() {
         // Implicit constraints
         return solve([new ExplicitConstraint(
             constraint.a,
-            generalize(constraint.b, constraint.m)
+            generalize(constraint.b, constraint.monomorphic),
+            constraint.node
         )].concat(rest));
     }, function() {
         // Explicit constraints
         return solve([new EqualityConstraint(
             constraint.a,
-            instantiate(constraint.s)
+            instantiate(constraint.scheme),
+            constraint.node
         )].concat(rest));
     });
 }
@@ -417,13 +433,13 @@ function variableBind(a, b) {
     return substitution;
 }
 
-function mostGeneralUnifier(a, b) {
+function mostGeneralUnifier(a, b, node) {
     if(a instanceof t.Variable) {
         return variableBind(a, b);
     } else if(b instanceof t.Variable) {
         return variableBind(b, a);
     } else if(a.name != b.name) {
-        throw new Error("Type error: " + b.toString() + " is not " + a.toString());
+        throw new Error('Type error on line ' + node.lineno + ': ' + b.toString() + ' is not ' + a.toString());
     }
     return {};
 }
@@ -432,18 +448,21 @@ function constraintSubstitute(substitutions, constraint) {
     return constraint.fold(function() {
         return new EqualityConstraint(
             typeSubstitute(substitutions, constraint.a),
-            typeSubstitute(substitutions, constraint.b)
+            typeSubstitute(substitutions, constraint.b),
+            constraint.node
         );
     }, function() {
         return new ImplicitConstraint(
             typeSubstitute(substitutions, constraint.a),
             typeSubstitute(substitutions, constraint.b),
-            constraint.m
+            constraint.monomorphic,
+            constraint.node
         );
     }, function() {
         return new ExplicitConstraint(
             typeSubstitute(substitutions, constraint.a),
-            constraint.s
+            constraint.scheme,
+            constraint.node
         );
     });
 }
