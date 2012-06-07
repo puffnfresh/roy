@@ -443,10 +443,20 @@ function mostGeneralUnifier(a, b, node) {
         return variableBind(a, b);
     } else if(b instanceof t.Variable) {
         return variableBind(b, a);
-    } else if(a.name != b.name) {
-        throw new Error('Type error on line ' + node.lineno + ': ' + b.toString() + ' is not ' + a.toString());
+    } else if(a instanceof t.FunctionType && b instanceof t.FunctionType) {
+        return (function() {
+            var subs1 = mostGeneralUnifier(a.types[0], b.types[0], node);
+            var subs2 = mostGeneralUnifier(typeSubstitute(subs1, a.types[1]), typeSubstitute(subs1, b.types[1]))
+            return _.extend(subs1, subs2);
+        });
+    } else if(a instanceof t.NumberType && b instanceof t.NumberType) {
+        return {};
+    } else if(a instanceof t.StringType && b instanceof t.StringType) {
+        return {};
+    } else if(a instanceof t.BooleanType && b instanceof t.BooleanType) {
+        return {};
     }
-    return {};
+    throw new Error('Type error on line ' + node.lineno + ': ' + b.toString() + ' is not ' + a.toString());
 }
 
 function constraintSubstitute(substitutions, constraint) {

@@ -1,8 +1,8 @@
 (\builder ->
-  (builder "Hello").id (\x ->
+  (builder "Hello").run (\x ->
     console.log x (builder x).world
   )
-) {
-  id: \x -> x
+) (\value -> {
+  run: \x -> x value
   world: "World"
-}
+})

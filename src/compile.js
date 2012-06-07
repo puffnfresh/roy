@@ -109,9 +109,14 @@ var compileNodeWithEnv = function(n, env, opts) {
             if(split.comments.length) {
                 compiledEndComments = getIndent() + _.map(split.comments, compileNode).join("\n" + getIndent()) + "\n";
             }
-            return varEquals + "function(" + getArgs(n.args) + ") {\n" +
+            var functionString = "function(" + getArgs(n.args) + ") {\n" +
                 getIndent() + joinIndent(init) + "return " + lastString +
                 ";\n" + compiledEndComments + popIndent() + "}";
+            if(varEquals) {
+                return varEquals + functionString;
+            } else {
+                return '(' + functionString + ')';
+            }
         },
         visitIfThenElse: function() {
             var compiledCondition = compileNode(n.condition);
