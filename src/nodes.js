@@ -177,6 +177,7 @@ exports.nodes = {
             }
         };
     },
+    // TODO REMOVE
     Tag: function(name, vars) {
         this.name = name;
         this.vars = vars;
@@ -187,6 +188,7 @@ exports.nodes = {
             }
         };
     },
+    // TODO REMOVE
     Pattern: function(tag, vars) {
         this.tag = tag;
         this.vars = vars;

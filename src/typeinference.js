@@ -256,6 +256,97 @@ function generate(nodes, monomorphic) {
                 body.type
             );
         },
+        visitData: function() {
+            var body,
+                assumptionsWithoutTags,
+                constraintsFromTags;
+
+            // data definitions can't be treated as an expression
+            if(nodesWithoutComments.length == 1) {
+                throw new Error("data definition without any children expressions");
+            }
+
+            body = generate(nodesWithoutComments.slice(1), monomorphic);
+            assumptionsWithoutTags = _.pick(
+                body.state.assumptions,
+                _.difference(
+                    _.keys(body.state.assumptions),
+                    _.pluck(node.tags, 'name')
+                )
+            );
+            constraintsFromTags = _.reduce(node.tags, function(accum, tag) {
+                return [].concat(accum, _.has(body.state.assumptions, node.name) ? [
+                    new ImplicitConstraint(
+                        (function() { throw new Error("TAG TYPE HERE") })(),
+                        body.type,
+                        monomorphic,
+                        tag
+                    )
+                ] : []);
+            }, []);
+
+            return new StateType(
+                InferenceState.empty
+                    .withAssumptions(assumptionsWithoutTags)
+                    .withConstraints(body.state.constraints)
+                    .withConstraints(constraintsFromTags),
+                body.type
+            );
+        },
+        visitMatch: function() {
+            var valueStateType = generate([node.value], monomorphic),
+                casesStateType = generate(node.cases, monomorphic);
+
+            return recurseIfMoreNodes(new StateType(
+                valueStateType.state
+                    .append(casesStateType.state),
+                casesStateType.type
+            ));
+        },
+        visitCase: function() {
+            var valueStateType = generate([node.value], monomorphic),
+                assumptionsWithoutVars,
+                constraintsFromVars;
+
+            assumptionsWithoutVars = _.pick(
+                valueStateType.state.assumptions,
+                _.difference(
+                    _.keys(valueStateType.state.assumptions),
+                    node.pattern.vars
+                )
+            );
+            constraintsFromVars = _.reduce(node.pattern.vars, function(accum, varName) {
+                return [].concat(accum, _.has(valueStateType.state.assumptions, varName) ? [
+                    new ImplicitConstraint(
+                        (function() { throw new Error("VAR TYPE HERE") })(),
+                        valueStateType.type,
+                        monomorphic,
+                        tag
+                    )
+                ] : []);
+            }, []);
+
+            return recurseIfMoreNodes(new StateType(
+                valueStateType.state
+                    .withAssumptions(assumptionsWithoutVars)
+                    .withConstraints(constraintsFromVars),
+                valueStateType.type
+            ));
+        },
+        visitDo: function() {
+            var instanceStateType = generate([node.value], monomorphic),
+                body = generate(node.body, monomorphic);
+
+            console.log(body);
+        },
+        visitBind: function() {
+            var restStateType = generate(nodesWithoutComments.slice(1));
+            console.log(restStateType);
+            console.log(node.name);
+        },
+        visitReturn: function() {
+            var valueStateType = generate([node.value], monomorphic);
+        },
 
         visitIfThenElse: function() {
             var condition = generate([node.condition], monomorphic),
@@ -415,7 +506,12 @@ function free(type) {
         return [type.id];
     } else if(type instanceof t.FunctionType) {
         return [].concat.apply([], _.map(type.types, free));
+    } else if(type instanceof t.ObjectType) {
+        return [].concat.apply([], _.map(type.props, free));
+    } else if(type instanceof t.ArrayType) {
+        return free(type.type);
     }
+    return [];
 }
 
 function instantiate(scheme) {

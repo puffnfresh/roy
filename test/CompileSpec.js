@@ -47,18 +47,18 @@ describe('compiler', function(){
         it('accessors.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/accessors');
         });
-        /*it('coercing_native_to_any.roy with expected output', function() {
+        it('coercing_native_to_any.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/coercing_native_to_any');
-        });*/
+        });
         it('conditionals.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/conditionals');
         });
         /*it('deep_matching.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/deep_matching');
-        });
+        });*/
         it('structural_constraints.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/structural_constraints');
-        });*/
+        });
         it('functions.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/functions');
         });
@@ -74,17 +74,23 @@ describe('compiler', function(){
         it('primitive_types.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/primitive_types');
         });
-        /*it('tagged_unions.roy with expected output', function() {
+        it('tagged_unions.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/tagged_unions');
         });
-        it('trace_monad.roy with expected output', function() {
+        /*it('trace_monad.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/trace_monad');
         });
         it('unicode.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/unicode');
-        });
+        });*/
         it('where.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/where');
-        });*/
+        });
+    });
+
+    describe('should not execute', function() {
+        it('tag_with_extra_arg.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('bad/tag_with_extra_arg');
+        });
     });
 });

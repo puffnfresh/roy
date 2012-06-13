@@ -18,8 +18,7 @@ exports.Variable = Variable;
 var toChar = function(n) {
     return String.fromCharCode("a".charCodeAt(0) + n);
 };
-// Type variables should look like `'a`. If the variable has an instance, that
-// should be used for the string instead.
+// Type variables should look like `'a`.
 //
 // This is just bijective base 26.
 var variableToString  = function(n) {
@@ -134,11 +133,6 @@ var UnitType = function() {};
 UnitType.prototype = new BaseType();
 UnitType.prototype.name = "Unit";
 exports.UnitType = UnitType;
-
-var NativeType = function() {};
-NativeType.prototype = new BaseType();
-NativeType.prototype.name = "Native";
-exports.NativeType = NativeType;
 
 var TypeClassType = function(name, type) {
     this.name = name;
