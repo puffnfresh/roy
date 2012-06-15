@@ -243,7 +243,7 @@ function generate(nodes, monomorphic) {
                     new ImplicitConstraint(
                         value.type,
                         body.state.assumptions[node.name],
-                        monomorphic
+                        monomorphic,
                         node
                     )
                 ] : [];
