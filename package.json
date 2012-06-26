@@ -21,7 +21,7 @@
   },
   "homepage": "http://roy.brianmckenna.org/",
   "dependencies": {
-    "jison": "0.2.x",
+    "jison": "0.2.7",
     "source-map": "0.1.0",
     "underscore": "1.2.0",
     "unicode-categories": "0.9.0"
