@@ -24,23 +24,25 @@ let pred n = n - 1
 
 // data List a = Cons a (List a) | Nil
 
+// let nil = Nil ()
+
 // let map f l = match l
 //   case (Cons v r) = Cons (f v) (map f r)
-//   case Nil = Nil
+//   case Nil = nil
 
 // let filter f l = match l
 //   case (Cons v r) = if (f v) then
 //       Cons v r
 //     else
 //       r
-//   case Nil = Nil
+//   case Nil = nil
 
 // let head l = match l
 //   case (Cons v _) = v
 
 // let tail l = match l
 //   case (Cons _ r) = r
-//   case Nil = Nil
+//   case Nil = nil
 
 // let empty l = match l
 //   case (Cons a b) = false
@@ -56,16 +58,16 @@ let pred n = n - 1
 
 // let replicate n v =
 //   if (n == 0) then
-//     Nil
+//     nil
 //   else
 //     Cons v (replicate (n - 1) v)
 
 // let take n l = match l
 //   case (Cons v r) = if n == 0 then
-//       Nil
+//       nil
 //     else
 //       Cons v (take (n - 1) r)
-//   case Nil = Nil
+//   case Nil = nil
 
 // Option type
 
