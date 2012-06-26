@@ -661,8 +661,8 @@ var analyse = function(node, env, nonGeneric, aliases, constraints) {
             var name = node.value;
 
             if(!env[name]) {
-                if(console && console.info) {
-                    console.info(
+                if(console && console.warn) {
+                    console.warn(
                         "Roy info: Identifier " +
                             JSON.stringify(name) +
                             " on line " +
