@@ -227,7 +227,7 @@ function generate(nodes, monomorphic) {
 
             // let bindings can't be treated as an expression
             if(nodesWithoutComments.length == 1) {
-                throw new Error("let binding without any children expressions");
+                throw new Error("let binding without any child expressions");
             }
 
             body = generate(nodesWithoutComments.slice(1), monomorphic);
@@ -263,7 +263,7 @@ function generate(nodes, monomorphic) {
 
             // data definitions can't be treated as an expression
             if(nodesWithoutComments.length == 1) {
-                throw new Error("data definition without any children expressions");
+                throw new Error("data definition without any child expressions");
             }
 
             body = generate(nodesWithoutComments.slice(1), monomorphic);
