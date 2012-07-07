@@ -1,5 +1,8 @@
 let deferred = {
-  return: $.when
+  return: \x ->
+    let d = $.Deferred ()
+    d.resolve x
+    d.promise ()
   bind: \x f -> x.pipe f
 }
 
