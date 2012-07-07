@@ -1,12 +1,9 @@
 let deferred = {
   return: $.when
-  bind: \x f ->
-    let defer = $.Deferred ()
-    x.done (\v -> (f v).done defer.resolve)
-    defer.promise ()
+  bind: \x f -> x.pipe f
 }
 
-let v = do deferred 
+let v = do deferred
   hello <- $.ajax 'examples/helloworld.roy'
   alias <- $.ajax 'examples/alias.roy'
   return (hello ++ alias)
