@@ -491,8 +491,8 @@ var getSandbox = function() {
     return sandbox;
 };
 
-var getFileContents = function(filename, fs) {
-    var path = require('path'),
+var getFileContents = function(filename) {
+    var fs = require('fs'),
         exts = ["", ".roy", ".lroy"],
         filenames = _.map(exts, function(ext){
             return filename + ext;
@@ -508,7 +508,7 @@ var getFileContents = function(filename, fs) {
         filenames = [filename];
     } else {
         findfilename = _.find(filenames, function(filename) {
-            return path.existsSync(filename);
+            return fs.existsSync(filename);
         });
         if (findfilename) {
             source = fs.readFileSync(findfilename, 'utf8');
@@ -579,7 +579,7 @@ var nodeRepl = function(opts) {
             case ":l":
                 // Load
                 filename = metacommand[1];
-                source = getFileContents(filename, fs);
+                source = getFileContents(filename);
                 compiled = compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
                 break;
             case ":t":
