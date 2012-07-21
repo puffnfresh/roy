@@ -491,7 +491,7 @@ var getSandbox = function() {
     return sandbox;
 };
 
-var getFileContents = function(filename) {
+var getFileContents = function(filename, fs) {
     var path = require('path'),
         exts = ["", ".roy", ".lroy"],
         filenames = _.map(exts, function(ext){
@@ -575,7 +575,7 @@ var nodeRepl = function(opts) {
             case ":l":
                 // Load
                 filename = metacommand[1];
-                source = getFileContents(filename);
+                source = getFileContents(filename, fs);
                 compiled = compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
                 break;
             case ":t":
