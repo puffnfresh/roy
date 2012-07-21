@@ -507,9 +507,13 @@ var getFileContents = function(filename, fs) {
         source = fs.readFileSync(filename, 'utf8');
         filenames = [filename];
     } else {
-        source = _.find(filenames, function(filename) {
+        findfilename = _.find(filenames, function(filename) {
             return path.existsSync(filename);
         });
+        if (findfilename) {
+            source = fs.readFileSync(findfilename, 'utf8');
+            filenames = [findfilename];
+        }
     }
 
     if(source == null) {
