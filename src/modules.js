@@ -26,11 +26,11 @@ exports.loadModule = function(moduleName, opts) {
     var source = opts.modules[moduleName] || '';
 
     if(!source && opts.nodejs) {
-        var path = require('path'),
+        var fs = require('fs'),
             targetFile = resolveNodeModule(moduleName, opts.filename) + '.roym';
 
-        if(path.existsSync(targetFile)) {
-            source = require('fs').readFileSync(targetFile, 'utf8');
+        if(fs.existsSync(targetFile)) {
+            source = fs.readFileSync(targetFile, 'utf8');
         }
     }
     
