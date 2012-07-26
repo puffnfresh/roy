@@ -492,7 +492,7 @@ var getSandbox = function() {
 };
 
 var getFileContents = function(filename) {
-    var path = require('path'),
+    var fs = require('fs'),
         exts = ["", ".roy", ".lroy"],
         filenames = _.map(exts, function(ext){
             return filename + ext;
@@ -507,9 +507,13 @@ var getFileContents = function(filename) {
         source = fs.readFileSync(filename, 'utf8');
         filenames = [filename];
     } else {
-        source = _.find(filenames, function(filename) {
-            return path.existsSync(filename);
+        findfilename = _.find(filenames, function(filename) {
+            return fs.existsSync(filename);
         });
+        if (findfilename) {
+            source = fs.readFileSync(findfilename, 'utf8');
+            filenames = [findfilename];
+        }
     }
 
     if(source == null) {
