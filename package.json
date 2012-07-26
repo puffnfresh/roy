@@ -27,7 +27,7 @@
     "unicode-categories": "0.9.0"
   },
   "devDependencies": {
-    "interleave": "0.1.1",
+    "interleave": "0.5.11",
     "jasmine-node": "1.0.26"
   }
 }
