@@ -9,7 +9,7 @@ deps:
 	npm prune
 
 bundle:
-	./node_modules/interleave/bin/interleave interleaved-roy.js
+	./node_modules/interleave/bin/interleave build interleaved-roy.js
 
 site: all bundle
 	[ -e roy.brianmckenna.org ] || mkdir roy.brianmckenna.org
