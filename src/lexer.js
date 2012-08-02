@@ -11,7 +11,7 @@ var IDENTIFIER = new RegExp(
 );
 
 var NUMBER = /^-?[0-9]+(\.[0-9]+)?/;
-var STRING = /^("|')(?:[^"'\\]|\\.)*\1/;
+var STRING = /^(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/;
 var COMMENT = /^\/\/.*/;
 var WHITESPACE = /^[^\n\S]+/;
 var INDENT = /^(?:\n[^\n\S]*)+/;
