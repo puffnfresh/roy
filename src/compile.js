@@ -5,9 +5,9 @@ var typecheck = require('./typeinference').typecheck,
     types = require('./types'),
     nodeToType = require('./typeinference').nodeToType,
     nodes = require('./nodes').nodes,
-    parser = require('./parser').parser,
-    typeparser = require('./typeparser').parser,
     lexer = require('./lexer'),
+    parser = require('../lib/parser').parser,
+    typeparser = require('../lib/typeparser').parser,
     _ = require('underscore');
 
 // Assigning the nodes to `parser.yy` allows the grammar to access the nodes from
@@ -516,7 +516,7 @@ var getFileContents = function(filename) {
         }
     }
 
-    if(source == null) {
+    if(!source) {
         throw new Error("File(s) not found: " + filenames.join(", "));
     }
 
@@ -755,6 +755,7 @@ var main = function() {
         return;
     case "-p":
         includePrelude = false;
+        /* falls through */
     case "-r":
         vm = require('vm');
         run = true;

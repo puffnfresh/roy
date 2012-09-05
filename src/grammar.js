@@ -1,6 +1,4 @@
-var sys = require('sys'),
-    Parser = require('jison').Parser,
-    typegrammar = require('./typegrammar').bnf;
+var typegrammar = require('./typegrammar').bnf;
 
 var n = function(s) {
     return s + "$$.lineno = yylineno;";
@@ -253,8 +251,4 @@ var grammar = {
         ]
     }
 };
-
-var parser = new Parser(grammar, {debug: true});
-
-var fs = require('fs');
-fs.writeFile('src/parser.js', parser.generate());
+exports.grammar = grammar;

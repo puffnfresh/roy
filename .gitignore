@@ -7,7 +7,8 @@ examples/*.js
 examples/*.js.map
 lib/*.js
 roy.brianmckenna.org
-bundled-roy.js
+roy.js
+roy-min.js
 .DS_Store
 *~
 *.swp

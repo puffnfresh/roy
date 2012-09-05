@@ -2,7 +2,7 @@ describe('type inference', function(){
     var typeinference = require('../src/typeinference'),
         types = require('../src/types');
         lexer = require('../src/lexer');
-        parser = require('../src/parser');
+        parser = require('../lib/parser');
 
     beforeEach(function() {
         this.addMatchers({

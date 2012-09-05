@@ -33,10 +33,10 @@ var roy = {};
         //= src/macroexpand.js
     };
     load["./typeparser"] = function(exports) {
-        //= src/typeparser.js
+        //= lib/typeparser.js
     };
     load["./parser"] = function(exports) {
-        //= src/parser.js
+        //= lib/parser.js
     };
     load["./typeinference"] = function(exports) {
         //= src/typeinference.js

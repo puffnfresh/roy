@@ -1,5 +1,3 @@
-var Parser = require('jison').Parser;
-
 var bnf = {
     // For type annotations
     "type": [
@@ -41,7 +39,7 @@ var bnf = {
     ],
     "dataParamList": [
         ["IDENTIFIER", "$$ = [new yy.Arg($1)];"],
-        ["dataParamList IDENTIFIER", "$$ = $1; $1.push(new yy.Arg($2));"],
+        ["dataParamList IDENTIFIER", "$$ = $1; $1.push(new yy.Arg($2));"]
     ],
     "optDataParamList": [
         ["", "$$ = [];"],
@@ -62,7 +60,6 @@ var bnf = {
         ["IDENTIFIER", "$$ = $1;"]
     ]
 };
-
 exports.bnf = bnf;
 
 var grammar = {
@@ -96,10 +93,4 @@ var grammar = {
         "keywordOrIdentifier": bnf.keywordOrIdentifier
     }
 };
-
-if(exports && !module.parent) {
-    var parser = new Parser(grammar, {debug: true});
-
-    var fs = require('fs');
-    fs.writeFile('src/typeparser.js', parser.generate());
-}
+exports.grammar = grammar;

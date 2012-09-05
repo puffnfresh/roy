@@ -278,6 +278,7 @@ var literalToken = function() {
 };
 
 exports.tokenise = function(source) {
+    /*jshint boss:true*/
     indent = 0;
     indents = [];
     tokens = [];

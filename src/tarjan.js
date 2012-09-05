@@ -41,15 +41,16 @@ function stronglyConnectedComponents(graph) {
                });
 
         if (smallestReachableIndex[vertex.id] === indices[vertex.id]) {
-            var currentComponent = [];
+            var currentComponent = [],
+                popped;
 
             do {
-                var popped = stack.pop();
+                popped = stack.pop();
 
                 isInStack[popped.id] = false;
 
                 currentComponent.push(popped);
-            } while (vertex.id != popped.id)
+            } while (vertex.id != popped.id);
 
             components.push(currentComponent);
         }
