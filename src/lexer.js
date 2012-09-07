@@ -11,6 +11,7 @@ var IDENTIFIER = new RegExp(
 );
 
 var NUMBER = /^-?[0-9]+(\.[0-9]+)?/;
+var STRING = /^(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/;
 var COMMENT = /^\/\/.*/;
 var WHITESPACE = /^[^\n\S]+/;
 var INDENT = /^(?:\n[^\n\S]*)+/;
@@ -71,26 +72,14 @@ var numberToken = function() {
 };
 
 var stringToken = function() {
-    var firstChar = chunk.charAt(0),
-        quoted = false,
-        nextChar;
-    if(firstChar == '"' || firstChar == "'") {
-        for(var i = 1; i < chunk.length; i++) {
-            if(!quoted) {
-                nextChar = chunk.charAt(i);
-                if(nextChar == "\\") {
-                    quoted = true;
-                } else if(nextChar == firstChar) {
-                    tokens.push(['STRING', chunk.substring(0, i + 1), lineno]);
-                    return i + 1;
-                }
-            } else {
-                quoted = false;
-            }
-        }
-    }
-    return 0;
-};
+  var token = STRING.exec(chunk);
+  if (token) {
+    tokens.push(['STRING', token[0], lineno]);
+    return token[0].length;
+    
+  }
+  return 0;
+};    
 
 var genericToken = function() {
     var token = GENERIC.exec(chunk);
