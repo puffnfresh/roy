@@ -10,7 +10,7 @@ var IDENTIFIER = new RegExp(
     unicode.ECMA.identifier.source.replace('\\u03BB', '')
 );
 
-var NUMBER = /^-?[0-9]+(\.[0-9]+)?/;
+var NUMBER = /^-?[0-9]+(\.[0-9]+)?(e-?[0-9]+)?/;
 var COMMENT = /^\/\/.*/;
 var WHITESPACE = /^[^\n\S]+/;
 var INDENT = /^(?:\n[^\n\S]*)+/;
