@@ -88,6 +88,22 @@ let optionMonad = {
 // Either type.
 data Either a b = Left a | Right b
 
+let rightMonad = {
+  return: λx → Right x
+
+  bind: λx f → match x
+    case (Left a) = Left a
+    case (Right a) = f a
+}
+
+let leftMonad = {
+  return: λx → Left x
+
+  bind: λx f → match x 
+    case (Left a) = f a
+    case (Right a) = Right a
+}
+
 // Math constants.
 let π: Number = Math.PI
 let π2 = π * 2
