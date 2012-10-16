@@ -32,10 +32,10 @@ var roy = {};
     load["./macroexpand"] = function(exports) {
         //= src/macroexpand.js
     };
-    load["./typeparser"] = function(exports) {
+    load["../lib/typeparser"] = function(exports) {
         //= lib/typeparser.js
     };
-    load["./parser"] = function(exports) {
+    load["../lib/parser"] = function(exports) {
         //= lib/parser.js
     };
     load["./typeinference"] = function(exports) {
