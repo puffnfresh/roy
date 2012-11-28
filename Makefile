@@ -1,31 +1,23 @@
 .PHONY: site
 
 all:
-	node src/typegrammar.js
-	node src/grammar.js
+	./node_modules/.bin/grunt
 
 deps:
 	npm install
 	npm prune
-
-bundle:
-	./node_modules/interleave/bin/interleave interleaved-roy.js
 
 site: all bundle
 	[ -e roy.brianmckenna.org ] || mkdir roy.brianmckenna.org
 	cp -r site/* roy.brianmckenna.org
 	cp -r examples roy.brianmckenna.org
 	cp package.json roy.brianmckenna.org
-	$(MAKE) optimise-bundle DEST=roy.brianmckenna.org/
+	cp roy-min.js roy.brianmckenna.org/
 
 extension:
-	$(MAKE) optimise-bundle DEST=misc/chrome-extension/
-
-optimise-bundle:
-	closure --js dist/interleaved-roy.js --js_output_file $(DEST)bundled-roy.js 2>/dev/null || \
-		(echo "Closure not available - not minimising" && cp dist/interleaved-roy.js $(DEST)bundled-roy.js)
+	cp roy-min.js misc/chrome-extension/
 
 # Tests
 
-test: all
-	./node_modules/jasmine-node/bin/jasmine-node --verbose test
+test:
+	./node_modules/.bin/grunt jasmine

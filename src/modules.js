@@ -1,5 +1,5 @@
 var lexer = require('./lexer'),
-    typeparser = require('./typeparser').parser,
+    typeparser = require('../lib/typeparser').parser,
     nodes = require('./nodes').nodes,
     types = require('./types'),
     _ = require('underscore');
@@ -10,7 +10,7 @@ var resolveNodeModule = function(moduleName, filename) {
     // node.js uses a few prefixes to decide where to load from:
     // http://nodejs.org/docs/latest/api/all.html#loading_from_node_modules_Folders
     var relative = _.any(['/', './', '../'], function(e) {
-        return moduleName.indexOf(e) == 0;
+        return moduleName.indexOf(e) === 0;
     });
 
     if(relative) {
@@ -26,11 +26,11 @@ exports.loadModule = function(moduleName, opts) {
     var source = opts.modules[moduleName] || '';
 
     if(!source && opts.nodejs) {
-        var path = require('path'),
+        var fs = require('fs'),
             targetFile = resolveNodeModule(moduleName, opts.filename) + '.roym';
 
-        if(path.existsSync(targetFile)) {
-            source = require('fs').readFileSync(targetFile, 'utf8');
+        if(fs.existsSync(targetFile)) {
+            source = fs.readFileSync(targetFile, 'utf8');
         }
     }
     

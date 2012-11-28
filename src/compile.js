@@ -5,9 +5,9 @@ var typecheck = require('./typeinference').typecheck,
     types = require('./types'),
     nodeToType = require('./typeinference').nodeToType,
     nodes = require('./nodes').nodes,
-    parser = require('./parser').parser,
-    typeparser = require('./typeparser').parser,
     lexer = require('./lexer'),
+    parser = require('../lib/parser').parser,
+    typeparser = require('../lib/typeparser').parser,
     _ = require('underscore');
 
 // Assigning the nodes to `parser.yy` allows the grammar to access the nodes from
@@ -516,11 +516,12 @@ var getSandbox = function() {
 };
 
 var getFileContents = function(filename) {
-    var path = require('path'),
+    var fs = require('fs'),
         exts = ["", ".roy", ".lroy"],
         filenames = _.map(exts, function(ext){
             return filename + ext;
         }),
+        foundFilename,
         source,
         err,
         i;
@@ -531,12 +532,15 @@ var getFileContents = function(filename) {
         source = fs.readFileSync(filename, 'utf8');
         filenames = [filename];
     } else {
-        source = _.find(filenames, function(filename) {
-            return path.existsSync(filename);
+        foundFilename = _.find(filenames, function(filename) {
+            return fs.existsSync(filename);
         });
+        if(foundFilename) {
+            source = fs.readFileSync(foundFilename, 'utf8');
+        }
     }
 
-    if(source == null) {
+    if(!source) {
         throw new Error("File(s) not found: " + filenames.join(", "));
     }
 
@@ -775,6 +779,7 @@ var main = function() {
         return;
     case "-p":
         includePrelude = false;
+        /* falls through */
     case "-r":
         vm = require('vm');
         run = true;
@@ -821,7 +826,7 @@ var main = function() {
 
     _.each(argv, function(filename) {
         // Read the file content.
-        var source = fs.readFileSync(filename, 'utf8');
+        var source = getFileContents(filename);
 
         if(filename.match(literateExtension)) {
             // Strip out the Markdown.

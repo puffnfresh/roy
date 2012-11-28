@@ -21,13 +21,14 @@
   },
   "homepage": "http://roy.brianmckenna.org/",
   "dependencies": {
-    "jison": "0.2.x",
-    "source-map": "0.1.0",
+    "jison": "0.2.7",
+    "source-map": "0.1.8",
     "underscore": "1.3.3",
     "unicode-categories": "0.9.0"
   },
   "devDependencies": {
-    "interleave": "0.1.1",
+    "grunt": "0.3.15",
+    "rigger": "0.3.19",
     "jasmine-node": "1.0.26"
   }
 }

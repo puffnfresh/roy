@@ -84,6 +84,11 @@ error::
     roy> [1, true, 3]
     Error: Type error: Number is not Boolean
 
+Access array elements with the ``@`` operator::
+
+    roy> [1,2,3] @ 1
+    2 : Number
+
 .. _objects:
 
 Objects
@@ -175,3 +180,4 @@ If you want, you can try and shorten up RegExp construction::
 
 .. _Curry-Howard isomorphism: http://en.wikipedia.org/wiki/Curry-Howard_correspondence
 .. _structural subtyping: http://en.wikipedia.org/wiki/Structural_type_system
+Access array elements with the @ operator

@@ -1,3 +1,4 @@
+/*jshint expr:true*/
 var _ = require('underscore');
 var nodes = require('./nodes');
 

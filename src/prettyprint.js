@@ -3,7 +3,7 @@ var _ = require('underscore');
 var prettyPrint = function(n) {
     return n.accept({
         visitFunction: function() {
-            return "\\" + _.map(n.args, prettyPrint).join(" ") + " -> " + _.map(n.body, prettyPrint)
+            return "\\" + _.map(n.args, prettyPrint).join(" ") + " -> " + _.map(n.body, prettyPrint);
         },
         visitArg: function() {
             return n.name;

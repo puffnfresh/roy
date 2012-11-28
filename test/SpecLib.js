@@ -1,5 +1,5 @@
 var typeinference = require('../src/typeinference'),
-    parser = require('../src/parser'),
+    parser = require('../lib/parser'),
     lexer = require('../src/lexer'),
     // TODO: Remove
     compile = require('../src/compile');

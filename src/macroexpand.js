@@ -15,6 +15,7 @@ var macroexpand = function(ast, env, opts) {
                 macros[n.name] = code;
             },
             visitCall: function() {
+                /*jshint evil:true*/
                 if(!macros[n.func.value]) return;
 
                 var f = new Function('var nodes = this.nodes; ' + macros[n.func.value]);

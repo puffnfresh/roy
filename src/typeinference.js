@@ -186,7 +186,7 @@ function generate(nodes, monomorphic) {
         },
         visitFunction: function() {
             var types = _.map(_.range(node.args.length), function() {
-                    return new t.Variable()
+                    return new t.Variable();
                 }),
                 bodyStateType = generate(node.body, monomorphic.concat(types)),
                 argNames = _.map(node.args, function(a) {
@@ -277,7 +277,7 @@ function generate(nodes, monomorphic) {
             constraintsFromTags = _.reduce(node.tags, function(accum, tag) {
                 return [].concat(accum, _.has(body.state.assumptions, node.name) ? [
                     new ImplicitConstraint(
-                        (function() { throw new Error("TAG TYPE HERE") })(),
+                        (function() { throw new Error("TAG TYPE HERE"); })(),
                         body.type,
                         monomorphic,
                         tag
@@ -318,7 +318,7 @@ function generate(nodes, monomorphic) {
             constraintsFromVars = _.reduce(node.pattern.vars, function(accum, varName) {
                 return [].concat(accum, _.has(valueStateType.state.assumptions, varName) ? [
                     new ImplicitConstraint(
-                        (function() { throw new Error("VAR TYPE HERE") })(),
+                        (function() { throw new Error("VAR TYPE HERE"); })(),
                         valueStateType.type,
                         monomorphic,
                         tag
@@ -543,7 +543,7 @@ function mostGeneralUnifier(a, b, node) {
         return (function() {
             // TODO: Make into a fold
             var subs1 = mostGeneralUnifier(a.types[0], b.types[0], node);
-            var subs2 = mostGeneralUnifier(typeSubstitute(subs1, a.types[1]), typeSubstitute(subs1, b.types[1]))
+            var subs2 = mostGeneralUnifier(typeSubstitute(subs1, a.types[1]), typeSubstitute(subs1, b.types[1]));
             return _.extend(subs1, subs2);
         });
     } else if(a instanceof t.NumberType && b instanceof t.NumberType) {
