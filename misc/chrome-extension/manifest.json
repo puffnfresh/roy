@@ -1,12 +1,13 @@
 {
   "name": "Rome - Roy Compiler",
   "version": "0.1",
+  "manifest_version": 2,
   "description": "Compiles and executes local Roy files.",
 
   "icons": { "16": "roy_16.png",
              "48": "roy_48.png",
              "128": "roy_128.png" },
-  "background_page": "background.htm",
+  "background": { "page": "background.htm" },
   "content_scripts": [
     {
       "matches": ["file:///*/*.roy"],
