@@ -2,16 +2,6 @@
 <html>
   <head>
     <script src="roy-min.js"></script>
-    <script>
-      chrome.extension.onRequest.addListener(function(request, sender, sendResponse) {
-        var js;
-        try {
-          js = roy.compile(request.code).output;
-        } catch(e) {
-          js = e.toString();
-        }
-        sendResponse({js: js});
-      });
-    </script>
+    <script src="add-compile-listener.js"></script>
   </head>
 </html>
