@@ -216,11 +216,13 @@ var grammar = {
         ],
         "optValues": [
             ["", "$$ = [];"],
+            ["INDENT arrayValues OUTDENT TERMINATOR", "$$ = $2;"],
             ["arrayValues", "$$ = $1;"]
         ],
         "arrayValues": [
             ["expression", "$$ = [$1];"],
-            ["arrayValues , expression", "$$ = $1; $1.push($3);"]
+            ["arrayValues , expression", "$$ = $1; $1.push($3);"],
+            ["arrayValues , TERMINATOR expression", "$$ = $1; $1.push($4);"]
         ],
         "optPairs": [
             ["", "$$ = {};"],
