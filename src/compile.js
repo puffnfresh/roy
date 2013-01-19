@@ -401,7 +401,11 @@ var compileNodeWithEnv = function(n, env, opts) {
             var pairs = [];
             pushIndent();
             for(key in n.values) {
-                pairs.push("\"" + key + "\": " + compileNode(n.values[key]));
+                if (_.isString(key)) {
+                    pairs.push(key + ": " + compileNode(n.values[key]));
+                } else{
+                    pairs.push("\"" + key + "\": " + compileNode(n.values[key]));
+                }
             }
             return "{\n" + getIndent() + pairs.join(",\n" + getIndent()) + "\n" + popIndent() + "}";
         }

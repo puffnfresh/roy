@@ -174,7 +174,7 @@ var grammar = {
         ],
         "optWhere": [
             ["", "$$ = [];"],
-            ["WHERE INDENT whereDecls outdentOrEof", "$$ = $3;"] 
+            ["WHERE INDENT whereDecls outdentOrEof", "$$ = $3;"]
         ],
         "whereDecls": [
             ["whereDecl", "$$ = [$1];"],
@@ -232,7 +232,13 @@ var grammar = {
         "keyPairs": [
             ["keywordOrIdentifier : expression", "$$ = {}; $$[$1] = $3;"],
             ["keyPairs , keywordOrIdentifier : expression", "$$ = $1; $1[$3] = $5;"],
-            ["keyPairs TERMINATOR optTerm keywordOrIdentifier : expression", "$$ = $1; $1[$4] = $6;"]
+            ["keyPairs TERMINATOR optTerm keywordOrIdentifier : expression", "$$ = $1; $1[$4] = $6;"],
+            ["STRING : expression", "$$ = {}; $$[$1] = $3;"],
+            ["keyPairs , STRING : expression", "$$ = $1; $1[$3] = $5;"],
+            ["keyPairs TERMINATOR optTerm STRING : expression", "$$ = $1; $1[$4] = $6;"],
+            ["NUMBER : expression", "$$ = {}; $$[$1] = $3;"],
+            ["keyPairs , NUMBER : expression", "$$ = $1; $1[$3] = $5;"],
+            ["keyPairs TERMINATOR optTerm NUMBER : expression", "$$ = $1; $1[$4] = $6;"]
         ],
         "optTerm": [
             ["", ""],
