@@ -732,16 +732,18 @@ var main = function() {
         console.log("Roy: " + info.description);
         console.log(info.version);
         process.exit();
-        break;
-    case "--help":
+         break;
     case "-h":
+    case "--help":
         console.log("Roy: " + info.description + "\n");
-        console.log("-v        : show current version");
-        console.log("-r [file] : run Roy-code without JavaScript output");
-        console.log("-p        : run without prelude (standard library)");
-        console.log("-c        : colorful REPL mode");
-        console.log("-h        : show this help");
+        console.log("-c --color     : colorful REPL mode");
+        console.log("-h --help      : show this help");
+        console.log("-p             : run without prelude (standard library)");
+        console.log("-r [file]      : run Roy-code without JavaScript output");
+        console.log("-s --stdio     : read script from stdin and output to stdout");
+        console.log("-v --version   : show current version");
         return;
+    case "-s":
     case "--stdio":
         source = '';
         process.stdin.resume();
