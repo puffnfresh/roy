@@ -407,7 +407,7 @@ var compileNodeWithEnv = function(n, env, opts) {
                     pairs.push("\"" + key + "\": " + compileNode(n.values[key]));
                 }
             }
-            // Wrap in parens in case the key is a string or number.
+            // Wrap in parens in case any key is a string or number.
             // Otherwise, javascript will try to eval it as a block.
             return "({\n" + getIndent() + pairs.join(",\n" + getIndent()) + "\n" + popIndent() + "})";
         }
