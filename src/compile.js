@@ -407,7 +407,9 @@ var compileNodeWithEnv = function(n, env, opts) {
                     pairs.push("\"" + key + "\": " + compileNode(n.values[key]));
                 }
             }
-            return "{\n" + getIndent() + pairs.join(",\n" + getIndent()) + "\n" + popIndent() + "}";
+            // Wrap in parens in case the key is a string or number.
+            // Otherwise, javascript will try to eval it as a block.
+            return "({\n" + getIndent() + pairs.join(",\n" + getIndent()) + "\n" + popIndent() + "})";
         }
     });
 };
@@ -620,12 +622,6 @@ var nodeRepl = function(opts) {
 
                 // Remember the source if it's a binding
                 tokens = lexer.tokenise(line);
-                // For lines that are objects,
-                // wrap in parens in case the key is a string or number.
-                // Otherwise, javascript will try to eval it as a block.
-                if (tokens[0] == '{,{,0') {
-                    line = '(' + line + ')';
-                }
                 ast = parser.parse(tokens);
                 ast[0].accept({
                     visitLet: function(n) {
