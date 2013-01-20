@@ -736,6 +736,7 @@ var main = function() {
     case "-h":
     case "--help":
         console.log("Roy: " + info.description + "\n");
+        console.log("-b --browser   : wrap the output in a top level function");
         console.log("-c --color     : colorful REPL mode");
         console.log("-h --help      : show this help");
         console.log("-p             : run without prelude (standard library)");
