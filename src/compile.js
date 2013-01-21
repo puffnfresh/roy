@@ -735,7 +735,7 @@ var processFlags = function(argv, opts) {
             source += data;
         });
         process.stdin.on('end', function() {
-            console.log(compile(source).output);
+            console.log(compile(source, null, null, opts).output);
         });
         return;
     case "-p":
@@ -747,7 +747,7 @@ var processFlags = function(argv, opts) {
         break;
     case "-b":
     case "--browser":
-        opts.browserModules = true;
+        opts.nodejs = false;
         argv.shift();
         break;
     case "-c":
@@ -812,7 +812,7 @@ var runRoy = function(argv, opts) {
         var sourceMap = new SourceMapGenerator({file: path.basename(outputPath)});
 
         var compiled = compile(source, env, aliases, {
-            nodejs: !opts.browserModules,
+            nodejs: opts.nodejs,
             filename: filename,
             run: opts.run,
             exported: exported,
@@ -841,7 +841,7 @@ var main = function() {
     var opts = {
         colorConsole: false,
         info: JSON.parse(fs.readFileSync(path.dirname(__dirname) + '/package.json', 'utf8')),
-        browserModules: false,
+        nodejs: true,
         run: false,
         includePrelude: true
     };
