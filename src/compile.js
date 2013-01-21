@@ -538,6 +538,11 @@ var nodeRepl = function(opts) {
     var aliases = {};
     var sandbox = getSandbox();
 
+    // Prologue
+    console.log("Roy: " + opts.info.description);
+    console.log(opts.info.author);
+    console.log(":? for help");
+
     var colorLog = function(color) {
         var args = [].slice.call(arguments, 1);
 
@@ -702,9 +707,6 @@ var importModule = function(name, env, opts) {
 
 var processFlags = function(argv, opts) {
     if(argv.length === 0) {
-        console.log("Roy: " + opts.info.description);
-        console.log(opts.info.author);
-        console.log(":? for help");
         nodeRepl(opts);
         return;
     }
