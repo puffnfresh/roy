@@ -115,7 +115,8 @@ var grammar = {
             ["qualifier", n("$$ = new yy.Generator($1);")]
         ],
         "qualifier": [
-            ["keywordOrIdentifier LEFTARROW expression", "$$ = {}; $$[$1] = $3;"]
+            ["keywordOrIdentifier LEFTARROW expression", "$$ = {}; $$[$1] = $3;"],
+            ["qualifiers , keywordOrIdentifier LEFTARROW expression", "$$ = $1; $1[$3] = $5;"]
         ],
 
         // data Maybe a = Some a | None
