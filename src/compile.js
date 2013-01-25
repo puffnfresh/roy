@@ -155,15 +155,43 @@ var compileNodeWithEnv = function(n, env, opts) {
         visitListComp: function() {
             var compiledIdent = compileNode(n.expression);
             var compiledQuali = compileNode(n.qualifiers);
-            var values = compiledQuali[compiledIdent];
-            var vars = "var " + compiledIdent + ", comp = [];\n";
-            return "(function() {\n" +
+            console.log(compiledQuali);
+            var keys = Object.keys(compiledQuali);
+            var key;
+
+            var expression = "(function() {\n" +
+                pushIndent() + "return " + compiledIdent + ";\n" +
+                popIndent() + "})";
+
+            var loop = function(expression, quali, index) {
+                var key = quali[0];
+                var values = "[" + quali[1] + "]";
+                return "for (var i_" + index + " = 0, len_" + index + " = " + values + ".length;" +
+                " i_" + index + " < len_" + index + "; ++i_" + index + ") {\n" +
+                (index === 0 ?
+                    "value = " + expression + "(" + key + "=" + values + "[i_" + index + "])" :
+                    expression + "(" + key + "=" + values + "[i_" + index + "])");
+            };
+            var loops = _.reduce(_.pairs(compiledQuali), loop, compiledIdent);
+
+            console.log(loops);
+
+            var vars = "var " + compiledIdent + ", args, comp = [];\n";
+            console.log("(function() {\n" +
                 getIndent(1) + vars +
-                getIndent(1) + "for (var i = 0, len = [" + values + "].length; i < len; ++i) {\n" +
-                getIndent(2) + "comp.push([" + values + "][i]);\n" +
+                getIndent(1) + "for (var i = 0, len = " + keys + ".length; i < len; ++i) {\n" +
+                getIndent(2) + "comp.push(value);\n" +
                 getIndent(1) + "}\n" +
                 getIndent(1) + "return comp;" +
-                getIndent() + "})()";
+                getIndent() + "})();");
+            return "(function() {\n" +
+                getIndent(1) + vars +
+                getIndent(1) + "for (var i = 0, len = [" + keys + "].length; i < len; ++i) {\n" +
+                getIndent(2) + "value = " + expression + "(" + compiledIdent + "=[" + keys + "][i]);\n" +
+                getIndent(2) + "comp.push(value);\n" +
+                getIndent(1) + "}\n" +
+                getIndent(1) + "return comp;" +
+                getIndent() + "})();";
         },
         visitGenerator: function() {
             var gen = {};
