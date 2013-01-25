@@ -116,7 +116,7 @@ var grammar = {
         ],
         "qualifier": [
             ["keywordOrIdentifier LEFTARROW expression", "$$ = {}; $$[$1] = $3;"],
-            ["qualifiers , keywordOrIdentifier LEFTARROW expression", "$$ = $1; $1[$3] = $5;"]
+            ["qualifier , keywordOrIdentifier LEFTARROW expression", "$$ = $1; $1[$3] = $5;"]
         ],
 
         // data Maybe a = Some a | None
