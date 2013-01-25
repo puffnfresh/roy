@@ -151,6 +151,28 @@ var compileNodeWithEnv = function(n, env, opts) {
                 getIndent(1) + "}\n" +
                 getIndent() + "})()";
         },
+        // List comprehension to Javascript loop.
+        visitListComp: function() {
+            var compiledIdent = compileNode(n.expression);
+            var compiledQuali = compileNode(n.qualifiers);
+            var values = compiledQuali[compiledIdent];
+            var vars = "var " + compiledIdent + ", comp = [];\n";
+            return "(function() {\n" +
+                getIndent(1) + vars +
+                getIndent(1) + "for (var i = 0, len = [" + values + "].length; i < len; ++i) {\n" +
+                getIndent(2) + "comp.push([" + values + "][i]);\n" +
+                getIndent(1) + "}\n" +
+                getIndent(1) + "return comp;" +
+                getIndent() + "})()";
+        },
+        visitGenerator: function() {
+            var gen = {};
+            var key;
+            for (key in n.values) {
+                gen[key] = _.map(_.pluck(n.values[key].values, 'value'), Number);
+            }
+            return gen;
+        },
         // Let binding to JavaScript variable.
         visitLet: function() {
             return "var " + n.name + " = " + compileNode(n.value);

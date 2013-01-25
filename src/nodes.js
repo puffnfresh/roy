@@ -241,6 +241,25 @@ exports.nodes = {
             }
         };
     },
+    ListComp: function(expression, qualifiers) {
+        this.expression = expression;
+        this.qualifiers = qualifiers;
+
+        this.accept = function(a) {
+            if(a.visitListComp) {
+                return a.visitListComp(this);
+            }
+        };
+    },
+    Generator: function(values) {
+        this.values = values;
+
+        this.accept = function(a) {
+            if(a.visitGenerator) {
+                return a.visitGenerator(this);
+            }
+        };
+    },
     Comment: function(value) {
         this.value = value;
 
