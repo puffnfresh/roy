@@ -403,7 +403,7 @@ var compileNodeWithEnv = function(n, env, opts) {
             for(key in n.values) {
                 if (_.isString(key)) {
                     pairs.push(key + ": " + compileNode(n.values[key]));
-                } else{
+                } else {
                     pairs.push("\"" + key + "\": " + compileNode(n.values[key]));
                 }
             }
