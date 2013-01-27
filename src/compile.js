@@ -164,13 +164,13 @@ var compileNodeWithEnv = function(n, env, opts) {
             };
             var makeGenerator = function(q, body) {
                 var key = "_" + _.keys(q) + _.uniqueId();
-                var vals = _.values(q);
+                var vals = "[" + _.values(q) + "]";
                 var i = "i" + key;
                 var len = "len" + key;
-                var vars = "var " + i + ", " + len + ", " + key  + " = [" + vals + "];\n";
+                var vars = "var " + i + ", " + len + ", " + key  + " = " + vals + ";\n";
                 var forPrologue = "for (" + i + " = 0, " + len + " = " + key + ".length; " +
                     i + " < " + len + "; ++" + i + ") {\n";
-                var forBody = body;
+                var forBody = "var " + _.keys(q) + " = " + key  + "[" + i + "];\n" + body;
                 var forEpilogue = "}\n";
                 return vars +
                     getIndent() + forPrologue +
@@ -199,7 +199,8 @@ var compileNodeWithEnv = function(n, env, opts) {
             }, compiledExpr);
             console.log(comp);
             return "(function() {\n" +
-                pushIndent() + comp +
+                pushIndent() + "var comp = [];\n" +
+                getIndent() + comp +
                 getIndent() + "return comp;\n" +
                 popIndent() + "})()";
             // console.log(compiledQualis);
