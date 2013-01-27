@@ -158,20 +158,20 @@ var compileNodeWithEnv = function(n, env, opts) {
             var keys = _.keys(compiledQuali);
             var vars = "var " + keys.join(", ") + ", comp = [];\n";
 
-            var loop = function(expr, quali, index) {
+            var loop = function(expr, quali, index, list) {
                 var i = "i_" + index, len = "len_" + index;
                 var k = quali[0], v = "[" + [quali[1]] + "]";
                 return "var " + i + ", " + len + ";\n" +
                     getIndent() + "for (" + i + " = 0, " + len + " = " + v + ".length;" +
                             i + " < " + len + "; ++" + i + ") {\n" +
                     pushIndent() + k + " = " + v + "[" + i + "];\n" +
-                    getIndent() + (index === 0 ? "comp.push(" + expr + ");" : expr) + "\n" +
+                    getIndent() + (index === list.length - 1 ? "comp.push(" + expr + ");" : expr) + "\n" +
                     popIndent() + "}";
             };
 
             return "(function() {\n" +
                 pushIndent() + vars +
-                getIndent() + _.reduce(_.pairs(compiledQuali), loop, compiledExpr) + "\n" +
+                getIndent() + _.reduceRight(_.pairs(compiledQuali), loop, compiledExpr) + "\n" +
                 getIndent() + "return comp;\n" +
                 popIndent() + "})()";
         },
