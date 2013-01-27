@@ -153,37 +153,94 @@ var compileNodeWithEnv = function(n, env, opts) {
         },
         // List comprehension to Javascript loop.
         visitListComp: function() {
-            var compiledExpr = compileNode(n.expression);
-            var compiledQuali = compileNode(n.qualifiers);
-            var keys = _.keys(compiledQuali);
-            var vars = "var " + keys.join(", ") + ", comp = [];";
-
-            var loop = function(expr, quali, index, list) {
-                var parsedExpr = expr.match(/ *[\S*].*/g);
-                var i = "i_" + index, len = "len_" + index;
-                var k = quali[0], v = "[" + [quali[1]] + "]";
-                return "var " + i + ", " + len + ";\n" +
-                    getIndent() + "for (" + i + " = 0, " + len + " = " + v + ".length; " +
-                            i + " < " + len + "; ++" + i + ") {\n" +
-                    pushIndent() + k + " = " + v + "[" + i + "];\n" +
-                    getIndent() + (index === list.length - 1 ?
-                                   "comp.push(" + expr + ");" :
-                                   joinIndent(parsedExpr, -1).trimRight()) + "\n" +
-                    popIndent() + "}";
+            var makeBinding = function(q, body) {
+                return getIndent() + q + ";\n" +
+                    getIndent() + body;
             };
-
+            var makeGuard = function(q, body) {
+                return getIndent() + "if (" + q + ") {\n" +
+                    pushIndent() + body +
+                    popIndent() + "}\n";
+            };
+            var makeGenerator = function(q, body) {
+                var key = "_" + _.keys(q) + _.uniqueId();
+                var vals = _.values(q);
+                var i = "i" + key;
+                var len = "len" + key;
+                var vars = "var " + i + ", " + len + ", " + key  + " = [" + vals + "];\n";
+                var forPrologue = "for (" + i + " = 0, " + len + " = " + key + ".length; " +
+                    i + " < " + len + "; ++" + i + ") {\n";
+                var forBody = body;
+                var forEpilogue = "}\n";
+                return vars +
+                    getIndent() + forPrologue +
+                    pushIndent() + forBody +
+                    popIndent() + forEpilogue;
+            };
+            var compiledExpr = compileNode(n.expression);
+            var compiledQualis = _.map(n.qualifiers, function(q) {
+                var quali = compileNode(q);
+                if (_.isString(quali)) {
+                    if (_.has(q, 'type')) {
+                        return {func: makeBinding, quali: quali};
+                    } else {
+                        return {func: makeGuard, quali: quali};
+                    }
+                } else {
+                    return {func: makeGenerator, quali: quali};
+                }
+            });
+            var comp = _.reduceRight(compiledQualis, function(expr, obj, index, list) {
+                if (index === list.length - 1) {
+                    return obj.func(obj.quali, "comp.push(" + expr + ");");
+                } else {
+                    return obj.func(obj.quali, expr);
+                }
+            }, compiledExpr);
+            console.log(comp);
             return "(function() {\n" +
-                pushIndent() + vars + "\n" +
-                getIndent() + _.reduceRight(_.pairs(compiledQuali), loop, compiledExpr) + "\n" +
+                pushIndent() + comp +
                 getIndent() + "return comp;\n" +
                 popIndent() + "})()";
+            // console.log(compiledQualis);
+            // var keys = _.map(compiledQualis, function(obj){ return _.keys(obj)[0]; });
+            // console.log(keys);
+            // console.log(_.map(compiledQualis, _.pairs));
+            // var vars = "var " + keys.join(", ") + ", comp = [];";
+
+            // var loop = function(expr, quali, index, list) {
+            //     var parsedExpr = expr.match(/ *[\S*].*/g);
+            //     var i = "i_" + index, len = "len_" + index;
+            //     var k = quali[0], v = "[" + [quali[1]] + "]";
+            //     return "var " + i + ", " + len + ";\n" +
+            //         getIndent() + "for (" + i + " = 0, " + len + " = " + v + ".length; " +
+            //                 i + " < " + len + "; ++" + i + ") {\n" +
+            //         pushIndent() + k + " = " + v + "[" + i + "];\n" +
+            //         getIndent() + (index === list.length - 1 ?
+            //                        "comp.push(" + expr + ");" :
+            //                        joinIndent(parsedExpr, -1).trimRight()) + "\n" +
+            //         popIndent() + "}";
+            // };
+
+            // return "(function() {\n" +
+            //     pushIndent() + vars + "\n" +
+            //     getIndent() + _.reduceRight(_.pairs(compiledQualis), loop, compiledExpr) + "\n" +
+            //     getIndent() + "return comp;\n" +
+            //     popIndent() + "})()";
         },
         visitGenerator: function() {
             var gen = {};
             var key;
+            // console.log(n);
             for (key in n.values) {
-                gen[key] = _.map(_.pluck(n.values[key].values, 'value'), Number);
+                if (n.values[key].value) {
+                    // console.log(n.values[key].value);
+                    gen[key] = (n.values[key].value);
+                } else {
+                    gen[key] = _.map(n.values[key].values, compileNode);
+                }
             }
+            // console.log(gen);
             return gen;
         },
         // Let binding to JavaScript variable.

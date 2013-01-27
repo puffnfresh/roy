@@ -112,11 +112,16 @@ var grammar = {
             ["[ innerExpression | qualifierList ]", n("$$ = new yy.ListComp($2, $4);")]
         ],
         "qualifierList": [
-            ["qualifier", n("$$ = new yy.Generator($1);")]
+            ["qualifier", n("$$ = [$1];")],
+            ["qualifierList , qualifier", "$$ = $1; $1.push($3);"]
         ],
         "qualifier": [
-            ["keywordOrIdentifier LEFTARROW expression", "$$ = {}; $$[$1] = $3;"],
-            ["qualifier , keywordOrIdentifier LEFTARROW expression", "$$ = $1; $1[$3] = $5;"]
+            ["generator", n("$$ = new yy.Generator($1);")],
+            ["innerExpression", "$$ = $1;"],
+            ["LET binding", "$$ = $2;"]
+        ],
+        "generator": [
+            ["IDENTIFIER LEFTARROW innerExpression", "$$ = {}; $$[$1] = $3;"]
         ],
 
         // data Maybe a = Some a | None
