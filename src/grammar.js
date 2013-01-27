@@ -65,7 +65,8 @@ var grammar = {
             ["MATCH innerExpression INDENT caseList outdentOrEof", n("$$ = new yy.Match($2, $4);")],
             ["DO innerExpression doBlock", n("$$ = new yy.Do($2, $3);")],
             ["ifThenElse", "$$ = $1;"],
-            ["listComp", "$$ = $1;"]
+            ["listComp", "$$ = $1;"],
+            ["sequence", "$$ = $1;"]
         ],
         "callArgument": [
             ["( expression )", n("$$ = new yy.Expression($2);")],
@@ -121,7 +122,11 @@ var grammar = {
             ["LET binding", "$$ = $2;"]
         ],
         "generator": [
-            ["IDENTIFIER LEFTARROW innerExpression", "$$ = {}; $$[$1] = $3;"]
+            ["IDENTIFIER LEFTARROW innerExpression", "$$ = {}; $$[$1] = $3;"],
+            ["IDENTIFIER LEFTARROW sequence", "$$ = {}; $$[$1] = $3;"]
+        ],
+        "sequence": [
+            ["[ callArgument SEQUENCEDOTS callArgument ]", n("$$ = new yy.Sequence($2, $4);")]
         ],
 
         // data Maybe a = Some a | None

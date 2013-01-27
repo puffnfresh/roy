@@ -239,11 +239,22 @@ var compileNodeWithEnv = function(n, env, opts) {
             for (key in n.values) {
                 if (n.values[key].value) {
                     gen[key] = (n.values[key].value);
+                } else if (n.values[key].start) {
+                    gen[key] = compileNode(n.values[key]);
                 } else {
                     gen[key] = _.map(n.values[key].values, compileNode);
                 }
             }
             return gen;
+        },
+        visitSequence: function() {
+            var start = compileNode(n.start);
+            var end = compileNode(n.end);
+            var sequence = [];
+            for (var i = start; i <= end; ++i) {
+                sequence.push(i);
+            }
+            return '[' + sequence.join(', ') + ']';
         },
         // Let binding to JavaScript variable.
         visitLet: function() {

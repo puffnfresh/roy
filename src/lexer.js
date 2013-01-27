@@ -15,6 +15,7 @@ var COMMENT = /^\/\/.*/;
 var WHITESPACE = /^[^\n\S]+/;
 var INDENT = /^(?:\n[^\n\S]*)+/;
 var GENERIC = /^#([a-z]+)/;
+var SEQUENCEDOTS = /\.{2}/;
 
 var chunk;
 var indent;
@@ -263,10 +264,17 @@ var literalToken = function() {
     case '⇒':
         tokens.push(['RIGHTFATARROW', tag, lineno]);
         return 1;
+    case '.':
+        next = chunk.slice(0, 2);
+        if (next == '..') {
+            tokens.push(['SEQUENCEDOTS', next, lineno]);
+            return 2;
+        }
+        tokens.push([tag, tag, lineno]);
+        return 1;
     case '@':
     case ']':
     case ':':
-    case '.':
     case ',':
     case '{':
     case '}':

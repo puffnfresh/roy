@@ -260,6 +260,16 @@ exports.nodes = {
             }
         };
     },
+    Sequence: function(start, end) {
+        this.start = start;
+        this.end = end;
+
+        this.accept = function(a) {
+            if(a.visitSequence) {
+                return a.visitSequence(this);
+            }
+        };
+    },
     Comment: function(value) {
         this.value = value;
 
