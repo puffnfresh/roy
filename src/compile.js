@@ -162,8 +162,8 @@ var compileNodeWithEnv = function(n, env, opts) {
                 var parsedExpr = expr.match(/ *[\S*].*/g);
                 var i = "i_" + index, len = "len_" + index;
                 var k = quali[0], v = "[" + [quali[1]] + "]";
-                return getIndent() + "var " + i + ", " + len + ";\n" +
-                    getIndent() + "for (" + i + " = 0, " + len + " = " + v + ".length;" +
+                return "var " + i + ", " + len + ";\n" +
+                    getIndent() + "for (" + i + " = 0, " + len + " = " + v + ".length; " +
                             i + " < " + len + "; ++" + i + ") {\n" +
                     pushIndent() + k + " = " + v + "[" + i + "];\n" +
                     getIndent() + (index === list.length - 1 ?
@@ -174,7 +174,7 @@ var compileNodeWithEnv = function(n, env, opts) {
 
             return "(function() {\n" +
                 pushIndent() + vars + "\n" +
-                _.reduceRight(_.pairs(compiledQuali), loop, compiledExpr) + "\n" +
+                getIndent() + _.reduceRight(_.pairs(compiledQuali), loop, compiledExpr) + "\n" +
                 getIndent() + "return comp;\n" +
                 popIndent() + "})()";
         },
