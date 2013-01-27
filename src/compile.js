@@ -177,6 +177,13 @@ var compileNodeWithEnv = function(n, env, opts) {
                     pushIndent() + forBody +
                     popIndent() + forEpilogue;
             };
+            var makeComp = function(expr, obj, index, list) {
+                if (index === list.length - 1) {
+                    return obj.func(obj.quali, "comp.push(" + expr + ");\n");
+                } else {
+                    return obj.func(obj.quali, expr);
+                }
+            };
             var compiledExpr = compileNode(n.expression);
             var compiledQualis = _.map(n.qualifiers, function(q) {
                 var quali = compileNode(q);
@@ -190,44 +197,11 @@ var compileNodeWithEnv = function(n, env, opts) {
                     return {func: makeGenerator, quali: quali};
                 }
             });
-            var comp = _.reduceRight(compiledQualis, function(expr, obj, index, list) {
-                if (index === list.length - 1) {
-                    return obj.func(obj.quali, "comp.push(" + expr + ");");
-                } else {
-                    return obj.func(obj.quali, expr);
-                }
-            }, compiledExpr);
-            console.log(comp);
             return "(function() {\n" +
                 pushIndent() + "var comp = [];\n" +
-                getIndent() + comp +
+                getIndent() + _.reduceRight(compiledQualis, makeComp, compiledExpr) +
                 getIndent() + "return comp;\n" +
                 popIndent() + "})()";
-            // console.log(compiledQualis);
-            // var keys = _.map(compiledQualis, function(obj){ return _.keys(obj)[0]; });
-            // console.log(keys);
-            // console.log(_.map(compiledQualis, _.pairs));
-            // var vars = "var " + keys.join(", ") + ", comp = [];";
-
-            // var loop = function(expr, quali, index, list) {
-            //     var parsedExpr = expr.match(/ *[\S*].*/g);
-            //     var i = "i_" + index, len = "len_" + index;
-            //     var k = quali[0], v = "[" + [quali[1]] + "]";
-            //     return "var " + i + ", " + len + ";\n" +
-            //         getIndent() + "for (" + i + " = 0, " + len + " = " + v + ".length; " +
-            //                 i + " < " + len + "; ++" + i + ") {\n" +
-            //         pushIndent() + k + " = " + v + "[" + i + "];\n" +
-            //         getIndent() + (index === list.length - 1 ?
-            //                        "comp.push(" + expr + ");" :
-            //                        joinIndent(parsedExpr, -1).trimRight()) + "\n" +
-            //         popIndent() + "}";
-            // };
-
-            // return "(function() {\n" +
-            //     pushIndent() + vars + "\n" +
-            //     getIndent() + _.reduceRight(_.pairs(compiledQualis), loop, compiledExpr) + "\n" +
-            //     getIndent() + "return comp;\n" +
-            //     popIndent() + "})()";
         },
         visitGenerator: function() {
             var gen = {};
