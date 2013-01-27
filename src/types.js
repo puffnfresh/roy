@@ -220,7 +220,7 @@ ObjectType.prototype.toString = function() {
     for(p in this.props) {
         strs.push(p + ': ' + this.props[p].toString());
     }
-    return '{' + strs.join(', ') + '}';
+    return '{' + strs.join(', ').replace(/\'/g, '"') + '}';
 };
 exports.ObjectType = ObjectType;
 

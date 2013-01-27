@@ -56,9 +56,10 @@ describe('type inference', function(){
             expect(typeOfCode('{}')).toStringEqual('{}');
             expect(typeOfCode('{a: 1}')).toStringEqual('{a: Number}');
             expect(typeOfCode('{a: 1, b: true}')).toStringEqual('{a: Number, b: Boolean}');
-            expect(typeOfCode("{'a': 1}")).toStringEqual("{'a': Number}");
-            expect(typeOfCode('{"a": 1, \'b\': true}')).toStringEqual('{"a": Number, \'b\': Boolean}');
+            expect(typeOfCode("{'a': 1}")).toStringEqual('{"a": Number}');
+            expect(typeOfCode('{"a": 1, \'b\': true}')).toStringEqual('{"a": Number, "b": Boolean}');
             expect(typeOfCode("{4: '1'}")).toStringEqual("{4: String}");
+            expect(typeOfCode("{4: {'1': 1}}")).toStringEqual('{4: {"1": Number}}');
         });
     });
 
