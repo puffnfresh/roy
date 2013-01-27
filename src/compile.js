@@ -153,33 +153,60 @@ var compileNodeWithEnv = function(n, env, opts) {
         },
         // List comprehension to Javascript loop.
         visitListComp: function() {
+            var indent = 0;
+            var myGet = function() {
+                var i, indentation = '';
+                for (i = 0; i < indent; ++i) {
+                    indentation += '    ';
+                }
+                return indentation;
+            };
+            var myJoin = function(lines) {
+                var indentation = myGet();
+                return _.map(lines.split('\n'), function(line) {
+                    if (line === '') {
+                        return line;
+                    }
+                    return indentation + line;
+                }).join('\n');
+            };
+            var myPop = function() {
+                --indent;
+                return '';
+            };
+            var myPush = function() {
+                ++indent;
+                return '';
+            };
             var makeBinding = function(q, body) {
-                return getIndent() + q + ";\n" +
-                    getIndent() + body;
+                return myJoin(q + ";") + "\n" +
+                    body;
             };
             var makeGuard = function(q, body) {
-                return getIndent() + "if (" + q + ") {\n" +
-                    pushIndent() + body +
-                    popIndent() + "}\n";
+                return myJoin("if (" + q + ") {") + "\n" +
+                    myJoin(body) + "\n" +
+                    myJoin("}");
             };
             var makeGenerator = function(q, body) {
-                var key = "_" + _.keys(q) + _.uniqueId();
+                var keyname = _.keys(q);
+                var key = "_" + keyname + _.uniqueId();
                 var vals = "[" + _.values(q) + "]";
                 var i = "i" + key;
                 var len = "len" + key;
-                var vars = "var " + i + ", " + len + ", " + key  + " = " + vals + ";\n";
+                var vars = "var " + i + ", " + len + ", " + key  + " = " + vals + ";";
                 var forPrologue = "for (" + i + " = 0, " + len + " = " + key + ".length; " +
-                    i + " < " + len + "; ++" + i + ") {\n";
-                var forBody = "var " + _.keys(q) + " = " + key  + "[" + i + "];\n" + body;
-                var forEpilogue = "}\n";
-                return vars +
-                    getIndent() + forPrologue +
-                    pushIndent() + forBody +
-                    popIndent() + forEpilogue;
+                    i + " < " + len + "; ++" + i + ") {";
+                var forVars = myGet() + "var " + keyname + " = " + key  + "[" + i + "];";
+
+                return myGet() + vars + "\n" +
+                    myJoin(forPrologue) + "\n" +
+                    myJoin(forVars) + "\n" +
+                    myJoin(body) + "\n" +
+                    myJoin("}");
             };
             var makeComp = function(expr, obj, index, list) {
                 if (index === list.length - 1) {
-                    return obj.func(obj.quali, "comp.push(" + expr + ");\n");
+                    return obj.func(obj.quali, myGet() + "comp.push(" + expr + ");");
                 } else {
                     return obj.func(obj.quali, expr);
                 }
@@ -197,25 +224,25 @@ var compileNodeWithEnv = function(n, env, opts) {
                     return {func: makeGenerator, quali: quali};
                 }
             });
-            return "(function() {\n" +
-                pushIndent() + "var comp = [];\n" +
-                getIndent() + _.reduceRight(compiledQualis, makeComp, compiledExpr) +
-                getIndent() + "return comp;\n" +
-                popIndent() + "})()";
+            var compiled = "(function() {\n";
+            ++indent;
+            compiled += myJoin("var comp = [];") + "\n";
+            compiled += _.reduceRight(compiledQualis, makeComp, compiledExpr) + "\n";
+            compiled += myGet() + "return comp;\n";
+            --indent;
+            compiled += "})()";
+            return compiled;
         },
         visitGenerator: function() {
             var gen = {};
             var key;
-            // console.log(n);
             for (key in n.values) {
                 if (n.values[key].value) {
-                    // console.log(n.values[key].value);
                     gen[key] = (n.values[key].value);
                 } else {
                     gen[key] = _.map(n.values[key].values, compileNode);
                 }
             }
-            // console.log(gen);
             return gen;
         },
         // Let binding to JavaScript variable.
