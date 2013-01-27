@@ -153,30 +153,27 @@ var compileNodeWithEnv = function(n, env, opts) {
         },
         // List comprehension to Javascript loop.
         visitListComp: function() {
-            var compiledIdent = compileNode(n.expression);
+            var compiledExpr = compileNode(n.expression);
             var compiledQuali = compileNode(n.qualifiers);
-            var keys = Object.keys(compiledQuali);
-            var key;
+            var keys = _.keys(compiledQuali);
+            var vars = "var " + keys.join(", ") + ", comp = [];\n";
 
-            var expression = "(function() {\n" +
-                getIndent() + "return " + compiledIdent + ";\n" +
-                popIndent() + "})";
-
-            var loop = function(expression, quali, index) {
-                var key = quali[0];
-                var values = "[" + quali[1] + "]";
-                return "for (var i_" + index + " = 0, len_" + index + " = " + values + ".length;" +
-                " i_" + index + " < len_" + index + "; ++i_" + index + ") {\n" +
-                (index === 0 ?
-                    "comp.push(" + expression + "(" + key + "=" + values + "[i_" + index + "]))" :
-                    expression + "(" + key + "=" + values + "[i_" + index + "])") +
-                "}";
+            var loop = function(expr, quali, index) {
+                var i = "i_" + index, len = "len_" + index;
+                var k = quali[0], v = "[" + [quali[1]] + "]";
+                return "var " + i + ", " + len + ";\n" +
+                    getIndent() + "for (" + i + " = 0, " + len + " = " + v + ".length;" +
+                            i + " < " + len + "; ++" + i + ") {\n" +
+                    pushIndent() + k + " = " + v + "[" + i + "];\n" +
+                    getIndent() + (index === 0 ? "comp.push(" + expr + ");" : expr) + "\n" +
+                    popIndent() + "}";
             };
-            var loops = "(function() {\n\nvar comp = [];\n\n" + _.reduce(_.pairs(compiledQuali), loop, expression) +
-                "\n\nreturn comp;})()";
 
-            console.log(loops);
-            return loops;
+            return "(function() {\n" +
+                pushIndent() + vars +
+                getIndent() + _.reduce(_.pairs(compiledQuali), loop, compiledExpr) + "\n" +
+                getIndent() + "return comp;\n" +
+                popIndent() + "})()";
         },
         visitGenerator: function() {
             var gen = {};
