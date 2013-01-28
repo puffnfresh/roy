@@ -57,6 +57,9 @@ describe('compiler', function(){
         it('functions.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/functions');
         });
+        it('list_comprehension.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/list_comprehension');
+        });
         it('map.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/map');
         });

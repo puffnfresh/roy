@@ -1,0 +1,17 @@
+// Some simple comps.
+console.log ([x | x ← [1, 2, 3]])
+console.log ([x | x ← [1, 2, 3], x > 1])
+console.log ([x + y | x ← [1, 2, 3], let y = 3, x > 1, y != x])
+console.log ([x + y | x ← [2..5], y ← [1..3]])
+console.log ([x + y + z | x ← [1, 2, 3], let yes = 'no', y ← [1, 2, 3], z ← [1, 2, 3]])
+console.log ([word | word <- 'hello'])
+console.log ([char | char <- ['h','e','l','l','o']])
+
+// More complex ones.
+// This should look up the scope and find `y` for the first generator.
+// Currently, it doesn't.
+// let y = [1, 2]
+// let z = 42
+// console.log ([(x, y, z, w) | x ← y, w ← ['a', 'b'], y ← [4, 5], w ← ['c', 'd']])
+console.log ([3 | true])
+console.log ([f 37 | f ← [λx → x + 5, λid → id]])

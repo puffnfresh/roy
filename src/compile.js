@@ -248,8 +248,8 @@ var compileNodeWithEnv = function(n, env, opts) {
             return gen;
         },
         visitSequence: function() {
-            var start = compileNode(n.start);
-            var end = compileNode(n.end);
+            var start = Number(compileNode(n.start));
+            var end = Number(compileNode(n.end));
             var sequence = [];
             for (var i = start; i <= end; ++i) {
                 sequence.push(i);
