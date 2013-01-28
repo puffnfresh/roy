@@ -170,14 +170,6 @@ var compileNodeWithEnv = function(n, env, opts) {
                     return indentation + line;
                 }).join('\n');
             };
-            var myPop = function() {
-                --indent;
-                return '';
-            };
-            var myPush = function() {
-                ++indent;
-                return '';
-            };
             var makeBinding = function(q, body) {
                 return myJoin(q + ";") + "\n" +
                     body;
@@ -188,6 +180,7 @@ var compileNodeWithEnv = function(n, env, opts) {
                     myJoin("}");
             };
             var makeGenerator = function(q, body) {
+                // This is kind of a mess, but it keeps identifiers from shadowing.
                 var keyname = _.keys(q);
                 var key = "_" + keyname + _.uniqueId();
                 var vals = "[" + _.values(q) + "]";
@@ -206,22 +199,28 @@ var compileNodeWithEnv = function(n, env, opts) {
             };
             var makeComp = function(expr, obj, index, list) {
                 if (index === list.length - 1) {
-                    return obj.func(obj.quali, myGet() + "comp.push(" + expr + ");");
+                    // This is the actual expression.
+                    return obj.f(obj.q, myGet() + "comp.push(" + expr + ");");
                 } else {
-                    return obj.func(obj.quali, expr);
+                    return obj.f(obj.q, expr);
                 }
             };
             var compiledExpr = compileNode(n.expression);
             var compiledQualis = _.map(n.qualifiers, function(q) {
-                var quali = compileNode(q);
-                if (_.isString(quali)) {
+                // There's basically three different cases here.
+                // Set the functions for each type.
+                var qualifier = compileNode(q);
+                if (_.isString(qualifier)) {
                     if (_.has(q, 'type')) {
-                        return {func: makeBinding, quali: quali};
+                        // This is a let binding.
+                        return {f: makeBinding, q: qualifier};
                     } else {
-                        return {func: makeGuard, quali: quali};
+                        // This is a guard.
+                        return {f: makeGuard, q: qualifier};
                     }
                 } else {
-                    return {func: makeGenerator, quali: quali};
+                    // This is a generator.
+                    return {f: makeGenerator, q: qualifier};
                 }
             });
             var compiled = "(function() {\n";
@@ -237,22 +236,27 @@ var compileNodeWithEnv = function(n, env, opts) {
             var gen = {};
             var key;
             for (key in n.values) {
+                // Three are three types here.
                 if (n.values[key].value) {
+                    // Bindings and guards.
                     gen[key] = (n.values[key].value);
                 } else if (n.values[key].start) {
+                    // Sequences.
                     gen[key] = compileNode(n.values[key]);
                 } else {
+                    // Actual generators.
                     gen[key] = _.map(n.values[key].values, compileNode);
                 }
             }
             return gen;
         },
         visitSequence: function() {
+            // Currently this only works with integers in increasing order.
             var start = Number(compileNode(n.start));
             var end = Number(compileNode(n.end));
             var sequence = [];
-            for (var i = start; i <= end; ++i) {
-                sequence.push(i);
+            for (start; start <= end; ++start) {
+                sequence.push(start);
             }
             return sequence;
         },
