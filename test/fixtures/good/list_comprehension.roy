@@ -9,7 +9,8 @@ console.log ([char | char <- ['h','e','l','l','o']])
 
 // More complex ones.
 // This should look up the scope and find `y` for the first generator.
-// Currently, it doesn't.
+// The first `w` should be shadowed by the second.
+// Currently, neither of those happen
 // let y = [1, 2]
 // let z = 42
 // console.log ([(x, y, z, w) | x ← y, w ← ['a', 'b'], y ← [4, 5], w ← ['c', 'd']])
