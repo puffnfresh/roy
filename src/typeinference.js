@@ -367,6 +367,17 @@ var analyse = function(node, env, nonGeneric, aliases, constraints) {
 
             return ifTrueType;
         },
+        visitListComp: function() {
+            // A list comp complies to a new function, so we need a new environment.
+            var newEnv = _.clone(env);
+            // Create a variable type that we hope to unify with.
+            var valueType = new t.Variable();
+            // Try to infer based on the expression.
+            var listType = analyse(node.expression, newEnv, nonGeneric, aliases, constraints);
+            // Unify the types and return an array of the list
+            unify(valueType, listType, node.expression.lineno);
+            return new t.ArrayType(valueType);
+        },
         // #### Function call
         //
         // Ensures that all argument types `unify` with the defined function and

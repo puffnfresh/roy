@@ -254,7 +254,7 @@ var compileNodeWithEnv = function(n, env, opts) {
             for (var i = start; i <= end; ++i) {
                 sequence.push(i);
             }
-            return '[' + sequence.join(', ') + ']';
+            return sequence;
         },
         // Let binding to JavaScript variable.
         visitLet: function() {
