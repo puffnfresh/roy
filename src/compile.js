@@ -229,7 +229,7 @@ var compileNodeWithEnv = function(n, env, opts) {
             compiled += _.reduceRight(compiledQualis, makeComp, compiledExpr) + "\n";
             compiled += myGet() + "return comp;\n";
             --indent;
-            compiled += "})()";
+            compiled += "}).call(this)";
             return compiled;
         },
         visitGenerator: function() {
