@@ -151,6 +151,115 @@ var compileNodeWithEnv = function(n, env, opts) {
                 getIndent(1) + "}\n" +
                 getIndent() + "})()";
         },
+        // List comprehension to Javascript loop.
+        visitListComp: function() {
+            var indent = 0;
+            var myGet = function() {
+                var i, indentation = '';
+                for (i = 0; i < indent; ++i) {
+                    indentation += '    ';
+                }
+                return indentation;
+            };
+            var myJoin = function(lines) {
+                var indentation = myGet();
+                return _.map(lines.split('\n'), function(line) {
+                    if (line === '') {
+                        return line;
+                    }
+                    return indentation + line;
+                }).join('\n');
+            };
+            var makeBinding = function(q, body) {
+                return myJoin(q + ";") + "\n" +
+                    body;
+            };
+            var makeGuard = function(q, body) {
+                return myJoin("if (" + q + ") {") + "\n" +
+                    myJoin(body) + "\n" +
+                    myJoin("}");
+            };
+            var makeGenerator = function(q, body) {
+                // This is kind of a mess, but it keeps identifiers from shadowing.
+                var keyname = _.keys(q);
+                var key = "_" + keyname + _.uniqueId();
+                var vals = "[" + _.values(q) + "]";
+                var i = "i" + key;
+                var len = "len" + key;
+                var vars = "var " + i + ", " + len + ", " + key  + " = " + vals + ";";
+                var forPrologue = "for (" + i + " = 0, " + len + " = " + key + ".length; " +
+                    i + " < " + len + "; ++" + i + ") {";
+                var forVars = myGet() + "var " + keyname + " = " + key  + "[" + i + "];";
+
+                return myGet() + vars + "\n" +
+                    myJoin(forPrologue) + "\n" +
+                    myJoin(forVars) + "\n" +
+                    myJoin(body) + "\n" +
+                    myJoin("}");
+            };
+            var makeComp = function(expr, obj, index, list) {
+                if (index === list.length - 1) {
+                    // This is the actual expression.
+                    return obj.f(obj.q, myGet() + "comp.push(" + expr + ");");
+                } else {
+                    return obj.f(obj.q, expr);
+                }
+            };
+            var compiledExpr = compileNode(n.expression);
+            var compiledQualis = _.map(n.qualifiers, function(q) {
+                // There's basically three different cases here.
+                // Set the functions for each type.
+                var qualifier = compileNode(q);
+                if (_.isString(qualifier)) {
+                    if (_.has(q, 'type')) {
+                        // This is a let binding.
+                        return {f: makeBinding, q: qualifier};
+                    } else {
+                        // This is a guard.
+                        return {f: makeGuard, q: qualifier};
+                    }
+                } else {
+                    // This is a generator.
+                    return {f: makeGenerator, q: qualifier};
+                }
+            });
+            var compiled = "(function() {\n";
+            ++indent;
+            compiled += myJoin("var comp = [];") + "\n";
+            compiled += _.reduceRight(compiledQualis, makeComp, compiledExpr) + "\n";
+            compiled += myGet() + "return comp;\n";
+            --indent;
+            compiled += "}).call(this)";
+            return compiled;
+        },
+        visitGenerator: function() {
+            var gen = {};
+            var key;
+            for (key in n.values) {
+                // Three are three types here.
+                if (n.values[key].value) {
+                    // Bindings and guards.
+                    gen[key] = (n.values[key].value);
+                } else if (n.values[key].start) {
+                    // Sequences.
+                    gen[key] = compileNode(n.values[key]);
+                } else {
+                    // Actual generators.
+                    gen[key] = _.map(n.values[key].values, compileNode);
+                }
+            }
+            return gen;
+        },
+        visitSequence: function() {
+            // Currently this only works with integers in increasing order.
+            var start = Number(compileNode(n.start));
+            var end = Number(compileNode(n.end));
+            var sequence = [];
+            for (start; start <= end; ++start) {
+                sequence.push(start);
+            }
+            return sequence;
+        },
         // Let binding to JavaScript variable.
         visitLet: function() {
             return "var " + n.name + " = " + compileNode(n.value);

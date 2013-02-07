@@ -64,7 +64,9 @@ var grammar = {
             ["LAMBDA paramList optType RIGHTARROW block", n("$$ = new yy.Function(undefined, $2, $5, $3);")],
             ["MATCH innerExpression INDENT caseList outdentOrEof", n("$$ = new yy.Match($2, $4);")],
             ["DO innerExpression doBlock", n("$$ = new yy.Do($2, $3);")],
-            ["ifThenElse", "$$ = $1;"]
+            ["ifThenElse", "$$ = $1;"],
+            ["listComp", "$$ = $1;"],
+            ["sequence", "$$ = $1;"]
         ],
         "callArgument": [
             ["( expression )", n("$$ = new yy.Expression($2);")],
@@ -106,6 +108,25 @@ var grammar = {
         "ifThenElse": [
             ["IF innerExpression THEN block TERMINATOR ELSE block", n("$$ = new yy.IfThenElse($2, $4, $7);")],
             ["IF innerExpression THEN innerExpression ELSE innerExpression", n("$$ = new yy.IfThenElse($2, [$4], [$6]);")]
+        ],
+        "listComp": [
+            ["[ innerExpression | qualifierList ]", n("$$ = new yy.ListComp($2, $4);")]
+        ],
+        "qualifierList": [
+            ["qualifier", n("$$ = [$1];")],
+            ["qualifierList , qualifier", "$$ = $1; $1.push($3);"]
+        ],
+        "qualifier": [
+            ["generator", n("$$ = new yy.Generator($1);")],
+            ["innerExpression", "$$ = $1;"],
+            ["LET binding", "$$ = $2;"]
+        ],
+        "generator": [
+            ["IDENTIFIER LEFTARROW innerExpression", "$$ = {}; $$[$1] = $3;"],
+            ["IDENTIFIER LEFTARROW sequence", "$$ = {}; $$[$1] = $3;"]
+        ],
+        "sequence": [
+            ["[ callArgument SEQUENCEDOTS callArgument ]", n("$$ = new yy.Sequence($2, $4);")]
         ],
 
         // data Maybe a = Some a | None
@@ -174,7 +195,7 @@ var grammar = {
         ],
         "optWhere": [
             ["", "$$ = [];"],
-            ["WHERE INDENT whereDecls outdentOrEof", "$$ = $3;"] 
+            ["WHERE INDENT whereDecls outdentOrEof", "$$ = $3;"]
         ],
         "whereDecls": [
             ["whereDecl", "$$ = [$1];"],
