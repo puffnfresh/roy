@@ -397,6 +397,7 @@ var compileNodeWithEnv = function(n, env, opts) {
             return '[' + _.map(n.values, compileNode).join(', ') + ']';
         },
         visitObject: function() {
+            var obj;
             var key;
             var pairs = [];
             pushIndent();
@@ -407,9 +408,15 @@ var compileNodeWithEnv = function(n, env, opts) {
                     pairs.push("\"" + key + "\": " + compileNode(n.values[key]));
                 }
             }
-            // Wrap in parens in case any key is a string or number.
-            // Otherwise, javascript will try to eval it as a block.
-            return "({\n" + getIndent() + pairs.join(",\n" + getIndent()) + "\n" + popIndent() + "})";
+            obj = "{\n" + getIndent() + pairs.join(",\n" + getIndent()) + "\n" + popIndent() + "}";
+            if (opts.run) {
+                // If we're in the repl, or being evaluated in place,
+                // wrap in parens in case any key is a string or number.
+                // This way, javascript will eval it as an object, not a block.
+                return "(" + obj + ")";
+            } else {
+                return obj;
+            }
         }
     });
 };
