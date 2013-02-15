@@ -14,7 +14,7 @@ var roy = {};
     }
 
     load["unicode-categories"] = function(exports) {
-        //= node_modules/unicode-categories/unicode-categories.js
+        //= node_modules/unicode-categories/index.js
     };
 
     load["./compile"] = function(exports) {
