@@ -15,6 +15,7 @@ var COMMENT = /^\/\/.*/;
 var WHITESPACE = /^[^\n\S]+/;
 var INDENT = /^(?:\n[^\n\S]*)+/;
 var GENERIC = /^#([a-z]+)/;
+var SHEBANG = /^#!.*/;
 
 var chunk;
 var indent;
@@ -277,6 +278,15 @@ var literalToken = function() {
     return 0;
 };
 
+var shebangToken = function() {
+    var token = SHEBANG.exec(chunk);
+    if (token) {
+        tokens.push(['SHEBANG', token[0], lineno]);
+        return token[0].length;
+    }
+    return 0;
+};
+
 exports.tokenise = function(source) {
     /*jshint boss:true*/
     indent = 0;
@@ -285,7 +295,7 @@ exports.tokenise = function(source) {
     lineno = 0;
     var i = 0;
     while(chunk = source.slice(i)) {
-        var diff = identifierToken() || numberToken() || stringToken() || genericToken() || commentToken() || whitespaceToken() || lineToken() || literalToken();
+        var diff = identifierToken() || numberToken() || stringToken() || genericToken() || commentToken() || whitespaceToken() || lineToken() || literalToken() || shebangToken();
         if(!diff) {
             throw "Couldn't tokenise: " + chunk.substring(0, chunk.indexOf("\n") > -1 ? chunk.indexOf("\n") : chunk.length);
         }

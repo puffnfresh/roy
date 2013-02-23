@@ -21,6 +21,8 @@ var grammar = {
     "bnf": {
         "program": [
             ["EOF", "return [];"],
+            ["SHEBANG TERMINATOR body EOF", "return $3;"],
+            ["SHEBANG TERMINATOR EOF", "return [];"],
             ["body EOF", "return $1;"]
         ],
         "body": [
@@ -174,7 +176,7 @@ var grammar = {
         ],
         "optWhere": [
             ["", "$$ = [];"],
-            ["WHERE INDENT whereDecls outdentOrEof", "$$ = $3;"] 
+            ["WHERE INDENT whereDecls outdentOrEof", "$$ = $3;"]
         ],
         "whereDecls": [
             ["whereDecl", "$$ = [$1];"],
