@@ -538,6 +538,11 @@ var nodeRepl = function(opts) {
     var aliases = {};
     var sandbox = getSandbox();
 
+    // Prologue
+    console.log("Roy: " + opts.info.description);
+    console.log(opts.info.author);
+    console.log(":? for help");
+
     var colorLog = function(color) {
         var args = [].slice.call(arguments, 1);
 
@@ -700,42 +705,22 @@ var importModule = function(name, env, opts) {
     }
 };
 
-var main = function() {
-    var argv = process.argv.slice(2);
-
-    // Meta-commands configuration
-    var opts = {
-        colorConsole: false
-    };
-
-    // Roy package information
-    var fs = require('fs'),
-        path = require('path');
-    var info = JSON.parse(fs.readFileSync(path.dirname(__dirname) + '/package.json', 'utf8'));
-
-    if(process.argv.length < 3) {
-        console.log("Roy: " + info.description);
-        console.log(info.author);
-        console.log(":? for help");
+var processFlags = function(argv, opts) {
+    if(argv.length === 0) {
         nodeRepl(opts);
         return;
     }
 
-    var source;
-    var vm;
-    var browserModules = false;
-    var run = false;
-    var includePrelude = true;
     switch(argv[0]) {
     case "-v":
     case "--version":
-        console.log("Roy: " + info.description);
-        console.log(info.version);
+        console.log("Roy: " + opts.info.description);
+        console.log(opts.info.version);
         process.exit();
          break;
     case "-h":
     case "--help":
-        console.log("Roy: " + info.description + "\n");
+        console.log("Roy: " + opts.info.description + "\n");
         console.log("-b --browser   : wrap the output in a top level function");
         console.log("-c --color     : colorful REPL mode");
         console.log("-h --help      : show this help");
@@ -746,27 +731,26 @@ var main = function() {
         return;
     case "-s":
     case "--stdio":
-        source = '';
+        var source = '';
         process.stdin.resume();
         process.stdin.setEncoding('utf8');
         process.stdin.on('data', function(data) {
             source += data;
         });
         process.stdin.on('end', function() {
-            console.log(compile(source).output);
+            console.log(compile(source, null, null, opts).output);
         });
         return;
     case "-p":
-        includePrelude = false;
+        opts.includePrelude = false;
         /* falls through */
     case "-r":
-        vm = require('vm');
-        run = true;
+        opts.run = true;
         argv.shift();
         break;
     case "-b":
     case "--browser":
-        browserModules = true;
+        opts.nodejs = false;
         argv.shift();
         break;
     case "-c":
@@ -774,7 +758,18 @@ var main = function() {
         opts.colorConsole = true;
         nodeRepl(opts);
         return;
+    default:
+        runRoy(argv, opts);
+        return;
     }
+
+    processFlags(argv, opts);
+};
+
+var runRoy = function(argv, opts) {
+    var fs = require('fs');
+    var path = require('path');
+    var vm = require('vm');
 
     var extensions = /\.l?roy$/;
     var literateExtension = /\.lroy$/;
@@ -784,9 +779,9 @@ var main = function() {
     var aliases = {};
     var sandbox = getSandbox();
 
-    if(run) {
+    if(opts.run) {
         // Include the standard library
-        if(includePrelude) {
+        if(opts.includePrelude) {
             argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
         }
     } else {
@@ -820,13 +815,13 @@ var main = function() {
         var sourceMap = new SourceMapGenerator({file: path.basename(outputPath)});
 
         var compiled = compile(source, env, aliases, {
-            nodejs: !browserModules,
+            nodejs: opts.nodejs,
             filename: filename,
-            run: run,
+            run: opts.run,
             exported: exported,
             sourceMap: sourceMap
         });
-        if(run) {
+        if(opts.run) {
             // Execute the JavaScript output.
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
         } else {
@@ -836,6 +831,25 @@ var main = function() {
             writeModule(env, exported, filename.replace(extensions, '.roym'));
         }
     });
+};
+
+var main = function() {
+    var argv = process.argv.slice(2);
+
+    // Roy package information
+    var fs = require('fs');
+    var path = require('path');
+
+    // Meta-commands configuration
+    var opts = {
+        colorConsole: false,
+        info: JSON.parse(fs.readFileSync(path.dirname(__dirname) + '/package.json', 'utf8')),
+        nodejs: true,
+        run: false,
+        includePrelude: true
+    };
+
+    processFlags(argv, opts);
 };
 exports.main = main;
 
