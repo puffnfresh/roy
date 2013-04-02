@@ -29,6 +29,6 @@
   "devDependencies": {
     "grunt": "0.3.15",
     "rigger": "0.3.19",
-    "jasmine-node": "1.0.26"
+    "jasmine-node": "1.5.0"
   }
 }
