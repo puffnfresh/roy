@@ -86,7 +86,12 @@ module.exports = function(grunt) {
             done(true);
         };
 
-        jasmine.executeSpecsInFolder(specDir, onComplete, false, true);
+        jasmine.executeSpecsInFolder({
+            'specFolders': [specDir],
+            'onComplete': onComplete,
+            'isVerbose': false,
+            'showColors': true
+        });
     });
 
     grunt.registerTask('default', 'jison lint jasmine rigger min');
