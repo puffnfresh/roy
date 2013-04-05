@@ -21,6 +21,8 @@ var grammar = {
     "bnf": {
         "program": [
             ["EOF", "return [];"],
+            ["SHEBANG TERMINATOR body EOF", "return $3;"],
+            ["SHEBANG TERMINATOR EOF", "return [];"],
             ["body EOF", "return $1;"]
         ],
         "body": [
@@ -174,7 +176,7 @@ var grammar = {
         ],
         "optWhere": [
             ["", "$$ = [];"],
-            ["WHERE INDENT whereDecls outdentOrEof", "$$ = $3;"] 
+            ["WHERE INDENT whereDecls outdentOrEof", "$$ = $3;"]
         ],
         "whereDecls": [
             ["whereDecl", "$$ = [$1];"],
@@ -216,11 +218,13 @@ var grammar = {
         ],
         "optValues": [
             ["", "$$ = [];"],
+            ["INDENT arrayValues OUTDENT TERMINATOR", "$$ = $2;"],
             ["arrayValues", "$$ = $1;"]
         ],
         "arrayValues": [
             ["expression", "$$ = [$1];"],
-            ["arrayValues , expression", "$$ = $1; $1.push($3);"]
+            ["arrayValues , expression", "$$ = $1; $1.push($3);"],
+            ["arrayValues , TERMINATOR expression", "$$ = $1; $1.push($4);"]
         ],
         "optPairs": [
             ["", "$$ = {};"],

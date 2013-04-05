@@ -11,10 +11,12 @@ var IDENTIFIER = new RegExp(
 );
 
 var NUMBER = /^-?[0-9]+(\.[0-9]+)?(e-?[0-9]+)?/;
+var STRING = /^(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/;
 var COMMENT = /^\/\/.*/;
 var WHITESPACE = /^[^\n\S]+/;
 var INDENT = /^(?:\n[^\n\S]*)+/;
 var GENERIC = /^#([a-z]+)/;
+var SHEBANG = /^#!.*/;
 
 var chunk;
 var indent;
@@ -71,26 +73,14 @@ var numberToken = function() {
 };
 
 var stringToken = function() {
-    var firstChar = chunk.charAt(0),
-        quoted = false,
-        nextChar;
-    if(firstChar == '"' || firstChar == "'") {
-        for(var i = 1; i < chunk.length; i++) {
-            if(!quoted) {
-                nextChar = chunk.charAt(i);
-                if(nextChar == "\\") {
-                    quoted = true;
-                } else if(nextChar == firstChar) {
-                    tokens.push(['STRING', chunk.substring(0, i + 1), lineno]);
-                    return i + 1;
-                }
-            } else {
-                quoted = false;
-            }
-        }
-    }
-    return 0;
-};
+  var token = STRING.exec(chunk);
+  if (token) {
+    tokens.push(['STRING', token[0], lineno]);
+    return token[0].length;
+    
+  }
+  return 0;
+};    
 
 var genericToken = function() {
     var token = GENERIC.exec(chunk);
@@ -277,6 +267,15 @@ var literalToken = function() {
     return 0;
 };
 
+var shebangToken = function() {
+    var token = SHEBANG.exec(chunk);
+    if (token) {
+        tokens.push(['SHEBANG', token[0], lineno]);
+        return token[0].length;
+    }
+    return 0;
+};
+
 exports.tokenise = function(source) {
     /*jshint boss:true*/
     indent = 0;
@@ -285,7 +284,7 @@ exports.tokenise = function(source) {
     lineno = 0;
     var i = 0;
     while(chunk = source.slice(i)) {
-        var diff = identifierToken() || numberToken() || stringToken() || genericToken() || commentToken() || whitespaceToken() || lineToken() || literalToken();
+        var diff = identifierToken() || numberToken() || stringToken() || genericToken() || commentToken() || whitespaceToken() || lineToken() || literalToken() || shebangToken();
         if(!diff) {
             throw "Couldn't tokenise: " + chunk.substring(0, chunk.indexOf("\n") > -1 ? chunk.indexOf("\n") : chunk.length);
         }

@@ -1,4 +1,4 @@
-.PHONY: site
+.PHONY: deps site extension test
 
 all:
 	./node_modules/.bin/grunt
