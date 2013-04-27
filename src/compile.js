@@ -397,13 +397,26 @@ var compileNodeWithEnv = function(n, env, opts) {
             return '[' + _.map(n.values, compileNode).join(', ') + ']';
         },
         visitObject: function() {
+            var obj;
             var key;
             var pairs = [];
             pushIndent();
             for(key in n.values) {
-                pairs.push("\"" + key + "\": " + compileNode(n.values[key]));
+                if (_.isString(key)) {
+                    pairs.push(key + ": " + compileNode(n.values[key]));
+                } else {
+                    pairs.push("\"" + key + "\": " + compileNode(n.values[key]));
+                }
             }
-            return "{\n" + getIndent() + pairs.join(",\n" + getIndent()) + "\n" + popIndent() + "}";
+            obj = "{\n" + getIndent() + pairs.join(",\n" + getIndent()) + "\n" + popIndent() + "}";
+            if (opts.run) {
+                // If we're in the repl, or being evaluated in place,
+                // wrap in parens in case any key is a string or number.
+                // This way, javascript will eval it as an object, not a block.
+                return "(" + obj + ")";
+            } else {
+                return obj;
+            }
         }
     });
 };

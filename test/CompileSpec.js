@@ -63,6 +63,9 @@ describe('compiler', function(){
         it('monoid.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/monoid');
         });
+        it('object.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/object');
+        });
         it('option_monad.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/option_monad');
         });

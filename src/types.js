@@ -217,8 +217,19 @@ ObjectType.prototype.getPropertyType = function(prop) {
 ObjectType.prototype.toString = function() {
     var strs = [];
     var p;
+    var n;
+    var e;
     for(p in this.props) {
-        strs.push(p + ': ' + this.props[p].toString());
+        if (_.isString(p)) {
+            // Replace any double quotes by their escaped version.
+            // Also replace any escaped single quotes.
+            e = p.replace(/"|\\"/g, '\\"').replace(/(\\\\)|\\(')/g, '$1$2');
+            // Normalize the string format to double quotes.
+            n = e.replace(/^'(.*)'$|^\\"(.*)\\"$/, '"$1$2"');
+            strs.push(n + ': ' + this.props[p].toString());
+        } else {
+            strs.push(p + ': ' + this.props[p].toString());
+        }
     }
     return '{' + strs.join(', ') + '}';
 };
