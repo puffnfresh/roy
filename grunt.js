@@ -80,7 +80,7 @@ module.exports = function(grunt) {
 
         function onComplete(runner) {
             if (runner.results().failedCount > 0) {
-                grunt.log.error();
+                process.exit(1);
                 return;
             }
             done(true);
