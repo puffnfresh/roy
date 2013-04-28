@@ -4,3 +4,6 @@
 [submodule "misc/roy-mode"]
 	path = misc/roy-mode
 	url = https://github.com/folone/roy-mode.git
+[submodule "misc/vim-roy"]
+	path = misc/vim-roy
+	url = https://github.com/jb55/Vim-Roy.git
