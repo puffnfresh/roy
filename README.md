@@ -1,4 +1,4 @@
-# Roy
+# Roy [![Build Status][status image]][status link]
 Roy is a small functional language that compiles to JavaScript. It has a few main features:
 
 * Damas-Hindley-Milner type inference
@@ -64,3 +64,6 @@ MIT
 * GitHub repo: https://github.com/pufuwozu/roy
 * Brian's blog: http://brianmckenna.org/
 * altJS channel: irc://irc.freenode.net/altJS
+
+[status image]: https://drone.io/github.com/pufuwozu/roy/status.png
+[status link]: https://drone.io/github.com/pufuwozu/roy/latest
