@@ -1,4 +1,4 @@
-# Roy [![Build Status][status image]][status link]
+# Roy [![Build Status][status image]][status link] [![Build Status](https://travis-ci.org/pufuwozu/roy.png)](https://travis-ci.org/pufuwozu/roy)
 Roy is a small functional language that compiles to JavaScript. It has a few main features:
 
 * Damas-Hindley-Milner type inference
