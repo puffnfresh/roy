@@ -258,6 +258,9 @@ var compileNodeWithEnv = function(n, env, opts) {
                 return _.flatten(_.map(a, f));
             };
 
+            var compiledValue = compileNode(n.value);
+            var valuePlaceholder = '_m'
+
             var pathConditions = _.map(n.cases, function(c) {
                 var getVars = function(pattern, varPath) {
                     return flatMap(pattern.vars, function(a, i) {
@@ -271,7 +274,7 @@ var compileNodeWithEnv = function(n, env, opts) {
                                 var accessors = _.map(nextVarPath, function(x) {
                                     return "._" + x;
                                 }).join('');
-                                return ["var " + a.value + " = " + compileNode(n.value) + accessors + ";"];
+                                return ["var " + a.value + " = " + valuePlaceholder + accessors + ";"];
                             },
                             visitPattern: function() {
                                 return getVars(a, nextVarPath);
@@ -299,9 +302,8 @@ var compileNodeWithEnv = function(n, env, opts) {
                     });
                 };
                 var tagPaths = getTagPaths(c.pattern, []);
-                var compiledValue = compileNode(n.value);
                 var extraConditions = _.map(tagPaths, function(e) {
-                    return ' && ' + compiledValue + '._' + e.path.join('._') + ' instanceof ' + e.tag.value;
+                    return ' && ' + valuePlaceholder + '._' + e.path.join('._') + ' instanceof ' + e.tag.value;
                 }).join('');
 
                 // More specific patterns need to appear first
@@ -313,7 +315,7 @@ var compileNodeWithEnv = function(n, env, opts) {
 
                 return {
                     path: maxPath,
-                    condition: "if(" + compiledValue + " instanceof " + c.pattern.tag.value +
+                    condition: "if(" + valuePlaceholder + " instanceof " + c.pattern.tag.value +
                         extraConditions + ") {\n" + getIndent(2) +
                         joinIndent(vars, 2) + "return " + compileNode(c.value) +
                         ";\n" + getIndent(1) + "}"
@@ -326,7 +328,7 @@ var compileNodeWithEnv = function(n, env, opts) {
                 return e.condition;
             });
 
-            return "(function() {\n" + getIndent(1) + cases.join(" else ") + "\n" + getIndent() + "})()";
+            return "(function(" + valuePlaceholder + ") {\n" + getIndent(1) + cases.join(" else ") + "\n" + getIndent() + "})(" + compiledValue + ")";
         },
         // Call to JavaScript call.
         visitCall: function() {
@@ -869,3 +871,4 @@ exports.main = main;
 if(exports && !module.parent) {
     main();
 }
+
