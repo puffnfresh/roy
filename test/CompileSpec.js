@@ -41,6 +41,10 @@ describe('compiler', function(){
         expect(compilerOutput('// HELLO')).toEqual('// HELLO\n');
     });
 
+    it('should only execute a match expression once', function(){
+        expectExecutionToHaveExpectedOutput('good/match_expression_single_eval');
+    });
+
     describe('should execute', function() {
         it('accessors.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/accessors');
@@ -86,3 +90,4 @@ describe('compiler', function(){
         });
     });
 });
+
