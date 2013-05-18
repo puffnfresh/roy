@@ -8,6 +8,7 @@ var typecheck = require('./typeinference').typecheck,
     lexer = require('./lexer'),
     parser = require('../lib/parser').parser,
     typeparser = require('../lib/typeparser').parser,
+    escodegen = require('escodegen'),
     _ = require('underscore');
 
 // Assigning the nodes to `parser.yy` allows the grammar to access the nodes from
