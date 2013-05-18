@@ -494,10 +494,20 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             return compileNode(n.func) + "(" + typeClasses + _.map(n.args, compileNode).join(", ") + ")";
         },
         visitPropertyAccess: function() {
-            return compileNode(n.value) + "." + n.property;
+            return {
+                type: "MemberExpression",
+                computed: false,
+                object: compileNode(n.value),
+                property: { type: "Identifier", name: n.property }
+            };
         },
         visitAccess: function() {
-            return compileNode(n.value) + "[" + compileNode(n.property) + "]";
+            return {
+                type: "MemberExpression",
+                computed: true,
+                object: compileNode(n.value),
+                property: compileNode(n.property)
+            };
         },
         visitUnaryBooleanOperator: function() {
             return [n.name, compileNode(n.value)].join(" ");
