@@ -163,11 +163,10 @@ var compileNodeWithEnv = function(n, env, opts) {
             return compileNode(n.name) + " = " + compileNode(n.value) + ";";
         },
         visitData: function() {
-            var defs = {
+            return {
                 type: "BlockStatement",
                 body: _.map(n.tags, compileNode)
-            }
-            return escodegen.generate(defs);
+            };
         },
         visitExpression: function() {
             // No need to retain parenthesis for operations of higher
