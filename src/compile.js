@@ -126,42 +126,48 @@ var compileNodeWithEnv = function(n, env, opts) {
             };
         },
         visitIfThenElse: function() {
-            var compiledCondition = compileNode(n.condition);
+            var ifTrue = _.map(splitComments(n.ifTrue).body, compileNode);
+            if (ifTrue.length) {
+                ifTrue.push({
+                    type: "ReturnStatement",
+                    argument: ifTrue.pop()
+                });
+            }
 
-            var compileAppendSemicolon = function(n) {
-                return compileNode(n) + ';';
+            var ifFalse = _.map(splitComments(n.ifFalse).body, compileNode);
+            if (ifFalse.length) {
+                ifFalse.push({
+                    type: "ReturnStatement",
+                    argument: ifFalse.pop()
+                });
+            }
+
+            var funcBody = [{
+                type: "IfStatement",
+                test: compileNode(n.condition),
+                consequent: {
+                    type: "BlockStatement",
+                    body: ifTrue
+                },
+                alternate: {
+                    type: "BlockStatement",
+                    body: ifFalse
+                }
+            }];
+
+            return {
+                type: "CallExpression",
+                'arguments': [],
+                callee: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [],
+                    body: {
+                        type: "BlockStatement",
+                        body: funcBody
+                    }
+                }
             };
-
-            var ifTrue = splitComments(n.ifTrue);
-            var ifFalse = splitComments(n.ifFalse);
-
-            pushIndent();
-            pushIndent();
-
-            var compiledIfTrueInit = joinIndent(_.map(ifTrue.body.slice(0, ifTrue.body.length - 1), compileAppendSemicolon));
-            var compiledIfTrueLast = compileNode(ifTrue.body[ifTrue.body.length - 1]);
-            var compiledIfTrueEndComments = "";
-            if(ifTrue.comments.length) {
-                compiledIfTrueEndComments = getIndent() + _.map(ifTrue.comments, compileNode).join("\n" + getIndent()) + "\n";
-            }
-
-            var compiledIfFalseInit = joinIndent(_.map(ifFalse.body.slice(0, ifFalse.body.length - 1), compileAppendSemicolon));
-            var compiledIfFalseLast = compileNode(ifFalse.body[ifFalse.body.length - 1]);
-            var compiledIfFalseEndComments = "";
-            if(ifFalse.comments.length) {
-                compiledIfFalseEndComments = getIndent() + _.map(ifFalse.comments, compileNode).join("\n" + getIndent()) + "\n";
-            }
-
-            popIndent();
-            popIndent();
-
-            return "(function() {\n" +
-                getIndent(1) + "if(" + compiledCondition + ") {\n" +
-                getIndent(2) + compiledIfTrueInit + "return " + compiledIfTrueLast + ";\n" + compiledIfTrueEndComments +
-                getIndent(1) + "} else {\n" +
-                getIndent(2) + compiledIfFalseInit + "return " + compiledIfFalseLast + ";\n" + compiledIfFalseEndComments +
-                getIndent(1) + "}\n" +
-                getIndent() + "})()";
         },
         // Let binding to JavaScript variable.
         visitLet: function() {
@@ -1039,5 +1045,6 @@ exports.main = main;
 if(exports && !module.parent) {
     main();
 }
+
 
 
