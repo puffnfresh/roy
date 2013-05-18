@@ -259,7 +259,7 @@ var compileNodeWithEnv = function(n, env, opts) {
             };
 
             var compiledValue = compileNode(n.value);
-            var valuePlaceholder = '_m'
+            var valuePlaceholder = '_m';
 
             var pathConditions = _.map(n.cases, function(c) {
                 var getVars = function(pattern, varPath) {
