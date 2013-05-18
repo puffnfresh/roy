@@ -248,12 +248,12 @@ var compileNodeWithEnv = function(n, env, opts) {
             var tagName = {
                 type: "Identifier",
                 name: n.name
-            }
+            };
             var args = _.map(n.vars, function(v, i) {
                 return {
                     type: "Identifier",
                     name: v.value + "_" + i
-                }
+                };
             });
             var setters = _.map(args, function(v, i) {
                 return { // "this._" + i + " = " + v;
@@ -295,17 +295,17 @@ var compileNodeWithEnv = function(n, env, opts) {
                         argument: {
                             type: "NewExpression",
                             callee: tagName,
-                            arguments: args
+                            'arguments': args
                         }
                     }]
                 },
                 alternate: null
-            }
+            };
             setters.unshift(constructorCheck);
             var constructorBody = {
                 type: "BlockStatement",
                 body: setters
-            }
+            };
             return {
                 type: "VariableDeclaration",
                 kind: "var",
