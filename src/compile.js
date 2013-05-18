@@ -200,8 +200,9 @@ var compileNodeWithEnv = function(n, env, opts) {
         },
         visitData: function() {
             return {
-                type: "BlockStatement",
-                body: _.map(n.tags, compileNode)
+                type: "VariableDeclaration",
+                kind: "var",
+                declarations: _.map(n.tags, compileNode)
             };
         },
         visitExpression: function() {
@@ -363,7 +364,6 @@ var compileNodeWithEnv = function(n, env, opts) {
                     }
                 };
             });
-            var constructorString = "if(!(this instanceof " + n.name + ")) {\n" + getIndent(1) + "return new " + n.name + "(" + args.join(", ") + ");\n" + getIndent() + "}";
             var constructorCheck = {
                 type: "IfStatement",
                 test: {
@@ -395,18 +395,14 @@ var compileNodeWithEnv = function(n, env, opts) {
                 body: setters
             };
             return {
-                type: "VariableDeclaration",
-                kind: "var",
-                declarations: [{
-                    type: "VariableDeclarator",
-                    id: tagName,
-                    init: {
-                        type: "FunctionExpression",
-                        id: null,
-                        params: args,
-                        body: constructorBody
-                    }
-                }]
+                type: "VariableDeclarator",
+                id: tagName,
+                init: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: args,
+                    body: constructorBody
+                }
             };
         },
         visitMatch: function() {
