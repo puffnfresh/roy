@@ -171,7 +171,14 @@ var compileNodeWithEnv = function(n, env, opts) {
         },
         // Let binding to JavaScript variable.
         visitLet: function() {
-            return "var " + n.name + " = " + compileNode(n.value);
+            return {
+                type: "VariableDeclaration",
+                id: {
+                    type: "Identifier",
+                    name: n.name
+                },
+                init: compileNode(n.value)
+            };
         },
         visitInstance: function() {
             return {
@@ -184,7 +191,12 @@ var compileNodeWithEnv = function(n, env, opts) {
             };
         },
         visitAssignment: function() {
-            return compileNode(n.name) + " = " + compileNode(n.value) + ";";
+            return {
+                type: "AssignmentExpression",
+                operator: "=",
+                left: compileNode(n.name),
+                right: compileNode(n.value)
+            };
         },
         visitData: function() {
             return {
