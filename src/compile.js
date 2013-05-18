@@ -163,8 +163,11 @@ var compileNodeWithEnv = function(n, env, opts) {
             return compileNode(n.name) + " = " + compileNode(n.value) + ";";
         },
         visitData: function() {
-            var defs = _.map(n.tags, compileNode);
-            return defs.join(";\n");
+            var defs = {
+                type: "BlockStatement",
+                body: _.map(n.tags, compileNode)
+            }
+            return escodegen.generate(defs);
         },
         visitExpression: function() {
             // No need to retain parenthesis for operations of higher
@@ -242,17 +245,81 @@ var compileNodeWithEnv = function(n, env, opts) {
                 popIndent() + "})()";
         },
         visitTag: function() {
+            var tagName = {
+                type: "Identifier",
+                name: n.name
+            }
             var args = _.map(n.vars, function(v, i) {
-                return v.value + "_" + i;
+                return {
+                    type: "Identifier",
+                    name: v.value + "_" + i
+                }
             });
             var setters = _.map(args, function(v, i) {
-                return "this._" + i + " = " + v;
+                return { // "this._" + i + " = " + v;
+                    type: "ExpressionStatement",
+                    expression: {
+                        type: "AssignmentExpression",
+                        operator: "=",
+                        left: {
+                            type: "MemberExpression",
+                            object: {
+                                type: "ThisExpression"
+                            },
+                            property: {
+                                type: "Identifier",
+                                name: "_" + i
+                            }
+                        },
+                        right: v
+                    }
+                };
             });
-            pushIndent();
             var constructorString = "if(!(this instanceof " + n.name + ")) {\n" + getIndent(1) + "return new " + n.name + "(" + args.join(", ") + ");\n" + getIndent() + "}";
-            var settersString = (setters.length === 0 ? "" : "\n" + getIndent() + setters.join(";\n" + getIndent()) + ";");
-            popIndent();
-            return "var " + n.name + " = function(" + args.join(", ") + ") {\n" + getIndent(1) + constructorString + settersString + getIndent() + "\n}";
+            var constructorCheck = {
+                type: "IfStatement",
+                test: {
+                    type: "UnaryExpression",
+                    operator: "!",
+                    argument: {
+                        type: "BinaryExpression",
+                        operator: "instanceof",
+                        left: { type: "ThisExpression" },
+                        right: tagName
+                    }
+                },
+                consequent: {
+                    type: "BlockStatement",
+                    body: [{
+                        type: "ReturnStatement",
+                        argument: {
+                            type: "NewExpression",
+                            callee: tagName,
+                            arguments: args
+                        }
+                    }]
+                },
+                alternate: null
+            }
+            setters.unshift(constructorCheck);
+            var constructorBody = {
+                type: "BlockStatement",
+                body: setters
+            }
+            return {
+                type: "VariableDeclaration",
+                kind: "var",
+                declarations: [{
+                    type: "VariableDeclarator",
+                    id: tagName,
+                    init: {
+                        type: "FunctionExpression",
+                        id: null,
+                        params: args,
+                        body: constructorBody
+                    }
+                }]
+            };
         },
         visitMatch: function() {
             var flatMap = function(a, f) {
@@ -872,4 +939,5 @@ exports.main = main;
 if(exports && !module.parent) {
     main();
 }
+
 
