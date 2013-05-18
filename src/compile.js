@@ -515,11 +515,65 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
         },
         visitWith: function() {
-            var args = compileNode(n.left) + ', ' + compileNode(n.right);
-            var inner = _.map(['__l__', '__r__'], function(name) {
-                return 'for(__n__ in ' + name + ') {\n' + getIndent(2) + '__o__[__n__] = ' + name + '[__n__];\n' + getIndent(1) + '}';
+            var copyLoop = function (varName) {
+                return {
+                    type: "ForInStatement",
+                    left: { type: "Identifier", name: "__n__" },
+                    right: { type: "Identifier", name: varName },
+                    body: {
+                        type: "BlockStatement",
+                        body: [{
+                            type: "ExpressionStatement",
+                            expression: {
+                                type: "AssignmentExpression",
+                                operator: "=",
+                                left: {
+                                    type: "MemberExpression",
+                                    computed: true,
+                                    object: { type: "Identifier", name: "__o__" },
+                                    property: { type: "Identifier", name: "__n__" }
+                                },
+                                right: {
+                                    type: "MemberExpression",
+                                    computed: true,
+                                    object: { type: "Identifier", name: varName },
+                                    property: { type: "Identifier", name: "__n__" }
+                                }
+                            }
+                        }]
+                    }
+                };
+            };
+            var funcBody = [];
+            funcBody.push({
+                type: "VariableDeclaration",
+                kind: "var",
+                declarations: [{
+                    type: "VariableDeclarator",
+                    id: { type: "Identifier", name: "__o__" },
+                    init: { type: "ObjectExpression", properties: [] }
+                }, {
+                    type: "VariableDeclarator",
+                    id: { type: "Identifier", name: "__n__" },
+                    init: null
+                }]
             });
-            return joinIndent(['(function(__l__, __r__) {', 'var __o__ = {}, __n__;'], 1) + joinIndent(inner, 1) + 'return __o__;\n' + getIndent() + '})(' + args + ')';
+            funcBody.push(copyLoop("__l__"));
+            funcBody.push(copyLoop("__r__"));
+
+            return {
+                type: "CallExpression",
+                'arguments': _.map([n.left, n.right], compileNode),
+                callee: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [
+                        { type: "Identifier", name: "__l__" },
+                        { type: "Identifier", name: "__r__" }
+                    ],
+                    body: { type: "BlockStatement", body: funcBody }
+                }
+            };
         },
         // Print all other nodes directly.
         visitComment: function() {
