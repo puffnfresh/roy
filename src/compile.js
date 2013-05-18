@@ -203,16 +203,56 @@ var compileNodeWithEnv = function(n, env, opts) {
             return serialize(n.value);
         },
         visitReturn: function() {
-            return "__monad__.return(" + compileNode(n.value) + ");";
+            return {
+                type: "ExpressionStatement",
+                expression: {
+                    type: "CallExpression",
+                    callee: {
+                        type: "MemberExpression",
+                        computed: false,
+                        object: {
+                            type: "Identifier",
+                            name: "__monad__"
+                        },
+                        property: {
+                            type: "Identifier",
+                            name: "return"
+                        }
+                    },
+                    "arguments": [compileNode(n.value)]
+                }
+            };
         },
         visitBind: function() {
-            var init = n.rest.slice(0, n.rest.length - 1);
-            var last = n.rest[n.rest.length - 1];
-            return "__monad__.bind(" + compileNode(n.value) +
-                ", function(" + n.name + ") {\n" + pushIndent() +
-                _.map(init, compileNode).join(";\n" + getIndent()) + "\n" +
-                getIndent() + "return " + compileNode(last) + "\n" +
-                popIndent() + "});";
+            var body = _.map(n.rest.slice(0, n.rest.length - 1), compileNode);
+            body.push({
+                type: "ReturnStatement",
+                argument: compileNode(n.rest[n.rest.length - 1])
+            });
+            return {
+                type: "CallExpression",
+                callee: {
+                    type: "MemberExpression",
+                    computed: false,
+                    object: {
+                        type: "Identifier",
+                        name: "__monad__"
+                    },
+                    property: {
+                        type: "Identifier",
+                        name: "bind"
+                    }
+                },
+                "arguments": [compileNode(n.value), {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [{
+                        type: "Identifier",
+                        name: n.name
+                    }],
+                    body: body
+                }]
+            };
         },
         visitDo: function() {
             var compiledInit = [];
@@ -237,11 +277,27 @@ var compileNodeWithEnv = function(n, env, opts) {
             if(lastBind) {
                 lastBind.rest = n.body.slice(lastBindIndex + 1);
             }
-            return "(function(){\n" + pushIndent() + "var __monad__ = " +
-                compileNode(n.value) + ";\n" + getIndent() +
-                (!firstBind ? 'return ' : '') + compiledInit.join(';\n' + getIndent()) + '\n' + getIndent() +
-                (firstBind ? 'return ' + compileNode(firstBind) : '') + "\n" +
-                popIndent() + "})()";
+            var body = {
+                type: "BlockStatement",
+                body: [{
+                    type: "VariableDeclaration",
+                    kind: "var",
+                    declarations: [{
+                        type: "VariableDeclarator",
+                        id: {
+                            type: "Identifier",
+                            name: "__monad__"
+                        },
+                        init: compileNode(n.value)
+                    }]
+                }]
+            };
+            body.body = compiledInit.concat(body.body);
+            return {
+                type: "CallExpression",
+                "arguments": [],
+                callee: body
+            };
         },
         visitTag: function() {
             var tagName = {
@@ -262,6 +318,7 @@ var compileNodeWithEnv = function(n, env, opts) {
                         operator: "=",
                         left: {
                             type: "MemberExpression",
+                            computed: false,
                             object: {
                                 type: "ThisExpression"
                             },
@@ -444,6 +501,7 @@ var compileNodeWithEnv = function(n, env, opts) {
             if(n.typeClassInstance) {
                 return {
                     type: "MemberExpression",
+                    computed: false,
                     object: {
                         type: "Identifier",
                         name: n.typeClassInstance
