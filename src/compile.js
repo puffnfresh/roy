@@ -205,12 +205,8 @@ var compileNodeWithEnv = function(n, env, opts) {
             };
         },
         visitExpression: function() {
-            // No need to retain parenthesis for operations of higher
-            // precendence in JS
-            if(n.value instanceof nodes.Function || n.value instanceof nodes.Call) {
-                return compileNode(n.value);
-            }
-            return '(' + compileNode(n.value) + ')';
+            // Pass-through
+            return compileNode(n.value);
         },
         visitReplacement: function() {
             return n.value;
