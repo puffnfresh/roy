@@ -84,35 +84,46 @@ var compileNodeWithEnv = function(n, env, opts) {
     return n.accept({
         // Function definition to JavaScript function.
         visitFunction: function() {
-            var getArgs = function(a) {
-                return _.map(a, function(v) {
-                    return v.name;
-                }).join(", ");
+            var body = {
+                type: "BlockStatement",
+                body: []
             };
-            pushIndent();
-            var split = splitComments(n.body);
-            var compiledWhereDecls = _.map(n.whereDecls, compileNode);
-            var compiledNodeBody = _.map(split.body, compileNode);
-            var init = [];
-            if(compiledWhereDecls.length > 0) {
-                init.push(compiledWhereDecls.join(';\n' + getIndent()) + ';');
+            if (n.whereDecls.length) {
+                _.each(n.whereDecls, function (w) {
+                    body.body.push(compileNode(w));
+                });
             }
-            if(compiledNodeBody.length > 1) {
-                init.push(compiledNodeBody.slice(0, compiledNodeBody.length - 1).join(';\n' + getIndent()) + ';');
+            var exprsWithoutComments = _.map(splitComments(n.body).body, compileNode);
+            exprsWithoutComments.push({
+                type: "ReturnStatement",
+                argument: exprsWithoutComments.pop()
+            });
+            var func = {
+                type: "FunctionExpression",
+                id: null,
+                params: _.map(n.args, function (a) {
+                    return {
+                        type: "Identifier",
+                        name: a
+                    };
+                }),
+                body: body
+            };
+            if (! n.name) {
+                return func;
             }
-            var lastString = compiledNodeBody[compiledNodeBody.length - 1];
-            var varEquals = "";
-            if(n.name) {
-                varEquals = "var " + n.name + " = ";
-            }
-
-            var compiledEndComments = "";
-            if(split.comments.length) {
-                compiledEndComments = getIndent() + _.map(split.comments, compileNode).join("\n" + getIndent()) + "\n";
-            }
-            return varEquals + "function(" + getArgs(n.args) + ") {\n" +
-                getIndent() + joinIndent(init) + "return " + lastString +
-                ";\n" + compiledEndComments + popIndent() + "}";
+            return {
+                type: "VariableDeclaration",
+                kind: "var",
+                declarations: [{
+                    type: "VariableDeclarator",
+                    id: {
+                        type: "Identifier",
+                        name: n.name
+                    },
+                    init: func
+                }]
+            };
         },
         visitIfThenElse: function() {
             var compiledCondition = compileNode(n.condition);
