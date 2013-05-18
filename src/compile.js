@@ -76,10 +76,10 @@ var popIndent = function() {
     return getIndent();
 };
 
-var compileNodeWithEnv = function(n, env, opts) {
+var compileNodeWithEnvToJsAST = function(n, env, opts) {
     if(!opts) opts = {};
     var compileNode = function(n) {
-        return compileNodeWithEnv(n, env);
+        return compileNodeWithEnvToJsAST(n, env);
     };
     return n.accept({
         // Function definition to JavaScript function.
@@ -599,6 +599,15 @@ var compileNodeWithEnv = function(n, env, opts) {
             }
         }
     });
+};
+exports.compileNodeWithEnvToJsAST = compileNodeWithEnvToJsAST;
+var compileNodeWithEnv = function (n, env, opts) {
+    var ast = compileNodeWithEnvToJsAST(n, env, opts);
+    if (typeof ast === "string") {
+        return ast;
+    }
+    var generated = escodegen.generate(ast);
+    return generated;
 };
 exports.compileNodeWithEnv = compileNodeWithEnv;
 
