@@ -441,23 +441,48 @@ var compileNodeWithEnv = function(n, env, opts) {
             return n.value;
         },
         visitIdentifier: function() {
-            var typeClassAccessor = '';
             if(n.typeClassInstance) {
-                typeClassAccessor = n.typeClassInstance + '.';
+                return {
+                    type: "MemberExpression",
+                    object: {
+                        type: "Identifier",
+                        name: n.typeClassInstance
+                    },
+                    property: {
+                        type: "Identifier",
+                        name: n.value
+                    }
+                };
             }
-            return typeClassAccessor + n.value;
+            return {
+                type: "Identifier",
+                name: n.value
+            };
         },
         visitNumber: function() {
-            return n.value;
+            return {
+                type: "Literal",
+                value: parseFloat(n.value)
+            };
         },
         visitString: function() {
-            return n.value;
+            /*jshint evil: true */
+            return {
+                type: "Literal",
+                value: eval(n.value)
+            };
         },
         visitBoolean: function() {
-            return n.value;
+            return {
+                type: "Literal",
+                value: n.value === "true"
+            };
         },
         visitUnit: function() {
-            return "null";
+            return {
+                type: "Literal",
+                value: null
+            };
         },
         visitArray: function() {
             return '[' + _.map(n.values, compileNode).join(', ') + ']';
