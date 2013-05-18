@@ -168,7 +168,14 @@ var compileNodeWithEnv = function(n, env, opts) {
             return "var " + n.name + " = " + compileNode(n.value);
         },
         visitInstance: function() {
-            return "var " + n.name + " = " + compileNode(n.object);
+            return {
+                type: "VariableDeclaration",
+                id: {
+                    type: "Identifier",
+                    name: n.name
+                },
+                init: compileNode(n.object)
+            };
         },
         visitAssignment: function() {
             return compileNode(n.name) + " = " + compileNode(n.value) + ";";
