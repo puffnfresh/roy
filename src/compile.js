@@ -577,26 +577,21 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             return '[' + _.map(n.values, compileNode).join(', ') + ']';
         },
         visitObject: function() {
-            var obj;
-            var key;
-            var pairs = [];
-            pushIndent();
+            var key, pairs = [];
             for(key in n.values) {
-                if (_.isString(key)) {
-                    pairs.push(key + ": " + compileNode(n.values[key]));
-                } else {
-                    pairs.push("\"" + key + "\": " + compileNode(n.values[key]));
-                }
+                pairs.push({
+                    type: "Property",
+                    key: {
+                        type: "Identifier",
+                        name: key
+                    },
+                    value: compileNode(n.values[key])
+                });
             }
-            obj = "{\n" + getIndent() + pairs.join(",\n" + getIndent()) + "\n" + popIndent() + "}";
-            if (opts.run) {
-                // If we're in the repl, or being evaluated in place,
-                // wrap in parens in case any key is a string or number.
-                // This way, javascript will eval it as an object, not a block.
-                return "(" + obj + ")";
-            } else {
-                return obj;
-            }
+            return {
+                type: "ObjectExpression",
+                properties: pairs
+            };
         }
     });
 };
