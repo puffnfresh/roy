@@ -571,10 +571,16 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             };
         },
         visitArray: function() {
-            return '[' + _.map(n.values, compileNode).join(', ') + ']';
+            return {
+                type: "ArrayExpression",
+                elements: _.map(n.values, compileNode)
+            };
         },
         visitTuple: function() {
-            return '[' + _.map(n.values, compileNode).join(', ') + ']';
+            return {
+                type: "ArrayExpression",
+                elements: _.map(n.values, compileNode)
+            };
         },
         visitObject: function() {
             var key, pairs = [];
