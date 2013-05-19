@@ -334,7 +334,12 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             return {
                 type: "CallExpression",
                 "arguments": [],
-                callee: body
+                callee: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [],
+                    body: body
+                }
             };
         },
         visitTag: function() {
