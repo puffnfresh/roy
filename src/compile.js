@@ -98,13 +98,14 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                 type: "ReturnStatement",
                 argument: exprsWithoutComments.pop()
             });
+            body.body = body.body.concat(exprsWithoutComments);
             var func = {
                 type: "FunctionExpression",
                 id: null,
                 params: _.map(n.args, function (a) {
                     return {
                         type: "Identifier",
-                        name: a
+                        name: a.name
                     };
                 }),
                 body: body
