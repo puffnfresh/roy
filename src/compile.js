@@ -525,19 +525,43 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             };
         },
         visitUnaryBooleanOperator: function() {
-            return [n.name, compileNode(n.value)].join(" ");
+            return {
+                type: "UnaryExpression",
+                operator: n.name,
+                argument: compileNode(n.value)
+            };
         },
         visitBinaryGenericOperator: function() {
-            return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
+            return {
+                type: "BinaryExpression",
+                operator: n.name,
+                left: compileNode(n.left),
+                right: compileNode(n.right)
+            };
         },
         visitBinaryNumberOperator: function() {
-            return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
+            return {
+                type: "BinaryExpression",
+                operator: n.name,
+                left: compileNode(n.left),
+                right: compileNode(n.right)
+            };
         },
         visitBinaryBooleanOperator: function() {
-            return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
+            return {
+                type: "BinaryExpression",
+                operator: n.name,
+                left: compileNode(n.left),
+                right: compileNode(n.right)
+            };
         },
         visitBinaryStringOperator: function() {
-            return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
+            return {
+                type: "BinaryExpression",
+                operator: n.name,
+                left: compileNode(n.left),
+                right: compileNode(n.right)
+            };
         },
         visitWith: function() {
             var copyLoop = function (varName) {
