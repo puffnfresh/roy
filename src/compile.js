@@ -174,11 +174,15 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
         visitLet: function() {
             return {
                 type: "VariableDeclaration",
-                id: {
-                    type: "Identifier",
-                    name: n.name
-                },
-                init: compileNode(n.value)
+                kind: "var",
+                declarations: [{
+                    type: "VariableDeclarator",
+                    id: {
+                        type: "Identifier",
+                        name: n.name
+                    },
+                    init: compileNode(n.value)
+                }]
             };
         },
         visitInstance: function() {
