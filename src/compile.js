@@ -494,14 +494,19 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
         },
         // Call to JavaScript call.
         visitCall: function() {
-            var typeClasses = '';
-            if(n.typeClassInstance) {
-                typeClasses = n.typeClassInstance + ', ';
+            var args = _.map(n.args, compileNode);
+            if (n.typeClassInstance) {
+                args.unshift(compileNode(n.typeClassInstance));
             }
-            if(n.func.value == 'import') {
-                return importModule(JSON.parse(n.args[0].value), env, opts);
-            }
-            return compileNode(n.func) + "(" + typeClasses + _.map(n.args, compileNode).join(", ") + ")";
+
+            return {
+                type: "CallExpression",
+                "arguments": args,
+                callee: compileNode(n.func)
+            };
+            // if(n.func.value == 'import') {
+            //     return importModule(JSON.parse(n.args[0].value), env, opts);
+            // }
         },
         visitPropertyAccess: function() {
             return {
