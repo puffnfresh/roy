@@ -31,6 +31,13 @@ parser.lexer = typeparser.lexer =  {
     }
 };
 
+var ensureJsASTStatement = function (node) {
+    if (/Expression$/.test(node.type)) {
+        return { type: "ExpressionStatement", expression: node };
+    }
+    return node;
+};
+
 // Separate end comments from other expressions
 var splitComments = function(body) {
     return _.reduceRight(body, function(accum, node) {
@@ -98,7 +105,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                 type: "ReturnStatement",
                 argument: exprsWithoutComments.pop()
             });
-            body.body = body.body.concat(exprsWithoutComments);
+            body.body = _.map(body.body.concat(exprsWithoutComments), ensureJsASTStatement);
             var func = {
                 type: "FunctionExpression",
                 id: null,
@@ -134,6 +141,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                     argument: ifTrue.pop()
                 });
             }
+            ifTrue = _.map(ifTrue, ensureJsASTStatement);
 
             var ifFalse = _.map(splitComments(n.ifFalse).body, compileNode);
             if (ifFalse.length) {
@@ -142,6 +150,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                     argument: ifFalse.pop()
                 });
             }
+            ifFalse = _.map(ifFalse, ensureJsASTStatement);
 
             var funcBody = [{
                 type: "IfStatement",
@@ -402,7 +411,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             setters.unshift(constructorCheck);
             var constructorBody = {
                 type: "BlockStatement",
-                body: setters
+                body: _.map(setters, ensureJsASTStatement)
             };
             return {
                 type: "VariableDeclarator",
@@ -620,7 +629,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                         { type: "Identifier", name: "__l__" },
                         { type: "Identifier", name: "__r__" }
                     ],
-                    body: { type: "BlockStatement", body: funcBody }
+                    body: { type: "BlockStatement", body: _.map(funcBody, ensureJsASTStatement) }
                 }
             };
         },
