@@ -1,5 +1,4 @@
 var typecheck = require('./typeinference').typecheck,
-    macroexpand = require('./macroexpand').macroexpand,
     loadModule = require('./modules').loadModule,
     exportType = require('./modules').exportType,
     types = require('./types'),
@@ -218,32 +217,6 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                 kind: "var",
                 declarations: _.map(n.tags, compileNode)
             };
-        },
-        visitReplacement: function() {
-            return n.value;
-        },
-        visitQuoted: function() {
-            var serializeNode = {
-                visitReplacement: function(v) {
-                    return "new nodes.Replacement(" + compileNode(v.value) + ")";
-                },
-                visitIdentifier: function(v) {
-                    return "new nodes.Identifier(" + JSON.stringify(v.value) + ")";
-                },
-                visitAccess: function(v) {
-                    return "new nodes.Access(" + serialize(v.value) + ", " + JSON.stringify(v.property) + ")";
-                },
-                visitPropertyAccess: function(v) {
-                    return "new nodes.PropertyAccess(" + serialize(v.value) + ", " + JSON.stringify(v.property) + ")";
-                },
-                visitCall: function(v) {
-                    return "new nodes.Call(" + serialize(v.func) + ", [" + _.map(v.args, serialize).join(', ') + "])";
-                }
-            };
-            var serialize = function(v) {
-                return v.accept(serializeNode);
-            };
-            return serialize(n.value);
         },
         visitReturn: function() {
             return {
@@ -730,7 +703,6 @@ var compile = function(source, env, aliases, opts) {
     // Parse the file to an AST.
     var tokens = lexer.tokenise(source);
     var ast = parser.parse(tokens);
-    ast = macroexpand(ast, env, opts);
 
     // Typecheck the AST. Any type errors will throw an exception.
     var resultType = typecheck(ast, env, aliases);

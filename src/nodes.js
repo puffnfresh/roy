@@ -325,34 +325,6 @@ exports.nodes = {
             }
         };
     },
-    Replacement: function(value) {
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitReplacement) {
-                return a.visitReplacement(this);
-            }
-        };
-    },
-    Macro: function(name, body) {
-        this.name = name;
-        this.body = body;
-
-        this.accept = function(a) {
-            if(a.visitMacro) {
-                return a.visitMacro(this);
-            }
-        };
-    },
-    Quoted: function(value) {
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitQuoted) {
-                return a.visitQuoted(this);
-            }
-        };
-    },
     Identifier: function(value) {
         this.value = value;
 

@@ -29,9 +29,6 @@ var roy = {};
     load["./modules"] = function(exports) {
         //= src/modules.js
     };
-    load["./macroexpand"] = function(exports) {
-        //= src/macroexpand.js
-    };
     load["../lib/typeparser"] = function(exports) {
         //= lib/typeparser.js
     };
