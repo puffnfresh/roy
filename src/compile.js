@@ -219,10 +219,6 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                 declarations: _.map(n.tags, compileNode)
             };
         },
-        visitExpression: function() {
-            // Pass-through
-            return compileNode(n.value);
-        },
         visitReplacement: function() {
             return n.value;
         },

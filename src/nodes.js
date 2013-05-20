@@ -1,13 +1,4 @@
 exports.nodes = {
-    Expression: function(value) {
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitExpression) {
-                return a.visitExpression(this);
-            }
-        };
-    },
     Arg: function(name, type) {
         this.name = name;
 
