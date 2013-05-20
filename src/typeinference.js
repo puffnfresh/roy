@@ -806,9 +806,6 @@ function isSolvable(constraints) {
             }, function() {
                 // Explicit
                 return true;
-            }, function() {
-                // TODO: I guess
-                return true;
             });
 
         return !solvable;
@@ -825,8 +822,6 @@ function solve(constraints) {
                         return 'other';
                     }, function() {
                         return 'implicit';
-                    }, function() {
-                        return 'other';
                     }, function() {
                         return 'other';
                     });
@@ -1004,8 +999,6 @@ function active(constraint) {
                 constraint.scheme.s
             )
         );
-    }, function() {
-        throw new Error("TODO");
     });
 }
 
@@ -1029,8 +1022,6 @@ function constraintSubstitute(substitutions, constraint) {
             schemeSubstitute(substitutions, constraint.scheme),
             constraint.node
         );
-    }, function() {
-        throw new Error("TODO: Should be easy");
     });
 }
 
