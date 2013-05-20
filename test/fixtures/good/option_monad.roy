@@ -1,19 +1,23 @@
 data Option a = Some a | None
 
+let fromOption d o = match o
+  case (Some a) = a
+  case None = d
+
 let optionMonad = {
   return: λx →
     Some x
   bind: λx f → match x
     case (Some a) = f a
-    case None = None
+    case None = None ()
 }
 
-let m = (do optionMonad
+let someSix = do optionMonad
   x ← Some 1
   let y = 2
   z ← Some 3
   return x + y + z
-)
 
-match m
-  case (Some x) = console.log x
+let six = fromOption 0 someSix
+
+console.log six

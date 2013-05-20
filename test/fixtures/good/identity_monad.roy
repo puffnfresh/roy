@@ -1,0 +1,19 @@
+data Identity a = Id a
+
+let identityReturn x =
+  Id x
+
+let identityBind x f = match x
+  case (Id y) = f y
+
+let identityMonad = {
+  return: \x ->
+    Id x
+  bind: \x f -> match x
+    case (Id y) = f y
+}
+
+do identityMonad
+  a <- Id "Hello"
+  b <- Id "World"
+  return a ++ " " ++ b

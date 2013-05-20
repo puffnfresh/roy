@@ -1,9 +1,7 @@
 module.exports = function(grunt) {
     grunt.initConfig({
         lint: {
-            src: [
-                './src/*.js'
-            ]
+            src: ['./src/*.js']
         },
         jison: {
             './lib/typeparser.js': './src/typegrammar.js',
@@ -13,7 +11,10 @@ module.exports = function(grunt) {
             'roy.js': 'rigger-roy.js'
         },
         jasmine: {
-            src: './test'
+            specs: {
+                src: './test',
+                cache: ['./test', './src']
+            }
         },
         min: {
             'roy-min.js': 'roy.js'
@@ -52,14 +53,10 @@ module.exports = function(grunt) {
         });
     });
 
-    // Watching the task doesn't work. Sadly jasmine-node
-    // executeSpecsInFolder is not idempotent
     grunt.registerMultiTask('jasmine', 'Testing by jasmine.', function() {
         var path = require('path'),
             specDir = this.file.src,
-            badCache = grunt.file.expand(specDir).concat([
-                path.dirname(require.resolve("jasmine-node")),
-            ]),
+            badCache = grunt.utils._.map(this.data.cache || [], function(p) { return path.resolve(p); }),
             jasmine,
             done = this.async(),
             key;
@@ -78,19 +75,17 @@ module.exports = function(grunt) {
         // Not nice (necessary for jasmine-node's asyncSpecWait, etc)
         for(key in jasmine) if(jasmine[key] instanceof Function) global[key] = jasmine[key];
 
-        function onComplete(runner) {
-            if (runner.results().failedCount > 0) {
-                grunt.log.error();
-                return;
-            }
-            done(true);
-        };
-
         jasmine.executeSpecsInFolder({
-            'specFolders': [specDir],
-            'onComplete': onComplete,
-            'isVerbose': false,
-            'showColors': true
+            specFolders: [specDir],
+            regExpSpec: /Comp.*Spec\.js/,
+            onComplete: function(runner) {
+                if (runner.results().failedCount > 0) {
+                    grunt.log.error();
+                }
+                done(true);
+            },
+            isVerbose: true,
+            showColors: true
         });
     });
 

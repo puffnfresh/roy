@@ -19,13 +19,11 @@ function getFreeVariables(node) {
             return node.value.accept(visitor);
         },
         visitFunction: function(node) {
-            var bodyFreeVariables = getFreeVariablesOfBlock(node.body);
+            var bodyFreeVariables = getFreeVariablesOfBlock(node.value);
 
             _.each(node.whereDecls, function(whereDecl) {
                        _.extend(bodyFreeVariables, whereDecl.accept(visitor));
                    });
-
-            delete bodyFreeVariables[node.name];
 
             _.each(node.args, function(arg) {
                        delete bodyFreeVariables[arg.name];
@@ -296,7 +294,6 @@ function getBindingVariables(node) {
 
             return variables;
         },
-        visitFunction: returnName,
         visitInstance: returnName,
         visitBind: returnName,
         visitTag: returnName,
@@ -305,6 +302,7 @@ function getBindingVariables(node) {
 
         // all others don't bind variables in current environment;
         // they bind no variables or bind in their own environment.
+        visitFunction: returnEmpty,
         visitExpression: returnEmpty,
         visitType: returnEmpty,
         visitTypeClass: returnEmpty,

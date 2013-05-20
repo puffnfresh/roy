@@ -18,17 +18,15 @@ describe('compiler', function(){
     }
 
     function expectExecutionToHaveExpectedOutput(s) {
-        var expected = fixtureExpectedOutput(s);
-        var compiled = fixtureCompilerOutput(s);
+        var expected = fixtureExpectedOutput(s),
+            compiled = fixtureCompilerOutput(s),
+            child = child_process.spawn(processBin),
+            actual = '';
 
-        //console.info(compiled);
-
-        var child = child_process.spawn(processBin);
         child.stdin.write(compiled, 'utf8');
         child.stdin.end();
         child.stdout.setEncoding('utf8');
 
-        var actual = '';
         asyncSpecWait();
         child.stdout.on('data', function(d) {
             actual += d;
@@ -53,44 +51,64 @@ describe('compiler', function(){
         it('conditionals.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/conditionals');
         });
-        /*it('deep_matching.roy with expected output', function() {
+        it('deep_matching.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/deep_matching');
-        });*/
-        it('structural_constraints.roy with expected output', function() {
-            expectExecutionToHaveExpectedOutput('good/structural_constraints');
+        });
+        it('nested_structural_constraints.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/nested_structural_constraints');
         });
         it('functions.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/functions');
         });
-        /*it('map.roy with expected output', function() {
+        it('map.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/map');
         });
         it('monoid.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/monoid');
         });
+        it('identity_monad.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/identity_monad');
+        });
         it('option_monad.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/option_monad');
-        });*/
+        });
         it('primitive_types.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/primitive_types');
         });
         it('tagged_unions.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/tagged_unions');
         });
-        /*it('trace_monad.roy with expected output', function() {
+        it('trace_monad.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/trace_monad');
         });
         it('unicode.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/unicode');
-        });*/
+        });
         it('where.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/where');
         });
     });
 
     describe('should not execute', function() {
+        it('case_body.roy with expected output', function() {
+            expect(function() {
+                fixtureCompilerOutput('bad/case_body');
+            }).toThrow();
+        });
+        it('structure_literal_access.roy with expected output', function() {
+            expect(function() {
+                fixtureCompilerOutput('bad/structure_literal_access');
+            }).toThrow();
+        });
+        it('structure_function_access.roy with expected output', function() {
+            expect(function() {
+                fixtureCompilerOutput('bad/structure_function_access');
+            }).toThrow();
+        });
         it('tag_with_extra_arg.roy with expected output', function() {
-            expectExecutionToHaveExpectedOutput('bad/tag_with_extra_arg');
+            expect(function() {
+                expectExecutionToHaveExpectedOutput('bad/tag_with_extra_arg');
+            }).toThrow();
         });
     });
 });

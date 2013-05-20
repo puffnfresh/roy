@@ -31,9 +31,9 @@ describe('constraint generation', function() {
             var state = lib.generate('let x = 100\nx');
             expect(state.assumptions).toEqual({});
             expect(state.constraints.length).toEqual(1);
-            expect(state.constraints[0].a instanceof types.NumberType).toBe(true);
-            expect(state.constraints[0].b instanceof types.Variable).toBe(true);
-            expect(state.constraints[0].m).toEqual([]);
+            expect(state.constraints[0].a instanceof types.Variable).toBe(true);
+            expect(state.constraints[0].b instanceof types.NumberType).toBe(true);
+            expect(state.constraints[0].monomorphic).toEqual([]);
         });
         it('example from "Generalizing Hindley-Milner" paper', function() {
             var state = lib.generate('\\m ->\n  let y = m\n  let x = y true\n  x');

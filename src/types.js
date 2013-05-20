@@ -8,20 +8,20 @@ var _ = require('underscore');
 //     fun id x = x
 //
 // Here, `id` has the polymorphic type `#a -> #a`.
-var Variable = function(idString) {
+function Variable() {
     this.id = Variable.nextId;
     Variable.nextId++;
-};
+}
 Variable.nextId = 0;
 exports.Variable = Variable;
 
-var toChar = function(n) {
+function toChar(n) {
     return String.fromCharCode("a".charCodeAt(0) + n);
-};
+}
 // Type variables should look like `'a`.
 //
 // This is just bijective base 26.
-var variableToString  = function(n) {
+function variableToString(n) {
     var a = '';
     if(n >= 26) {
         a = variableToString(n / 26 - 1);
@@ -29,24 +29,24 @@ var variableToString  = function(n) {
     }
     a += toChar(n);
     return a;
-};
+}
 Variable.prototype.toString = function() {
     return "#" + variableToString(this.id);
 };
 
-var variableFromString = function(vs) {
+function variableFromString(vs) {
     return _.reduce(_.map(vs.split(''), function(v, k) {
         return v.charCodeAt(0) - 'a'.charCodeAt(0) + 26 * k;
     }), function(accum, n) {
         return accum + n;
     }, 0);
-};
+}
 
 // ## Base type
 //
 // Base type for all specific types. Using this type as the prototype allows the
 // use of `instanceof` to detect a type variable or an actual type.
-var BaseType = function() {};
+function BaseType() {}
 BaseType.prototype.toString = function() {
     return this.name;
 };
@@ -56,9 +56,9 @@ exports.BaseType = BaseType;
 //
 // A `FunctionType` contains a `types` array. The last element represents the
 // return type. Each element before represents an argument type.
-var FunctionType = function(types) {
+function FunctionType(types) {
     this.types = types;
-};
+}
 FunctionType.prototype = new BaseType();
 FunctionType.prototype.name = "Function";
 FunctionType.prototype.toString = function() {
@@ -68,24 +68,24 @@ FunctionType.prototype.toString = function() {
 };
 exports.FunctionType = FunctionType;
 
-var NumberType = function() {};
+function NumberType() {}
 NumberType.prototype = new BaseType();
 NumberType.prototype.name = "Number";
 exports.NumberType = NumberType;
 
-var StringType = function() {};
+function StringType() {}
 StringType.prototype = new BaseType();
 StringType.prototype.name = "String";
 exports.StringType = StringType;
 
-var BooleanType = function() {};
+function BooleanType() {}
 BooleanType.prototype = new BaseType();
 BooleanType.prototype.name = "Boolean";
 exports.BooleanType = BooleanType;
 
-var ArrayType = function(type) {
+function ArrayType(type) {
     this.type = type;
-};
+}
 ArrayType.prototype = new BaseType();
 ArrayType.prototype.name = "Array";
 ArrayType.prototype.toString = function() {
@@ -93,9 +93,9 @@ ArrayType.prototype.toString = function() {
 };
 exports.ArrayType = ArrayType;
 
-var ObjectType = function(props) {
+function ObjectType(props) {
     this.props = props;
-};
+}
 ObjectType.prototype = new BaseType();
 ObjectType.prototype.name = "Object";
 ObjectType.prototype.getPropertyType = function(prop) {
@@ -111,33 +111,43 @@ ObjectType.prototype.toString = function() {
 };
 exports.ObjectType = ObjectType;
 
-var TagNameType = function(name) {
-    this.name = name;
+function RowObjectType(row, props) {
+    this.row = row;
+    this.props = props;
+}
+RowObjectType.prototype = new BaseType();
+RowObjectType.prototype.toString = function() {
+    var strs = [];
+    var p;
+    for(p in this.props) {
+        strs.push(p + ': ' + this.props[p].toString());
+    }
+    return '{' + this.row.toString() + ', ' + strs.join(', ') + '}';
 };
-TagNameType.prototype = new BaseType();
-exports.TagNameType = TagNameType;
+exports.RowObjectType = RowObjectType;
 
-var TagType = function(types) {
-    this.types = types;
-    this.name = types[0].toString();
-};
+function TagType(name, vars) {
+    this.name = name;
+    this.vars = vars;
+}
 TagType.prototype = new BaseType();
 TagType.prototype.toString = function() {
-    return _.map(this.types, function(t) {
-        return t.toString();
+    if(!this.vars.length) return this.name;
+    return this.name + ' ' + _.map(this.vars, function(v) {
+        return v.toString();
     }).join(' ');
 };
 exports.TagType = TagType;
 
-var UnitType = function() {};
+function UnitType() {}
 UnitType.prototype = new BaseType();
 UnitType.prototype.name = "Unit";
 exports.UnitType = UnitType;
 
-var TypeClassType = function(name, type) {
+function TypeClassType(name, type) {
     this.name = name;
     this.type = type;
-};
+}
 TypeClassType.prototype = new BaseType();
 TypeClassType.prototype.toString = function() {
     return this.name + ' ' + this.type.toString();

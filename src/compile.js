@@ -89,7 +89,7 @@ var compileNodeWithEnv = function(n, env, opts) {
                 }).join(", ");
             };
             pushIndent();
-            var split = splitComments(n.body);
+            var split = splitComments(n.value);
             var compiledWhereDecls = _.map(n.whereDecls, compileNode);
             var compiledNodeBody = _.map(split.body, compileNode);
             var init = [];
@@ -100,10 +100,6 @@ var compileNodeWithEnv = function(n, env, opts) {
                 init.push(compiledNodeBody.slice(0, compiledNodeBody.length - 1).join(';\n' + getIndent()) + ';');
             }
             var lastString = compiledNodeBody[compiledNodeBody.length - 1];
-            var varEquals = "";
-            if(n.name) {
-                varEquals = "var " + n.name + " = ";
-            }
 
             var compiledEndComments = "";
             if(split.comments.length) {
@@ -112,11 +108,7 @@ var compileNodeWithEnv = function(n, env, opts) {
             var functionString = "function(" + getArgs(n.args) + ") {\n" +
                 getIndent() + joinIndent(init) + "return " + lastString +
                 ";\n" + compiledEndComments + popIndent() + "}";
-            if(varEquals) {
-                return varEquals + functionString;
-            } else {
-                return '(' + functionString + ')';
-            }
+            return '(' + functionString + ')';
         },
         visitIfThenElse: function() {
             var compiledCondition = compileNode(n.condition);
@@ -158,7 +150,19 @@ var compileNodeWithEnv = function(n, env, opts) {
         },
         // Let binding to JavaScript variable.
         visitLet: function() {
-            return "var " + n.name + " = " + compileNode(n.value);
+            pushIndent();
+            var last = compileNode(_.last(n.value));
+            popIndent();
+
+            if(n.value.length == 1) {
+                return "var " + n.name + " = " + last;
+            }
+
+            pushIndent();
+            var init = _.map(_.initial(n.value), compileNode);
+            popIndent();
+
+            return "var " + n.name + " = (function() {\n" + getIndent(1) + init.join(";\n" + getIndent(1)) + ";\n" + getIndent(1) + "return " + last + ";\n" + getIndent() + "})()";
         },
         visitInstance: function() {
             return "var " + n.name + " = " + compileNode(n.object);
@@ -204,20 +208,24 @@ var compileNodeWithEnv = function(n, env, opts) {
             };
             return serialize(n.value);
         },
-        visitReturn: function() {
-            return "__monad__.return(" + compileNode(n.value) + ");";
-        },
-        visitBind: function() {
-            var init = n.rest.slice(0, n.rest.length - 1);
-            var last = n.rest[n.rest.length - 1];
-            return "__monad__.bind(" + compileNode(n.value) +
-                ", function(" + n.name + ") {\n" + pushIndent() +
-                _.map(init, compileNode).join(";\n" + getIndent()) + "\n" +
-                getIndent() + "return " + compileNode(last) + "\n" +
-                popIndent() + "});";
-        },
         visitDo: function() {
-            var compiledInit = [];
+            function compileReturnOrValue(node) {
+                if(node.isReturn)
+                    return "__monad__['return'](" + compileNode(node.value) + ')';
+
+                return compileNode(node);
+            }
+
+            return '(function(__monad__) { ' + _.reduceRight(_.initial(n.body), function(accum, node) {
+                if(!isStatement(node)) {
+                    return 'return __monad__.bind(' +
+                        compileReturnOrValue(node.value) +
+                        ', function(' + (node.isBind ? node.name : '') + ') { ' + accum + '; })';
+                }
+                return compileReturnOrValue(node) + '; ' + accum;
+            }, 'return ' + compileReturnOrValue(_.last(n.body))) + '})(' + compileNode(n.value) + ')';
+
+            /*var compiledInit = [];
             var firstBind;
             var lastBind;
             var lastBindIndex = 0;
@@ -239,11 +247,10 @@ var compileNodeWithEnv = function(n, env, opts) {
             if(lastBind) {
                 lastBind.rest = n.body.slice(lastBindIndex + 1);
             }
-            return "(function(){\n" + pushIndent() + "var __monad__ = " +
-                compileNode(n.value) + ";\n" + getIndent() +
+            return "(function(__monad__){\n" + pushIndent() +
                 (!firstBind ? 'return ' : '') + compiledInit.join(';\n' + getIndent()) + '\n' + getIndent() +
                 (firstBind ? 'return ' + compileNode(firstBind) : '') + "\n" +
-                popIndent() + "})()";
+                popIndent() + "})(" + compileNode(n.value) + ")";*/
         },
         visitTag: function() {
             var args = _.map(n.vars, function(v, i) {
@@ -314,7 +321,7 @@ var compileNodeWithEnv = function(n, env, opts) {
                 var maxTagPath = _.max(tagPaths, function(t) {
                     return t.path.length;
                 });
-                var maxPath = maxTagPath ? maxTagPath.path : [];
+                var maxPath = maxTagPath != -Infinity ? maxTagPath.path : [];
 
                 return {
                     path: maxPath,
@@ -414,21 +421,19 @@ var compileNodeWithEnv = function(n, env, opts) {
 };
 exports.compileNodeWithEnv = compileNodeWithEnv;
 
-var withoutTopLevelStatements = function(ast) {
-    return _.reject(ast, function(n) {
-        return n.accept({
-            visitComment: function() {
-                return true;
-            },
-            visitFunction: function() {
-                return n.name;
-            },
-            visitLet: function() {
-                return true;
-            }
-        });
+function isStatement(node) {
+    return !!node.accept({
+        visitComment: function() {
+            return true;
+        },
+        visitData: function() {
+            return true;
+        },
+        visitLet: function() {
+            return true;
+        }
     });
-};
+}
 
 var compile = function(source, env, aliases, opts) {
     if(!env) env = {};
@@ -444,7 +449,7 @@ var compile = function(source, env, aliases, opts) {
 
     // Typecheck the AST. Any type errors will throw an exception.
     var resultType;
-    if(withoutTopLevelStatements(ast).length) {
+    if(_.reject(ast, isStatement).length) {
         resultType = typecheck(ast);
     }
 
@@ -580,8 +585,8 @@ var nodeRepl = function(opts) {
 
     // Include the standard library
     var fs = require('fs');
-    var prelude = fs.readFileSync(path.dirname(__dirname) + '/lib/prelude.roy', 'utf8');
-    vm.runInNewContext(compile(prelude, env, {}, {nodejs: true}).output, sandbox, 'eval');
+    //var prelude = fs.readFileSync(path.dirname(__dirname) + '/lib/prelude.roy', 'utf8');
+    //vm.runInNewContext(compile(prelude, env, {}, {nodejs: true}).output, sandbox, 'eval');
     repl.setPrompt('roy> ');
     repl.on('close', function() {
         stdin.destroy();

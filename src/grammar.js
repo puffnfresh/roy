@@ -45,7 +45,7 @@ var grammar = {
         ],
         "doLine": [
             ["line", "$$ = $1;"],
-            ["IDENTIFIER LEFTARROW expression", n("$$ = new yy.Bind($1, $3);")],
+            ["IDENTIFIER LEFTARROW doLine", n("$$ = new yy.Bind($1, $3);")],
             ["RETURN expression", n("$$ = new yy.Return($2);")]
         ],
         "doBlock": [
@@ -62,8 +62,8 @@ var grammar = {
         ],
         "expression": [
             ["innerExpression", "$$ = $1;"],
-            ["LAMBDA paramList optType RIGHTARROW expression", n("$$ = new yy.Function(undefined, $2, [$5], $3);")],
-            ["LAMBDA paramList optType RIGHTARROW block", n("$$ = new yy.Function(undefined, $2, $5, $3);")],
+            ["LAMBDA paramList RIGHTARROW expression", n("$$ = new yy.Function($2, [$4]);")],
+            ["LAMBDA paramList RIGHTARROW block", n("$$ = new yy.Function($2, $4);")],
             ["MATCH innerExpression INDENT caseList outdentOrEof", n("$$ = new yy.Match($2, $4);")],
             ["DO innerExpression doBlock", n("$$ = new yy.Do($2, $3);")],
             ["ifThenElse", "$$ = $1;"]
@@ -153,12 +153,12 @@ var grammar = {
             ["MACRO IDENTIFIER = block", n("$$ = new yy.Macro($2, $4);")]
         ],
         "function": [
-            ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Function($1, $2, $5, $3, $6);")],
-            ["IDENTIFIER paramList optType = expression", n("$$ = new yy.Function($1, $2, [$5], $3, []);")]
+            ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Let($1, [new yy.Function($2, $5, $6)], $3);")],
+            ["IDENTIFIER paramList optType = expression", n("$$ = new yy.Let($1, [new yy.Function($2, [$5])], $3);")]
         ],
         "binding": [
-            ["IDENTIFIER optType = expression", n("$$ = new yy.Let($1, $4, $2);")],
-            ["IDENTIFIER optType = INDENT expression outdentOrEof", n("$$ = new yy.Let($1, $5, $2);")]
+            ["IDENTIFIER optType = expression", n("$$ = new yy.Let($1, [$4], $2);")],
+            ["IDENTIFIER optType = block", n("$$ = new yy.Let($1, $4, $2);")]
         ],
         "paramList": [
             ["( )", "$$ = [];"],
@@ -184,8 +184,8 @@ var grammar = {
         ],
         "whereDecl": [
             ["dataDecl", "$$ = $1;"],
-            ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Function($1, $2, $5, $3, $6);")],
-            ["IDENTIFIER paramList optType = expression", n("$$ = new yy.Function($1, $2, [$5], $3, []);")]
+            ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Let($1, [new yy.Function($2, $5, $6)], $3);")],
+            ["IDENTIFIER paramList optType = expression", n("$$ = new yy.Let($1, [new yy.Function($2, [$5])], $3);")]
         ],
 
         "call": [

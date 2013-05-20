@@ -1,0 +1,6 @@
+data XYZ a b c = Z a b c
+
+// case identifier `c` should be a String, case body uses as Number.
+
+match (Z 1 true "three")
+  case (Z a b c) = c + 3

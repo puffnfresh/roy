@@ -20,13 +20,11 @@ exports.nodes = {
             }
         };
     },
-    Function: function(name, args, body, type, whereDecls) {
-        this.name = name;
+    Function: function(args, value, whereDecls) {
         this.args = args;
-        this.body = body;
+        this.value = value;
 
         // Optional
-        this.type = type;
         this.whereDecls = whereDecls || [];
 
         this.accept = function(a) {
@@ -125,8 +123,11 @@ exports.nodes = {
             }
         };
     },
+    // TODO REMOVE
     Return: function(value) {
         this.value = value;
+
+        this.isReturn = true;
 
         this.accept = function(a) {
             if(a.visitReturn) {
@@ -134,9 +135,12 @@ exports.nodes = {
             }
         };
     },
+    // TODO REMOVE
     Bind: function(name, value) {
         this.name = name;
         this.value = value;
+
+        this.isBind = true;
 
         // Set in compile stage
         this.rest = [];
@@ -167,6 +171,7 @@ exports.nodes = {
             }
         };
     },
+    // TODO REMOVE
     Case: function(pattern, value) {
         this.pattern = pattern;
         this.value = value;
