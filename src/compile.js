@@ -748,13 +748,19 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             };
         },
         visitObject: function() {
-            var key, pairs = [];
+            var cleanedKey, key, pairs = [];
+
             for(key in n.values) {
+                if (key[0] === "'" || key[0] === '"') {
+                    cleanedKey = String.prototype.slice.call(key, 1, key.length-1);
+                } else {
+                    cleanedKey = key;
+                }
                 pairs.push({
                     type: "Property",
                     key: {
                         type: "Literal",
-                        value: key
+                        value: cleanedKey
                     },
                     value: compileNode(n.values[key])
                 });
