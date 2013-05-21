@@ -196,11 +196,15 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
         visitInstance: function() {
             return {
                 type: "VariableDeclaration",
-                id: {
-                    type: "Identifier",
-                    name: n.name
-                },
-                init: compileNode(n.object)
+                kind: "var",
+                declarations: [{
+                    type: "VariableDeclarator",
+                    id: {
+                        type: "Identifier",
+                        name: n.name
+                    },
+                    init: compileNode(n.object)
+                }]
             };
         },
         visitAssignment: function() {
@@ -558,7 +562,10 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
         visitCall: function() {
             var args = _.map(n.args, compileNode);
             if (n.typeClassInstance) {
-                args.unshift(compileNode(n.typeClassInstance));
+                args.unshift({
+                    type: "Identifier",
+                    name: n.typeClassInstance
+                });
             }
 
             return {
