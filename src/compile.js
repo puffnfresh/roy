@@ -833,7 +833,7 @@ var compile = function(source, env, aliases, opts) {
             }
             outputLine += lineCount;
 
-            output.push(compiled + (v instanceof nodes.Comment ? '' : ';'));
+            output.push(compiled);
         }
     });
 
