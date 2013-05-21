@@ -749,8 +749,9 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                 pairs.push({
                     type: "Property",
                     key: {
-                        type: "Identifier",
-                        name: key
+                        type: "Literal",
+                        value: key,
+                        raw: JSON.stringify(key)
                     },
                     value: compileNode(n.values[key])
                 });
