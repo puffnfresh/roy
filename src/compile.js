@@ -778,9 +778,12 @@ var compileNodeWithEnv = function (n, env, opts) {
     if (typeof ast === "string") {
         console.warn("Got AST already transformed into string: ", ast);
         return ast;
+    } else if (typeof ast === "undefined") {
+        return "";
+    } else {
+        var generated = escodegen.generate(ensureJsASTStatement(ast));
+        return generated;
     }
-    var generated = escodegen.generate(ensureJsASTStatement(ast));
-    return generated;
 };
 exports.compileNodeWithEnv = compileNodeWithEnv;
 
