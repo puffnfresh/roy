@@ -774,7 +774,7 @@ var compileNodeWithEnv = function (n, env, opts) {
         console.warn("Got AST already transformed into string: ", ast);
         return ast;
     }
-    var generated = escodegen.generate(ast);
+    var generated = escodegen.generate(ensureJsASTStatement(ast));
     return generated;
 };
 exports.compileNodeWithEnv = compileNodeWithEnv;
