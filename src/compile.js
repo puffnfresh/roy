@@ -220,23 +220,20 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
         },
         visitReturn: function() {
             return {
-                type: "ExpressionStatement",
-                expression: {
-                    type: "CallExpression",
-                    callee: {
-                        type: "MemberExpression",
-                        computed: false,
-                        object: {
-                            type: "Identifier",
-                            name: "__monad__"
-                        },
-                        property: {
-                            type: "Identifier",
-                            name: "return"
-                        }
+                type: "CallExpression",
+                callee: {
+                    type: "MemberExpression",
+                    computed: false,
+                    object: {
+                        type: "Identifier",
+                        name: "__monad__"
                     },
-                    "arguments": [compileNode(n.value)]
-                }
+                    property: {
+                        type: "Identifier",
+                        name: "return"
+                    }
+                },
+                "arguments": [compileNode(n.value)]
             };
         },
         visitBind: function() {
@@ -266,7 +263,10 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                         type: "Identifier",
                         name: n.name
                     }],
-                    body: body
+                    body: {
+                        type: "BlockStatement",
+                        body: _.map(body, ensureJsASTStatement)
+                    }
                 }]
             };
         },
@@ -293,22 +293,26 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             if(lastBind) {
                 lastBind.rest = n.body.slice(lastBindIndex + 1);
             }
-            var body = {
-                type: "BlockStatement",
-                body: [{
-                    type: "VariableDeclaration",
-                    kind: "var",
-                    declarations: [{
-                        type: "VariableDeclarator",
-                        id: {
-                            type: "Identifier",
-                            name: "__monad__"
-                        },
-                        init: compileNode(n.value)
-                    }]
+            var monadDecl = {
+                type: "VariableDeclaration",
+                kind: "var",
+                declarations: [{
+                    type: "VariableDeclarator",
+                    id: {
+                        type: "Identifier",
+                        name: "__monad__"
+                    },
+                    init: compileNode(n.value)
                 }]
             };
-            body.body = compiledInit.concat(body.body);
+            var body = {
+                type: "BlockStatement",
+                body: []
+            };
+            body.body = _.flatten([monadDecl, compiledInit, {
+                type: "ReturnStatement",
+                argument: compileNode(firstBind)
+            }]);
             return {
                 type: "CallExpression",
                 "arguments": [],
