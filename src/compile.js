@@ -433,7 +433,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                                 }];
                             },
                             visitPattern: function() {
-                                return getVars(a, nextVarPath);
+                                return getVars(a, nextVarPath).declarations;
                             }
                         });
                     });
@@ -466,15 +466,14 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                 };
                 var tagPaths = getTagPaths(c.pattern, []);
                 var makeCondition = function (e) {
-                    var last = e.path.pop();
                     var pieces = _.reduceRight(e.path, function (structure, piece) {
                         return {
                             type: "MemberExpression",
                             computed: false,
-                            object: { type: "Identifier", name: "_" + piece },
-                            property: structure
+                            object: structure,
+                            property: { type: "Identifier", name: "_" + piece }
                         };
-                    }, { type: "Identifier", name: "_" + last });
+                    }, { type: "Identifier", name: valuePlaceholder });
                     return {
                         type: "BinaryExpression",
                         operator: "instanceof",
