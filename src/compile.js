@@ -767,6 +767,7 @@ exports.compileNodeWithEnvToJsAST = compileNodeWithEnvToJsAST;
 var compileNodeWithEnv = function (n, env, opts) {
     var ast = compileNodeWithEnvToJsAST(n, env, opts);
     if (typeof ast === "string") {
+        console.warn("Got AST already transformed into string: ", ast);
         return ast;
     }
     var generated = escodegen.generate(ast);
