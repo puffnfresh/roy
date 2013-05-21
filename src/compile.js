@@ -394,33 +394,48 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             };
         },
         visitMatch: function() {
+            valuePlaceholder = '__match';
             var flatMap = function(a, f) {
                 return _.flatten(_.map(a, f));
             };
 
-            var compiledValue = compileNode(n.value);
-            var valuePlaceholder = '_m';
-
             var pathConditions = _.map(n.cases, function(c) {
                 var getVars = function(pattern, varPath) {
-                    return flatMap(pattern.vars, function(a, i) {
+                    var decls = flatMap(pattern.vars, function(a, i) {
                         var nextVarPath = varPath.slice();
                         nextVarPath.push(i);
 
                         return a.accept({
                             visitIdentifier: function() {
+
                                 if(a.value == '_') return [];
 
-                                var accessors = _.map(nextVarPath, function(x) {
-                                    return "._" + x;
-                                }).join('');
-                                return ["var " + a.value + " = " + valuePlaceholder + accessors + ";"];
+                                var value = _.reduceRight(nextVarPath, function(structure, varPathName) {
+                                    return {
+                                        type: "MemberExpression",
+                                        computed: false,
+                                        object: structure,
+                                        property: { type: "Identifier", name: "_" + varPathName }
+                                    };
+                                }, { type: "Identifier", name: valuePlaceholder });
+                                return [{
+                                    type: "VariableDeclarator",
+                                    id: { type: "Identifier", name: a.value },
+                                    init: value
+                                }];
                             },
                             visitPattern: function() {
                                 return getVars(a, nextVarPath);
                             }
                         });
                     });
+                    if (decls.length) {
+                        return {
+                            type: "VariableDeclaration",
+                            kind: "var",
+                            declarations: decls
+                        };
+                    }
                 };
                 var vars = getVars(c.pattern, []);
 
@@ -442,9 +457,35 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                     });
                 };
                 var tagPaths = getTagPaths(c.pattern, []);
-                var extraConditions = _.map(tagPaths, function(e) {
-                    return ' && ' + valuePlaceholder + '._' + e.path.join('._') + ' instanceof ' + e.tag.value;
-                }).join('');
+                var makeCondition = function (e) {
+                    var last = e.path.pop();
+                    var pieces = _.reduceRight(e.path, function (structure, piece) {
+                        return {
+                            type: "MemberExpression",
+                            computed: false,
+                            object: { type: "Identifier", name: "_" + piece },
+                            property: structure
+                        };
+                    }, { type: "Identifier", name: "_" + last });
+                    return {
+                        type: "BinaryExpression",
+                        operator: "instanceof",
+                        left: pieces,
+                        right: { type: "Identifier", name: e.tag.value }
+                    };
+                };
+                var extraConditions = null;
+                if (tagPaths.length) {
+                    var lastCondition = makeCondition(tagPaths.pop());
+                    extraConditions = _.reduceRight(tagPaths, function(conditions, e) {
+                        return {
+                            type: "LogicalExpression",
+                            operator: "&&",
+                            left: e,
+                            right: conditions
+                        };
+                    }, lastCondition);
+                }
 
                 // More specific patterns need to appear first
                 // Need to sort by the length of the path
@@ -453,12 +494,39 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                 });
                 var maxPath = maxTagPath ? maxTagPath.path : [];
 
+                var body = [];
+                if (vars) {
+                    body.push(vars);
+                }
+                body.push({
+                    type: "ReturnStatement",
+                    argument: compileNode(c.value)
+                });
+                var test = {
+                    type: "BinaryExpression",
+                    operator: "instanceof",
+                    left: { type: "Identifier", name: valuePlaceholder },
+                    right: { type: "Identifier", name: c.pattern.tag.value }
+                };
+                if (extraConditions) {
+                    test = {
+                        type: "LogicalExpression",
+                        operator: "&&",
+                        left: test,
+                        right: extraConditions
+                    };
+                }
                 return {
                     path: maxPath,
-                    condition: "if(" + valuePlaceholder + " instanceof " + c.pattern.tag.value +
-                        extraConditions + ") {\n" + getIndent(2) +
-                        joinIndent(vars, 2) + "return " + compileNode(c.value) +
-                        ";\n" + getIndent(1) + "}"
+                    condition: {
+                        type: "IfStatement",
+                        test: test,
+                        consequent: {
+                            type: "BlockStatement",
+                            body: _.map(body, ensureJsASTStatement)
+                        },
+                        alternate: null
+                    }
                 };
             });
 
@@ -468,7 +536,19 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                 return e.condition;
             });
 
-            return "(function(" + valuePlaceholder + ") {\n" + getIndent(1) + cases.join(" else ") + "\n" + getIndent() + "})(" + compiledValue + ")";
+            return {
+                type: "CallExpression",
+                "arguments": [compileNode(n.value)],
+                callee: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [{ type: "Identifier", name: valuePlaceholder }],
+                    body: {
+                        type: "BlockStatement",
+                        body: _.map(cases, ensureJsASTStatement)
+                    }
+                }
+            };
         },
         // Call to JavaScript call.
         visitCall: function() {
