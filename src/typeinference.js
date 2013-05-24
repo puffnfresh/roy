@@ -13,7 +13,7 @@ function EqualityConstraint(a, b, node) {
     this.b = b;
     this.node = node;
 
-    this.fold = function(f, _a, _b) {
+    this.cata = function(f, _a, _b, _c) {
         return f(this);
     };
 }
@@ -25,7 +25,7 @@ function ImplicitConstraint(a, b, monomorphic, node) {
     this.monomorphic = monomorphic;
     this.node = node;
 
-    this.fold = function(_a, f, _b) {
+    this.cata = function(_a, f, _b, _c) {
         return f(this);
     };
 }
@@ -36,9 +36,24 @@ function ExplicitConstraint(a, scheme, node) {
     this.scheme = scheme;
     this.node = node;
 
-    this.fold = function(_a, _b, f) {
+    this.cata = function(_a, _b, f, _c) {
         return f(this);
     };
+}
+
+// #### Predicate constraints
+function PredicateConstraint(a, b) {
+    this.a = a;
+    this.b = b;
+
+    this.cata = function(_a, _b, _c, f) {
+        return f(this);
+    };
+}
+
+function TypeClassPredicate(instances, type) {
+    this.instances = instances;
+    this.type = type;
 }
 
 // ### Type scheme
@@ -161,9 +176,14 @@ function generate(nodes, monomorphic) {
     var stateType = node.accept({
         visitIdentifier: function() {
             var type = new t.Variable(),
+                predicates = new t.Variable(),
                 assumptions = {};
 
-            assumptions[node.value] = [type];
+            assumptions[node.value] = [{
+                node: node,
+                predicates: predicates,
+                type: type
+            }];
 
             return recurseIfMoreNodes(new StateType(
                 InferenceState
@@ -212,7 +232,7 @@ function generate(nodes, monomorphic) {
                     _.each(v, function(assumption) {
                         constraintsFromAssumptions.push(
                             new EqualityConstraint(
-                                assumption,
+                                assumption.type,
                                 types[index],
                                 node
                             )
@@ -234,7 +254,9 @@ function generate(nodes, monomorphic) {
         },
         visitLet: function() {
             var value = generate(node.value, monomorphic),
+                predicates = [],
                 body,
+                name,
                 assumptionsWithoutLet,
                 constraintsFromLet,
                 result;
@@ -246,6 +268,12 @@ function generate(nodes, monomorphic) {
                 );
             }
 
+            for(name in value.state.assumptions) {
+                predicates = [].concat.apply(predicates, _.map(value.state.assumptions[name], function(a) {
+                    return a.predicates;
+                }));
+            }
+
             body = generate(nodesWithoutComments.slice(1), monomorphic);
             assumptionsWithoutLet = _.omit(
                 body.state.assumptions,
@@ -254,7 +282,7 @@ function generate(nodes, monomorphic) {
             constraintsFromLet =
                 _.map(body.state.assumptions[node.name] || [], function(assumption) {
                     return new ImplicitConstraint(
-                        assumption,
+                        assumption.type,
                         value.type,
                         monomorphic,
                         node
@@ -314,7 +342,7 @@ function generate(nodes, monomorphic) {
                     body.state.assumptions[tag.name] || [],
                     function(assumption) {
                         return new ImplicitConstraint(
-                            assumption,
+                            assumption.type,
                             new t.FunctionType(_.values(args).concat(tagType)),
                             monomorphic,
                             node
@@ -369,7 +397,7 @@ function generate(nodes, monomorphic) {
                             caseValueStateType.state.assumptions[varName.value] || [],
                             function(assumption) {
                                 return new EqualityConstraint(
-                                    assumption,
+                                    assumption.type,
                                     patternType.types[accum.index],
                                     node
                                 );
@@ -467,7 +495,7 @@ function generate(nodes, monomorphic) {
                         function(assumption) {
                             return [
                                 new EqualityConstraint(
-                                    assumption,
+                                    assumption.type,
                                     bindFunctionInput,
                                     node
                                 ),
@@ -602,16 +630,24 @@ function generate(nodes, monomorphic) {
 
         visitTypeClass: function() {
             var body = generate(nodesWithoutComments.slice(1), monomorphic),
+                vars = {},
                 typeClassVariable = nodeToType(node.generic, vars),
-                memberConstraints = [],
-                vars = {};
+                predicateConstraints = [],
+                memberConstraints = [];
 
             _.each(node.types, function(v, k) {
                 var describedType = nodeToType(v, _.clone(vars));
-                _.each(body.state.assumptions[k], function(t) {
+                _.each(body.state.assumptions[k], function(assumption) {
+                    // Should solve member constraint before predicate
+                    // constraint.
+                    predicateConstraints.push(new PredicateConstraint(
+                        assumption.node,
+                        new TypeClassPredicate(body.state.instances[node.name], typeClassVariable)
+                    ));
+
                     memberConstraints.push(new EqualityConstraint(
                         describedType,
-                        t,
+                        assumption.type,
                         node
                     ));
                 });
@@ -619,6 +655,7 @@ function generate(nodes, monomorphic) {
 
             return recurseIfMoreNodes(new StateType(
                 body.state
+                    .withConstraints(predicateConstraints)
                     .withConstraints(memberConstraints),
                 body.type
             ));
@@ -769,6 +806,19 @@ function nodeToType(node, vars) {
             return new t.FunctionType(_.map(node.args, recurse));
         },
         visitTypeName: function() {
+            if(!node.args.length) {
+                switch(node.value) {
+                case 'String':
+                    return new t.StringType();
+                case 'Number':
+                    return new t.NumberType();
+                case 'Boolean':
+                    return new t.BooleanType();
+                case 'Unit':
+                    return new t.UnitType();
+                }
+            }
+            // TODO: Lookup name from aliases and data
             throw new Error("TODO #1: visitTypeName");
         },
         visitTypeArray: function() {
@@ -791,7 +841,7 @@ function isSolvable(constraints) {
     return !_.find(tails(constraints), function(tail) {
         var constraint = tail[0],
             rest = tail.slice(1),
-            solvable = constraint.fold(function() {
+            solvable = constraint.cata(function() {
                 // Equality
                 return true;
             }, function() {
@@ -806,6 +856,9 @@ function isSolvable(constraints) {
             }, function() {
                 // Explicit
                 return true;
+            }, function() {
+                // Predicate
+                return true;
             });
 
         return !solvable;
@@ -818,10 +871,12 @@ function solve(constraints) {
     // TODO: Don't use bogosort.
     var solvableConstraints = (function() {
             var groupedConstraints = _.groupBy(constraints, function(constraint) {
-                    return constraint.fold(function() {
+                    return constraint.cata(function() {
                         return 'other';
                     }, function() {
                         return 'implicit';
+                    }, function() {
+                        return 'other';
                     }, function() {
                         return 'other';
                     });
@@ -844,7 +899,7 @@ function solve(constraints) {
         throw new Error('Unsolvable constraints');
 
     constraint = solvableConstraints[0];
-    return constraint.fold(function() {
+    return constraint.cata(function() {
         // Equality constraints
         // Use the Most General Unifier (mgu)
         var m = mostGeneralUnifier(constraint.a, constraint.b, constraint.node),
@@ -870,6 +925,21 @@ function solve(constraints) {
             instantiate(constraint.scheme),
             constraint.node
         )].concat(rest));
+    }, function() {
+        // Predicate constraint
+        var s = solve(rest),
+            a = typeSubstitute(s, constraint.b.type),
+            name,
+            b;
+
+        for(name in constraint.b.instances) {
+            b = nodeToType(constraint.b.instances[name].typeName);
+            mostGeneralUnifier(a, b);
+            constraint.a.typeClassInstance = name;
+            return s;
+        }
+
+        throw new TypeError('Could not find an instance of URGH for ' + a.toString());
     });
 }
 
@@ -955,9 +1025,6 @@ function mostGeneralUnifier(a, b, node) {
     } else if(a instanceof t.ArrayType && b instanceof t.ArrayType) {
         return mostGeneralUnifier(a.type, b.type);
     } else if(a instanceof t.TagType && b instanceof t.TagType && a.name == b.name && a.vars.length == b.vars.length) {
-        if(!a.vars.length)
-            return {};
-
         return _.reduce(_.range(a.vars.length), function(accum, i) {
             return _.extend(
                 accum,
@@ -975,7 +1042,7 @@ function mostGeneralUnifier(a, b, node) {
 }
 
 function active(constraint) {
-    return constraint.fold(function() {
+    return constraint.cata(function() {
         // Equality
         return _.union(
             free(constraint.a),
@@ -999,11 +1066,14 @@ function active(constraint) {
                 constraint.scheme.s
             )
         );
+    }, function() {
+        // Predicate
+        throw new Error("TODO");
     });
 }
 
 function constraintSubstitute(substitutions, constraint) {
-    return constraint.fold(function() {
+    return constraint.cata(function() {
         return new EqualityConstraint(
             typeSubstitute(substitutions, constraint.a),
             typeSubstitute(substitutions, constraint.b),
@@ -1021,6 +1091,15 @@ function constraintSubstitute(substitutions, constraint) {
             typeSubstitute(substitutions, constraint.a),
             schemeSubstitute(substitutions, constraint.scheme),
             constraint.node
+        );
+    }, function() {
+        return new PredicateConstraint(
+            constraint.a,
+            {
+                instances: constraint.b.instances,
+                predicates: constraint.b.predicates,
+                type: typeSubstitute(substitutions, constraint.b.type)
+            }
         );
     });
 }
@@ -1086,10 +1165,6 @@ function typecheck(nodes) {
     var stateType = generate(nodes),
         constraints = stateType.state.constraints,
         substitutions = solve(constraints);
-
-    _.each(substitutions, function(v, k) {
-        console.log(k, v.toString());
-    });
 
     return typeSubstitute(substitutions, stateType.type);
 }
