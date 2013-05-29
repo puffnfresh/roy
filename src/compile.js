@@ -51,6 +51,44 @@ var splitComments = function(body) {
         return accum;
     }, []);
 };
+// Ensure comments are attached to a statement where possible
+var liftComments = function (jsAst) {
+    var helper = function (node) {
+        var result, i, comments = [];
+        if (! (node && node.type)) {
+            // Break out early when we're not looking at a proper node
+            return [node, comments];
+        }
+        for (var key in node) if (node.hasOwnProperty(key)) {
+            if (key === "leadingComments" && /Expression$/.test(node.type)) {
+                // Lift comments from expressions
+                comments = comments.concat(node[key]);
+                delete node[key];
+            } else if (node[key] && node[key].type) {
+                // Recurse into child nodes...
+                result = helper(node[key]);
+                comments = comments.concat(result[1]);
+            } else if (node[key] && node[key].length) {
+                // ...and arrays of nodes
+                for (i = 0; i < node[key].length; i += 1) {
+                    result = helper(node[key][i]);
+                    node[key][i] = result[0];
+                    comments = comments.concat(result[1]);
+                }
+            }
+        }
+        if (! /Expression$/.test(node.type) && comments.length) {
+            // Attach lifted comments to statement nodes
+            if (typeof node.leadingComments === "undefined") {
+                node.leadingComments = [];
+            }
+            node.leadingComments = node.leadingComments.concat(comments);
+            comments = [];
+        }
+        return [node, comments];
+    };
+    return helper(jsAst)[0];
+};
 
 // Compile an abstract syntax tree (AST) node to JavaScript.
 var indent = 0;
@@ -794,6 +832,7 @@ var compileNodeWithEnv = function (n, env, opts) {
     } else if (typeof ast === "undefined") {
         return "";
     } else {
+        ast = liftComments(ast);
         var generated = escodegen.generate(ensureJsASTStatement(ast), {comment: true});
         return generated;
     }
