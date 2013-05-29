@@ -233,7 +233,7 @@ exports.nodes = {
         };
     },
     Comment: function(value) {
-        this.value = value;
+        this.value = value.slice(2); // Remove the slashes, because escodegen adds those back for us
 
         this.accept = function(a) {
             if(a.visitComment) {

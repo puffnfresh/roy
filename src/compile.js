@@ -40,16 +40,16 @@ var ensureJsASTStatement = function (node) {
 // Separate end comments from other expressions
 var splitComments = function(body) {
     return _.reduceRight(body, function(accum, node) {
-        if(!accum.body.length && node instanceof nodes.Comment) {
-            accum.comments.unshift(node);
+        if(accum.length && node instanceof nodes.Comment) {
+            if (! accum[0].comments) {
+                accum[0].comments = [];
+            }
+            accum[0].comments.unshift(node);
             return accum;
         }
-        accum.body.unshift(node);
+        accum.unshift(node);
         return accum;
-    }, {
-        body: [],
-        comments: []
-    });
+    }, []);
 };
 
 // Compile an abstract syntax tree (AST) node to JavaScript.
@@ -87,7 +87,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
     var compileNode = function(n) {
         return compileNodeWithEnvToJsAST(n, env);
     };
-    return n.accept({
+    var result = n.accept({
         // Function definition to JavaScript function.
         visitFunction: function() {
             var body = {
@@ -99,7 +99,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                     body.body.push(compileNode(w));
                 });
             }
-            var exprsWithoutComments = _.map(splitComments(n.body).body, compileNode);
+            var exprsWithoutComments = _.map(splitComments(n.body), compileNode);
             exprsWithoutComments.push({
                 type: "ReturnStatement",
                 argument: exprsWithoutComments.pop()
@@ -133,7 +133,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             };
         },
         visitIfThenElse: function() {
-            var ifTrue = _.map(splitComments(n.ifTrue).body, compileNode);
+            var ifTrue = _.map(splitComments(n.ifTrue), compileNode);
             if (ifTrue.length) {
                 ifTrue.push({
                     type: "ReturnStatement",
@@ -142,7 +142,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             }
             ifTrue = _.map(ifTrue, ensureJsASTStatement);
 
-            var ifFalse = _.map(splitComments(n.ifFalse).body, compileNode);
+            var ifFalse = _.map(splitComments(n.ifFalse), compileNode);
             if (ifFalse.length) {
                 ifFalse.push({
                     type: "ReturnStatement",
@@ -693,9 +693,6 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             };
         },
         // Print all other nodes directly.
-        visitComment: function() {
-            return n.value;
-        },
         visitIdentifier: function() {
             if(n.typeClassInstance) {
                 return {
@@ -777,6 +774,16 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             };
         }
     });
+    if (n.comments && n.comments.length) {
+        result.leadingComments = _.map(n.comments, function (c) {
+            var lines = c.value.split(/\r\n|\r|\n/g);
+            return {
+                type: lines.length > 1 ? "Block" : "Line",
+                value: c.value
+            };
+        });
+    }
+    return result;
 };
 exports.compileNodeWithEnvToJsAST = compileNodeWithEnvToJsAST;
 var compileNodeWithEnv = function (n, env, opts) {
@@ -787,7 +794,7 @@ var compileNodeWithEnv = function (n, env, opts) {
     } else if (typeof ast === "undefined") {
         return "";
     } else {
-        var generated = escodegen.generate(ensureJsASTStatement(ast));
+        var generated = escodegen.generate(ensureJsASTStatement(ast), {comment: true});
         return generated;
     }
 };
