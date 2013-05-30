@@ -38,7 +38,7 @@ describe('compiler', function(){
     }
 
     it('should preserve comments', function(){
-        expect(compilerOutput('// HELLO')).toEqual('// HELLO\n');
+        expect(compilerOutput('// HELLO\nconsole.log 123')).toEqual('// HELLO\nconsole.log(123);');
     });
 
     it('should only execute a match expression once', function(){
