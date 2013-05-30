@@ -36,6 +36,20 @@ var ensureJsASTStatement = function (node) {
     }
     return node;
 };
+var ensureJsASTStatements = function (nodes) {
+    if (typeof nodes.length !== "undefined") {
+        return _.map(
+            _.filter(nodes, function (x) {
+                // console.log("x:", x);
+                // console.log("typeof x:", typeof x);
+                return typeof x !== "undefined";
+            }),
+            ensureJsASTStatement
+        );
+    } else {
+        throw new Error("ensureJsASTStatements wasn't given an Array, got " + nodes + " (" + typeof nodes + ")");
+    }
+};
 
 // Separate end comments from other expressions
 var splitComments = function(body) {
@@ -142,7 +156,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                 type: "ReturnStatement",
                 argument: exprsWithoutComments.pop()
             });
-            body.body = _.map(body.body.concat(exprsWithoutComments), ensureJsASTStatement);
+            body.body = ensureJsASTStatements(body.body.concat(exprsWithoutComments));
             var func = {
                 type: "FunctionExpression",
                 id: null,
@@ -178,7 +192,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                     argument: ifTrue.pop()
                 });
             }
-            ifTrue = _.map(ifTrue, ensureJsASTStatement);
+            ifTrue = ensureJsASTStatements(ifTrue);
 
             var ifFalse = _.map(splitComments(n.ifFalse), compileNode);
             if (ifFalse.length) {
@@ -187,7 +201,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                     argument: ifFalse.pop()
                 });
             }
-            ifFalse = _.map(ifFalse, ensureJsASTStatement);
+            ifFalse = ensureJsASTStatements(ifFalse);
 
             var funcBody = [{
                 type: "IfStatement",
@@ -307,7 +321,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                     }],
                     body: {
                         type: "BlockStatement",
-                        body: _.map(body, ensureJsASTStatement)
+                        body: ensureJsASTStatements(body)
                     }
                 }]
             };
@@ -426,7 +440,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             setters.unshift(constructorCheck);
             var constructorBody = {
                 type: "BlockStatement",
-                body: _.map(setters, ensureJsASTStatement)
+                body: ensureJsASTStatements(setters)
             };
             return {
                 type: "VariableDeclarator",
@@ -568,7 +582,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                         test: test,
                         consequent: {
                             type: "BlockStatement",
-                            body: _.map(body, ensureJsASTStatement)
+                            body: ensureJsASTStatements(body)
                         },
                         alternate: null
                     }
@@ -590,7 +604,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                     params: [{ type: "Identifier", name: valuePlaceholder }],
                     body: {
                         type: "BlockStatement",
-                        body: _.map(cases, ensureJsASTStatement)
+                        body: ensureJsASTStatements(cases)
                     }
                 }
             };
@@ -726,7 +740,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                         { type: "Identifier", name: "__l__" },
                         { type: "Identifier", name: "__r__" }
                     ],
-                    body: { type: "BlockStatement", body: _.map(funcBody, ensureJsASTStatement) }
+                    body: { type: "BlockStatement", body: ensureJsASTStatement(funcBody) }
                 }
             };
         },
