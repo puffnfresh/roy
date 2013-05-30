@@ -1,4 +1,13 @@
 exports.nodes = {
+    Module: function (body) {
+        this.body = body;
+
+        this.accept = function(a) {
+            if(a.visitModule) {
+                return a.visitModule(this);
+            }
+        };
+    },
     Arg: function(name, type) {
         this.name = name;
 

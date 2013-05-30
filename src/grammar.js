@@ -20,10 +20,10 @@ var grammar = {
 
     "bnf": {
         "program": [
-            ["EOF", "return [];"],
-            ["SHEBANG TERMINATOR body EOF", "return $3;"],
-            ["SHEBANG TERMINATOR EOF", "return [];"],
-            ["body EOF", "return $1;"]
+            ["EOF", "return new yy.Module([]);"],
+            ["SHEBANG TERMINATOR body EOF", "return new yy.Module($3);"],
+            ["SHEBANG TERMINATOR EOF", "return new yy.Module([]);"],
+            ["body EOF", "return new yy.Module($1);"]
         ],
         "body": [
             ["line", "$$ = [$1];"],

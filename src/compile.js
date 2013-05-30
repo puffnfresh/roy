@@ -140,6 +140,14 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
         return compileNodeWithEnvToJsAST(n, env);
     };
     var result = n.accept({
+        // Top level file
+        visitModule: function() {
+            var nodes = _.map(splitComments(n.body), compileNode);
+            return {
+                type: "Program",
+                body: ensureJsASTStatements(nodes)
+            };
+        },
         // Function definition to JavaScript function.
         visitFunction: function() {
             var body = {
@@ -865,61 +873,53 @@ var compile = function(source, env, aliases, opts) {
     var ast = parser.parse(tokens);
 
     // Typecheck the AST. Any type errors will throw an exception.
-    var resultType = typecheck(ast, env, aliases);
+    var resultType = typecheck(ast.body, env, aliases);
 
     // Export types
-    ast = _.map(ast, function(n) {
+    ast.body = _.map(ast.body, function(n) {
         if(n instanceof nodes.Call && n.func.value == 'export') {
             return exportType(n.args[0], env, opts.exported, opts.nodejs);
         }
         return n;
     });
 
-    var output = [];
-
-    if(!opts.nodejs) {
-        output.push("(function() {");
-    }
-
-    if(opts.strict) {
-        output.push('"use strict";');
-    }
-
-    var outputLine = output.length + 1;
-    _.each(ast, function(v) {
-        var compiled = compileNodeWithEnv(v, env, opts),
-            j, lineCount;
-
-        if(compiled) {
-            lineCount = compiled.split('\n').length;
-
-            if(opts.sourceMap && v.lineno > 1) {
-                opts.sourceMap.addMapping({
-                    source: opts.filename,
-                    original: {
-                        line: v.lineno,
-                        column: 0
-                    },
-                    generated: {
-                        line: outputLine,
-                        column: 0
+    var jsAst = liftComments(compileNodeWithEnvToJsAST(ast, env, opts));
+    if (!opts.nodejs) {
+        jsAst.body = [{
+            type: "ExpressionStatement",
+            expression: {
+                type: "CallExpression",
+                'arguments': [],
+                callee: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [],
+                    body: {
+                        type: "BlockStatement",
+                        body: jsAst.body
                     }
-                });
+                }
             }
-            outputLine += lineCount;
+        }];
+    }
 
-            output.push(compiled);
-        }
-    });
+    if (opts.strict) {
+        jsAst.body.unshift({
+            type: "ExpressionStatement",
+            expression: {
+                type: "Literal",
+                value: "use strict"
+            }
+        });
+    }
+
+    var output = escodegen.generate(ensureJsASTStatement(jsAst), {comment: true});
 
     if(!opts.nodejs) {
         output.push("})();");
     }
 
-    // Add a newline at the end
-    output.push("");
-
-    return {type: resultType, output: output.join('\n')};
+    return {type: resultType, output: output};
 };
 exports.compile = compile;
 
