@@ -1165,6 +1165,7 @@ var processFlags = function(argv, opts) {
     case "--help":
         console.log("Roy: " + opts.info.description + "\n");
         console.log("-b --browser   : wrap the output in a top level function");
+        console.log("   --strict    : include \"use strict\";");
         console.log("-c --color     : colorful REPL mode");
         console.log("-h --help      : show this help");
         console.log("-p             : run without prelude (standard library)");
@@ -1194,6 +1195,10 @@ var processFlags = function(argv, opts) {
     case "-b":
     case "--browser":
         opts.nodejs = false;
+        argv.shift();
+        break;
+    case "--strict":
+        opts.strict = true;
         argv.shift();
         break;
     case "-c":
@@ -1289,7 +1294,8 @@ var main = function() {
         info: JSON.parse(fs.readFileSync(path.dirname(__dirname) + '/package.json', 'utf8')),
         nodejs: true,
         run: false,
-        includePrelude: true
+        includePrelude: true,
+        strict: false
     };
 
     processFlags(argv, opts);
