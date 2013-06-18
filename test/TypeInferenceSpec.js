@@ -13,7 +13,7 @@ describe('type inference', function(){
     });
 
     function parseCode(s) {
-        return parser.parse(lexer.tokenise(s));
+        return parser.parse(lexer.tokenise(s)).body;
     }
 
     function typeOfCode(s) {

@@ -1,10 +1,10 @@
 exports.nodes = {
-    Expression: function(value) {
-        this.value = value;
+    Module: function (body) {
+        this.body = body;
 
         this.accept = function(a) {
-            if(a.visitExpression) {
-                return a.visitExpression(this);
+            if(a.visitModule) {
+                return a.visitModule(this);
             }
         };
     },
@@ -242,7 +242,7 @@ exports.nodes = {
         };
     },
     Comment: function(value) {
-        this.value = value;
+        this.value = value.slice(2); // Remove the slashes, because escodegen adds those back for us
 
         this.accept = function(a) {
             if(a.visitComment) {
@@ -331,34 +331,6 @@ exports.nodes = {
         this.accept = function(a) {
             if(a.visitWith) {
                 return a.visitWith(this);
-            }
-        };
-    },
-    Replacement: function(value) {
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitReplacement) {
-                return a.visitReplacement(this);
-            }
-        };
-    },
-    Macro: function(name, body) {
-        this.name = name;
-        this.body = body;
-
-        this.accept = function(a) {
-            if(a.visitMacro) {
-                return a.visitMacro(this);
-            }
-        };
-    },
-    Quoted: function(value) {
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitQuoted) {
-                return a.visitQuoted(this);
             }
         };
     },

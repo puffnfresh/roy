@@ -1,5 +1,4 @@
 var typecheck = require('./typeinference').typecheck,
-    macroexpand = require('./macroexpand').macroexpand,
     loadModule = require('./modules').loadModule,
     exportType = require('./modules').exportType,
     types = require('./types'),
@@ -8,6 +7,7 @@ var typecheck = require('./typeinference').typecheck,
     lexer = require('./lexer'),
     parser = require('../lib/parser').parser,
     typeparser = require('../lib/typeparser').parser,
+    escodegen = require('escodegen'),
     _ = require('underscore');
 
 // Assigning the nodes to `parser.yy` allows the grammar to access the nodes from
@@ -30,19 +30,78 @@ parser.lexer = typeparser.lexer =  {
     }
 };
 
+var ensureJsASTStatement = function (node) {
+    if (/Expression$/.test(node.type)) {
+        return { type: "ExpressionStatement", expression: node };
+    }
+    return node;
+};
+var ensureJsASTStatements = function (nodes) {
+    if (typeof nodes.length !== "undefined") {
+        return _.map(
+            _.filter(nodes, function (x) {
+                // console.log("x:", x);
+                // console.log("typeof x:", typeof x);
+                return typeof x !== "undefined";
+            }),
+            ensureJsASTStatement
+        );
+    } else {
+        throw new Error("ensureJsASTStatements wasn't given an Array, got " + nodes + " (" + typeof nodes + ")");
+    }
+};
+
 // Separate end comments from other expressions
 var splitComments = function(body) {
     return _.reduceRight(body, function(accum, node) {
-        if(!accum.body.length && node instanceof nodes.Comment) {
-            accum.comments.unshift(node);
+        if(accum.length && node instanceof nodes.Comment) {
+            if (! accum[0].comments) {
+                accum[0].comments = [];
+            }
+            accum[0].comments.unshift(node);
             return accum;
         }
-        accum.body.unshift(node);
+        accum.unshift(node);
         return accum;
-    }, {
-        body: [],
-        comments: []
-    });
+    }, []);
+};
+// Ensure comments are attached to a statement where possible
+var liftComments = function (jsAst) {
+    var helper = function (node) {
+        var result, i, comments = [];
+        if (! (node && node.type)) {
+            // Break out early when we're not looking at a proper node
+            return [node, comments];
+        }
+        for (var key in node) if (node.hasOwnProperty(key)) {
+            if (key === "leadingComments" && /Expression$/.test(node.type)) {
+                // Lift comments from expressions
+                comments = comments.concat(node[key]);
+                delete node[key];
+            } else if (node[key] && node[key].type) {
+                // Recurse into child nodes...
+                result = helper(node[key]);
+                comments = comments.concat(result[1]);
+            } else if (node[key] && node[key].length) {
+                // ...and arrays of nodes
+                for (i = 0; i < node[key].length; i += 1) {
+                    result = helper(node[key][i]);
+                    node[key][i] = result[0];
+                    comments = comments.concat(result[1]);
+                }
+            }
+        }
+        if (! /Expression$/.test(node.type) && comments.length) {
+            // Attach lifted comments to statement nodes
+            if (typeof node.leadingComments === "undefined") {
+                node.leadingComments = [];
+            }
+            node.leadingComments = node.leadingComments.concat(comments);
+            comments = [];
+        }
+        return [node, comments];
+    };
+    return helper(jsAst)[0];
 };
 
 // Compile an abstract syntax tree (AST) node to JavaScript.
@@ -75,141 +134,205 @@ var popIndent = function() {
     return getIndent();
 };
 
-var compileNodeWithEnv = function(n, env, opts) {
+var compileNodeWithEnvToJsAST = function(n, env, opts) {
     if(!opts) opts = {};
     var compileNode = function(n) {
-        return compileNodeWithEnv(n, env);
+        return compileNodeWithEnvToJsAST(n, env);
     };
-    return n.accept({
+    var result = n.accept({
+        // Top level file
+        visitModule: function() {
+            var nodes = _.map(splitComments(n.body), compileNode);
+            return {
+                type: "Program",
+                body: ensureJsASTStatements(nodes)
+            };
+        },
         // Function definition to JavaScript function.
         visitFunction: function() {
-            var getArgs = function(a) {
-                return _.map(a, function(v) {
-                    return v.name;
-                }).join(", ");
+            var body = {
+                type: "BlockStatement",
+                body: []
             };
-            pushIndent();
-            var split = splitComments(n.body);
-            var compiledWhereDecls = _.map(n.whereDecls, compileNode);
-            var compiledNodeBody = _.map(split.body, compileNode);
-            var init = [];
-            if(compiledWhereDecls.length > 0) {
-                init.push(compiledWhereDecls.join(';\n' + getIndent()) + ';');
+            if (n.whereDecls.length) {
+                _.each(n.whereDecls, function (w) {
+                    body.body.push(compileNode(w));
+                });
             }
-            if(compiledNodeBody.length > 1) {
-                init.push(compiledNodeBody.slice(0, compiledNodeBody.length - 1).join(';\n' + getIndent()) + ';');
+            var exprsWithoutComments = _.map(splitComments(n.body), compileNode);
+            exprsWithoutComments.push({
+                type: "ReturnStatement",
+                argument: exprsWithoutComments.pop()
+            });
+            body.body = ensureJsASTStatements(body.body.concat(exprsWithoutComments));
+            var func = {
+                type: "FunctionExpression",
+                id: null,
+                params: _.map(n.args, function (a) {
+                    return {
+                        type: "Identifier",
+                        name: a.name
+                    };
+                }),
+                body: body
+            };
+            if (! n.name) {
+                return func;
             }
-            var lastString = compiledNodeBody[compiledNodeBody.length - 1];
-            var varEquals = "";
-            if(n.name) {
-                varEquals = "var " + n.name + " = ";
-            }
-
-            var compiledEndComments = "";
-            if(split.comments.length) {
-                compiledEndComments = getIndent() + _.map(split.comments, compileNode).join("\n" + getIndent()) + "\n";
-            }
-            return varEquals + "function(" + getArgs(n.args) + ") {\n" +
-                getIndent() + joinIndent(init) + "return " + lastString +
-                ";\n" + compiledEndComments + popIndent() + "}";
+            return {
+                type: "VariableDeclaration",
+                kind: "var",
+                declarations: [{
+                    type: "VariableDeclarator",
+                    id: {
+                        type: "Identifier",
+                        name: n.name
+                    },
+                    init: func
+                }]
+            };
         },
         visitIfThenElse: function() {
-            var compiledCondition = compileNode(n.condition);
+            var ifTrue = _.map(splitComments(n.ifTrue), compileNode);
+            if (ifTrue.length) {
+                ifTrue.push({
+                    type: "ReturnStatement",
+                    argument: ifTrue.pop()
+                });
+            }
+            ifTrue = ensureJsASTStatements(ifTrue);
 
-            var compileAppendSemicolon = function(n) {
-                return compileNode(n) + ';';
+            var ifFalse = _.map(splitComments(n.ifFalse), compileNode);
+            if (ifFalse.length) {
+                ifFalse.push({
+                    type: "ReturnStatement",
+                    argument: ifFalse.pop()
+                });
+            }
+            ifFalse = ensureJsASTStatements(ifFalse);
+
+            var funcBody = [{
+                type: "IfStatement",
+                test: compileNode(n.condition),
+                consequent: {
+                    type: "BlockStatement",
+                    body: ifTrue
+                },
+                alternate: {
+                    type: "BlockStatement",
+                    body: ifFalse
+                }
+            }];
+
+            return {
+                type: "CallExpression",
+                'arguments': [],
+                callee: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [],
+                    body: {
+                        type: "BlockStatement",
+                        body: funcBody
+                    }
+                }
             };
-
-            var ifTrue = splitComments(n.ifTrue);
-            var ifFalse = splitComments(n.ifFalse);
-
-            pushIndent();
-            pushIndent();
-
-            var compiledIfTrueInit = joinIndent(_.map(ifTrue.body.slice(0, ifTrue.body.length - 1), compileAppendSemicolon));
-            var compiledIfTrueLast = compileNode(ifTrue.body[ifTrue.body.length - 1]);
-            var compiledIfTrueEndComments = "";
-            if(ifTrue.comments.length) {
-                compiledIfTrueEndComments = getIndent() + _.map(ifTrue.comments, compileNode).join("\n" + getIndent()) + "\n";
-            }
-
-            var compiledIfFalseInit = joinIndent(_.map(ifFalse.body.slice(0, ifFalse.body.length - 1), compileAppendSemicolon));
-            var compiledIfFalseLast = compileNode(ifFalse.body[ifFalse.body.length - 1]);
-            var compiledIfFalseEndComments = "";
-            if(ifFalse.comments.length) {
-                compiledIfFalseEndComments = getIndent() + _.map(ifFalse.comments, compileNode).join("\n" + getIndent()) + "\n";
-            }
-
-            popIndent();
-            popIndent();
-
-            return "(function() {\n" +
-                getIndent(1) + "if(" + compiledCondition + ") {\n" +
-                getIndent(2) + compiledIfTrueInit + "return " + compiledIfTrueLast + ";\n" + compiledIfTrueEndComments +
-                getIndent(1) + "} else {\n" +
-                getIndent(2) + compiledIfFalseInit + "return " + compiledIfFalseLast + ";\n" + compiledIfFalseEndComments +
-                getIndent(1) + "}\n" +
-                getIndent() + "})()";
         },
         // Let binding to JavaScript variable.
         visitLet: function() {
-            return "var " + n.name + " = " + compileNode(n.value);
+            return {
+                type: "VariableDeclaration",
+                kind: "var",
+                declarations: [{
+                    type: "VariableDeclarator",
+                    id: {
+                        type: "Identifier",
+                        name: n.name
+                    },
+                    init: compileNode(n.value)
+                }]
+            };
         },
         visitInstance: function() {
-            return "var " + n.name + " = " + compileNode(n.object);
+            return {
+                type: "VariableDeclaration",
+                kind: "var",
+                declarations: [{
+                    type: "VariableDeclarator",
+                    id: {
+                        type: "Identifier",
+                        name: n.name
+                    },
+                    init: compileNode(n.object)
+                }]
+            };
         },
         visitAssignment: function() {
-            return compileNode(n.name) + " = " + compileNode(n.value) + ";";
+            return {
+                type: "AssignmentExpression",
+                operator: "=",
+                left: compileNode(n.name),
+                right: compileNode(n.value)
+            };
         },
         visitData: function() {
-            var defs = _.map(n.tags, compileNode);
-            return defs.join(";\n");
-        },
-        visitExpression: function() {
-            // No need to retain parenthesis for operations of higher
-            // precendence in JS
-            if(n.value instanceof nodes.Function || n.value instanceof nodes.Call) {
-                return compileNode(n.value);
-            }
-            return '(' + compileNode(n.value) + ')';
-        },
-        visitReplacement: function() {
-            return n.value;
-        },
-        visitQuoted: function() {
-            var serializeNode = {
-                visitReplacement: function(v) {
-                    return "new nodes.Replacement(" + compileNode(v.value) + ")";
-                },
-                visitIdentifier: function(v) {
-                    return "new nodes.Identifier(" + JSON.stringify(v.value) + ")";
-                },
-                visitAccess: function(v) {
-                    return "new nodes.Access(" + serialize(v.value) + ", " + JSON.stringify(v.property) + ")";
-                },
-                visitPropertyAccess: function(v) {
-                    return "new nodes.PropertyAccess(" + serialize(v.value) + ", " + JSON.stringify(v.property) + ")";
-                },
-                visitCall: function(v) {
-                    return "new nodes.Call(" + serialize(v.func) + ", [" + _.map(v.args, serialize).join(', ') + "])";
-                }
+            return {
+                type: "VariableDeclaration",
+                kind: "var",
+                declarations: _.map(n.tags, compileNode)
             };
-            var serialize = function(v) {
-                return v.accept(serializeNode);
-            };
-            return serialize(n.value);
         },
         visitReturn: function() {
-            return "__monad__.return(" + compileNode(n.value) + ");";
+            return {
+                type: "CallExpression",
+                callee: {
+                    type: "MemberExpression",
+                    computed: false,
+                    object: {
+                        type: "Identifier",
+                        name: "__monad__"
+                    },
+                    property: {
+                        type: "Identifier",
+                        name: "return"
+                    }
+                },
+                "arguments": [compileNode(n.value)]
+            };
         },
         visitBind: function() {
-            var init = n.rest.slice(0, n.rest.length - 1);
-            var last = n.rest[n.rest.length - 1];
-            return "__monad__.bind(" + compileNode(n.value) +
-                ", function(" + n.name + ") {\n" + pushIndent() +
-                _.map(init, compileNode).join(";\n" + getIndent()) + "\n" +
-                getIndent() + "return " + compileNode(last) + "\n" +
-                popIndent() + "});";
+            var body = _.map(n.rest.slice(0, n.rest.length - 1), compileNode);
+            body.push({
+                type: "ReturnStatement",
+                argument: compileNode(n.rest[n.rest.length - 1])
+            });
+            return {
+                type: "CallExpression",
+                callee: {
+                    type: "MemberExpression",
+                    computed: false,
+                    object: {
+                        type: "Identifier",
+                        name: "__monad__"
+                    },
+                    property: {
+                        type: "Identifier",
+                        name: "bind"
+                    }
+                },
+                "arguments": [compileNode(n.value), {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [{
+                        type: "Identifier",
+                        name: n.name
+                    }],
+                    body: {
+                        type: "BlockStatement",
+                        body: ensureJsASTStatements(body)
+                    }
+                }]
+            };
         },
         visitDo: function() {
             var compiledInit = [];
@@ -234,53 +357,153 @@ var compileNodeWithEnv = function(n, env, opts) {
             if(lastBind) {
                 lastBind.rest = n.body.slice(lastBindIndex + 1);
             }
-            return "(function(){\n" + pushIndent() + "var __monad__ = " +
-                compileNode(n.value) + ";\n" + getIndent() +
-                (!firstBind ? 'return ' : '') + compiledInit.join(';\n' + getIndent()) + '\n' + getIndent() +
-                (firstBind ? 'return ' + compileNode(firstBind) : '') + "\n" +
-                popIndent() + "})()";
+            var monadDecl = {
+                type: "VariableDeclaration",
+                kind: "var",
+                declarations: [{
+                    type: "VariableDeclarator",
+                    id: {
+                        type: "Identifier",
+                        name: "__monad__"
+                    },
+                    init: compileNode(n.value)
+                }]
+            };
+            var body = {
+                type: "BlockStatement",
+                body: []
+            };
+            body.body = _.flatten([monadDecl, compiledInit, {
+                type: "ReturnStatement",
+                argument: compileNode(firstBind)
+            }]);
+            return {
+                type: "CallExpression",
+                "arguments": [],
+                callee: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [],
+                    body: body
+                }
+            };
         },
         visitTag: function() {
+            var tagName = {
+                type: "Identifier",
+                name: n.name
+            };
             var args = _.map(n.vars, function(v, i) {
-                return v.value + "_" + i;
+                return {
+                    type: "Identifier",
+                    name: v.value + "_" + i
+                };
             });
             var setters = _.map(args, function(v, i) {
-                return "this._" + i + " = " + v;
+                return { // "this._" + i + " = " + v;
+                    type: "ExpressionStatement",
+                    expression: {
+                        type: "AssignmentExpression",
+                        operator: "=",
+                        left: {
+                            type: "MemberExpression",
+                            computed: false,
+                            object: {
+                                type: "ThisExpression"
+                            },
+                            property: {
+                                type: "Identifier",
+                                name: "_" + i
+                            }
+                        },
+                        right: v
+                    }
+                };
             });
-            pushIndent();
-            var constructorString = "if(!(this instanceof " + n.name + ")) {\n" + getIndent(1) + "return new " + n.name + "(" + args.join(", ") + ");\n" + getIndent() + "}";
-            var settersString = (setters.length === 0 ? "" : "\n" + getIndent() + setters.join(";\n" + getIndent()) + ";");
-            popIndent();
-            return "var " + n.name + " = function(" + args.join(", ") + ") {\n" + getIndent(1) + constructorString + settersString + getIndent() + "\n}";
+            var constructorCheck = {
+                type: "IfStatement",
+                test: {
+                    type: "UnaryExpression",
+                    operator: "!",
+                    argument: {
+                        type: "BinaryExpression",
+                        operator: "instanceof",
+                        left: { type: "ThisExpression" },
+                        right: tagName
+                    }
+                },
+                consequent: {
+                    type: "BlockStatement",
+                    body: [{
+                        type: "ReturnStatement",
+                        argument: {
+                            type: "NewExpression",
+                            callee: tagName,
+                            'arguments': args
+                        }
+                    }]
+                },
+                alternate: null
+            };
+            setters.unshift(constructorCheck);
+            var constructorBody = {
+                type: "BlockStatement",
+                body: ensureJsASTStatements(setters)
+            };
+            return {
+                type: "VariableDeclarator",
+                id: tagName,
+                init: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: args,
+                    body: constructorBody
+                }
+            };
         },
         visitMatch: function() {
+            valuePlaceholder = '__match';
             var flatMap = function(a, f) {
                 return _.flatten(_.map(a, f));
             };
 
-            var compiledValue = compileNode(n.value);
-            var valuePlaceholder = '_m';
-
             var pathConditions = _.map(n.cases, function(c) {
                 var getVars = function(pattern, varPath) {
-                    return flatMap(pattern.vars, function(a, i) {
+                    var decls = flatMap(pattern.vars, function(a, i) {
                         var nextVarPath = varPath.slice();
                         nextVarPath.push(i);
 
                         return a.accept({
                             visitIdentifier: function() {
+
                                 if(a.value == '_') return [];
 
-                                var accessors = _.map(nextVarPath, function(x) {
-                                    return "._" + x;
-                                }).join('');
-                                return ["var " + a.value + " = " + valuePlaceholder + accessors + ";"];
+                                var value = _.reduceRight(nextVarPath, function(structure, varPathName) {
+                                    return {
+                                        type: "MemberExpression",
+                                        computed: false,
+                                        object: structure,
+                                        property: { type: "Identifier", name: "_" + varPathName }
+                                    };
+                                }, { type: "Identifier", name: valuePlaceholder });
+                                return [{
+                                    type: "VariableDeclarator",
+                                    id: { type: "Identifier", name: a.value },
+                                    init: value
+                                }];
                             },
                             visitPattern: function() {
-                                return getVars(a, nextVarPath);
+                                return getVars(a, nextVarPath).declarations;
                             }
                         });
                     });
+                    if (decls.length) {
+                        return {
+                            type: "VariableDeclaration",
+                            kind: "var",
+                            declarations: decls
+                        };
+                    }
                 };
                 var vars = getVars(c.pattern, []);
 
@@ -302,9 +525,34 @@ var compileNodeWithEnv = function(n, env, opts) {
                     });
                 };
                 var tagPaths = getTagPaths(c.pattern, []);
-                var extraConditions = _.map(tagPaths, function(e) {
-                    return ' && ' + valuePlaceholder + '._' + e.path.join('._') + ' instanceof ' + e.tag.value;
-                }).join('');
+                var makeCondition = function (e) {
+                    var pieces = _.reduceRight(e.path, function (structure, piece) {
+                        return {
+                            type: "MemberExpression",
+                            computed: false,
+                            object: structure,
+                            property: { type: "Identifier", name: "_" + piece }
+                        };
+                    }, { type: "Identifier", name: valuePlaceholder });
+                    return {
+                        type: "BinaryExpression",
+                        operator: "instanceof",
+                        left: pieces,
+                        right: { type: "Identifier", name: e.tag.value }
+                    };
+                };
+                var extraConditions = null;
+                if (tagPaths.length) {
+                    var lastCondition = makeCondition(tagPaths.pop());
+                    extraConditions = _.reduceRight(tagPaths, function(conditions, e) {
+                        return {
+                            type: "LogicalExpression",
+                            operator: "&&",
+                            left: e,
+                            right: conditions
+                        };
+                    }, lastCondition);
+                }
 
                 // More specific patterns need to appear first
                 // Need to sort by the length of the path
@@ -313,12 +561,39 @@ var compileNodeWithEnv = function(n, env, opts) {
                 });
                 var maxPath = maxTagPath ? maxTagPath.path : [];
 
+                var body = [];
+                if (vars) {
+                    body.push(vars);
+                }
+                body.push({
+                    type: "ReturnStatement",
+                    argument: compileNode(c.value)
+                });
+                var test = {
+                    type: "BinaryExpression",
+                    operator: "instanceof",
+                    left: { type: "Identifier", name: valuePlaceholder },
+                    right: { type: "Identifier", name: c.pattern.tag.value }
+                };
+                if (extraConditions) {
+                    test = {
+                        type: "LogicalExpression",
+                        operator: "&&",
+                        left: test,
+                        right: extraConditions
+                    };
+                }
                 return {
                     path: maxPath,
-                    condition: "if(" + valuePlaceholder + " instanceof " + c.pattern.tag.value +
-                        extraConditions + ") {\n" + getIndent(2) +
-                        joinIndent(vars, 2) + "return " + compileNode(c.value) +
-                        ";\n" + getIndent(1) + "}"
+                    condition: {
+                        type: "IfStatement",
+                        test: test,
+                        consequent: {
+                            type: "BlockStatement",
+                            body: ensureJsASTStatements(body)
+                        },
+                        alternate: null
+                    }
                 };
             });
 
@@ -328,99 +603,261 @@ var compileNodeWithEnv = function(n, env, opts) {
                 return e.condition;
             });
 
-            return "(function(" + valuePlaceholder + ") {\n" + getIndent(1) + cases.join(" else ") + "\n" + getIndent() + "})(" + compiledValue + ")";
+            return {
+                type: "CallExpression",
+                "arguments": [compileNode(n.value)],
+                callee: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [{ type: "Identifier", name: valuePlaceholder }],
+                    body: {
+                        type: "BlockStatement",
+                        body: ensureJsASTStatements(cases)
+                    }
+                }
+            };
         },
         // Call to JavaScript call.
         visitCall: function() {
-            var typeClasses = '';
-            if(n.typeClassInstance) {
-                typeClasses = n.typeClassInstance + ', ';
+            var args = _.map(n.args, compileNode);
+            if (n.typeClassInstance) {
+                args.unshift({
+                    type: "Identifier",
+                    name: n.typeClassInstance
+                });
             }
-            if(n.func.value == 'import') {
-                return importModule(JSON.parse(n.args[0].value), env, opts);
-            }
-            return compileNode(n.func) + "(" + typeClasses + _.map(n.args, compileNode).join(", ") + ")";
+
+            return {
+                type: "CallExpression",
+                "arguments": args,
+                callee: compileNode(n.func)
+            };
+            // if(n.func.value == 'import') {
+            //     return importModule(JSON.parse(n.args[0].value), env, opts);
+            // }
         },
         visitPropertyAccess: function() {
-            return compileNode(n.value) + "." + n.property;
+            return {
+                type: "MemberExpression",
+                computed: false,
+                object: compileNode(n.value),
+                property: { type: "Identifier", name: n.property }
+            };
         },
         visitAccess: function() {
-            return compileNode(n.value) + "[" + compileNode(n.property) + "]";
+            return {
+                type: "MemberExpression",
+                computed: true,
+                object: compileNode(n.value),
+                property: compileNode(n.property)
+            };
         },
         visitUnaryBooleanOperator: function() {
-            return [n.name, compileNode(n.value)].join(" ");
+            return {
+                type: "UnaryExpression",
+                operator: n.name,
+                argument: compileNode(n.value)
+            };
         },
         visitBinaryGenericOperator: function() {
-            return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
+            return {
+                type: "BinaryExpression",
+                operator: n.name,
+                left: compileNode(n.left),
+                right: compileNode(n.right)
+            };
         },
         visitBinaryNumberOperator: function() {
-            return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
+            return {
+                type: "BinaryExpression",
+                operator: n.name,
+                left: compileNode(n.left),
+                right: compileNode(n.right)
+            };
         },
         visitBinaryBooleanOperator: function() {
-            return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
+            return {
+                type: "BinaryExpression",
+                operator: n.name,
+                left: compileNode(n.left),
+                right: compileNode(n.right)
+            };
         },
         visitBinaryStringOperator: function() {
-            return [compileNode(n.left), n.name, compileNode(n.right)].join(" ");
+            return {
+                type: "BinaryExpression",
+                operator: n.name,
+                left: compileNode(n.left),
+                right: compileNode(n.right)
+            };
         },
         visitWith: function() {
-            var args = compileNode(n.left) + ', ' + compileNode(n.right);
-            var inner = _.map(['__l__', '__r__'], function(name) {
-                return 'for(__n__ in ' + name + ') {\n' + getIndent(2) + '__o__[__n__] = ' + name + '[__n__];\n' + getIndent(1) + '}';
+            var copyLoop = function (varName) {
+                return {
+                    type: "ForInStatement",
+                    left: { type: "Identifier", name: "__n__" },
+                    right: { type: "Identifier", name: varName },
+                    body: {
+                        type: "BlockStatement",
+                        body: [{
+                            type: "ExpressionStatement",
+                            expression: {
+                                type: "AssignmentExpression",
+                                operator: "=",
+                                left: {
+                                    type: "MemberExpression",
+                                    computed: true,
+                                    object: { type: "Identifier", name: "__o__" },
+                                    property: { type: "Identifier", name: "__n__" }
+                                },
+                                right: {
+                                    type: "MemberExpression",
+                                    computed: true,
+                                    object: { type: "Identifier", name: varName },
+                                    property: { type: "Identifier", name: "__n__" }
+                                }
+                            }
+                        }]
+                    }
+                };
+            };
+            var funcBody = [];
+            funcBody.push({
+                type: "VariableDeclaration",
+                kind: "var",
+                declarations: [{
+                    type: "VariableDeclarator",
+                    id: { type: "Identifier", name: "__o__" },
+                    init: { type: "ObjectExpression", properties: [] }
+                }, {
+                    type: "VariableDeclarator",
+                    id: { type: "Identifier", name: "__n__" },
+                    init: null
+                }]
             });
-            return joinIndent(['(function(__l__, __r__) {', 'var __o__ = {}, __n__;'], 1) + joinIndent(inner, 1) + 'return __o__;\n' + getIndent() + '})(' + args + ')';
+            funcBody.push(copyLoop("__l__"));
+            funcBody.push(copyLoop("__r__"));
+
+            return {
+                type: "CallExpression",
+                'arguments': _.map([n.left, n.right], compileNode),
+                callee: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [
+                        { type: "Identifier", name: "__l__" },
+                        { type: "Identifier", name: "__r__" }
+                    ],
+                    body: { type: "BlockStatement", body: ensureJsASTStatement(funcBody) }
+                }
+            };
         },
         // Print all other nodes directly.
-        visitComment: function() {
-            return n.value;
-        },
         visitIdentifier: function() {
-            var typeClassAccessor = '';
             if(n.typeClassInstance) {
-                typeClassAccessor = n.typeClassInstance + '.';
+                return {
+                    type: "MemberExpression",
+                    computed: false,
+                    object: {
+                        type: "Identifier",
+                        name: n.typeClassInstance
+                    },
+                    property: {
+                        type: "Identifier",
+                        name: n.value
+                    }
+                };
             }
-            return typeClassAccessor + n.value;
+            return {
+                type: "Identifier",
+                name: n.value
+            };
         },
         visitNumber: function() {
-            return n.value;
+            return {
+                type: "Literal",
+                value: parseFloat(n.value)
+            };
         },
         visitString: function() {
-            return n.value;
+            /*jshint evil: true */
+            return {
+                type: "Literal",
+                value: eval(n.value)
+            };
         },
         visitBoolean: function() {
-            return n.value;
+            return {
+                type: "Literal",
+                value: n.value === "true"
+            };
         },
         visitUnit: function() {
-            return "null";
+            return {
+                type: "Literal",
+                value: null
+            };
         },
         visitArray: function() {
-            return '[' + _.map(n.values, compileNode).join(', ') + ']';
+            return {
+                type: "ArrayExpression",
+                elements: _.map(n.values, compileNode)
+            };
         },
         visitTuple: function() {
-            return '[' + _.map(n.values, compileNode).join(', ') + ']';
+            return {
+                type: "ArrayExpression",
+                elements: _.map(n.values, compileNode)
+            };
         },
         visitObject: function() {
-            var obj;
-            var key;
-            var pairs = [];
-            pushIndent();
+            var cleanedKey, key, pairs = [];
+
             for(key in n.values) {
-                if (_.isString(key)) {
-                    pairs.push(key + ": " + compileNode(n.values[key]));
+                if (key[0] === "'" || key[0] === '"') {
+                    cleanedKey = String.prototype.slice.call(key, 1, key.length-1);
                 } else {
-                    pairs.push("\"" + key + "\": " + compileNode(n.values[key]));
+                    cleanedKey = key;
                 }
+                pairs.push({
+                    type: "Property",
+                    key: {
+                        type: "Literal",
+                        value: cleanedKey
+                    },
+                    value: compileNode(n.values[key])
+                });
             }
-            obj = "{\n" + getIndent() + pairs.join(",\n" + getIndent()) + "\n" + popIndent() + "}";
-            if (opts.run) {
-                // If we're in the repl, or being evaluated in place,
-                // wrap in parens in case any key is a string or number.
-                // This way, javascript will eval it as an object, not a block.
-                return "(" + obj + ")";
-            } else {
-                return obj;
-            }
+            return {
+                type: "ObjectExpression",
+                properties: pairs
+            };
         }
     });
+    if (n.comments && n.comments.length) {
+        result.leadingComments = _.map(n.comments, function (c) {
+            var lines = c.value.split(/\r\n|\r|\n/g);
+            return {
+                type: lines.length > 1 ? "Block" : "Line",
+                value: c.value
+            };
+        });
+    }
+    return result;
+};
+exports.compileNodeWithEnvToJsAST = compileNodeWithEnvToJsAST;
+var compileNodeWithEnv = function (n, env, opts) {
+    var ast = compileNodeWithEnvToJsAST(n, env, opts);
+    if (typeof ast === "string") {
+//        console.warn("Got AST already transformed into string: ", ast);
+        return ast;
+    } else if (typeof ast === "undefined") {
+        return "";
+    } else {
+        ast = liftComments(ast);
+        var generated = escodegen.generate(ensureJsASTStatement(ast), {comment: true});
+        return generated;
+    }
 };
 exports.compileNodeWithEnv = compileNodeWithEnv;
 
@@ -434,64 +871,55 @@ var compile = function(source, env, aliases, opts) {
     // Parse the file to an AST.
     var tokens = lexer.tokenise(source);
     var ast = parser.parse(tokens);
-    ast = macroexpand(ast, env, opts);
 
     // Typecheck the AST. Any type errors will throw an exception.
-    var resultType = typecheck(ast, env, aliases);
+    var resultType = typecheck(ast.body, env, aliases);
 
     // Export types
-    ast = _.map(ast, function(n) {
+    ast.body = _.map(ast.body, function(n) {
         if(n instanceof nodes.Call && n.func.value == 'export') {
             return exportType(n.args[0], env, opts.exported, opts.nodejs);
         }
         return n;
     });
 
-    var output = [];
-
-    if(!opts.nodejs) {
-        output.push("(function() {");
-    }
-
-    if(opts.strict) {
-        output.push('"use strict";');
-    }
-
-    var outputLine = output.length + 1;
-    _.each(ast, function(v) {
-        var compiled = compileNodeWithEnv(v, env, opts),
-            j, lineCount;
-
-        if(compiled) {
-            lineCount = compiled.split('\n').length;
-
-            if(opts.sourceMap && v.lineno > 1) {
-                opts.sourceMap.addMapping({
-                    source: opts.filename,
-                    original: {
-                        line: v.lineno,
-                        column: 0
-                    },
-                    generated: {
-                        line: outputLine,
-                        column: 0
+    var jsAst = liftComments(compileNodeWithEnvToJsAST(ast, env, opts));
+    if (!opts.nodejs) {
+        jsAst.body = [{
+            type: "ExpressionStatement",
+            expression: {
+                type: "CallExpression",
+                'arguments': [],
+                callee: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [],
+                    body: {
+                        type: "BlockStatement",
+                        body: jsAst.body
                     }
-                });
+                }
             }
-            outputLine += lineCount;
+        }];
+    }
 
-            output.push(compiled + (v instanceof nodes.Comment ? '' : ';'));
-        }
-    });
+    if (opts.strict) {
+        jsAst.body.unshift({
+            type: "ExpressionStatement",
+            expression: {
+                type: "Literal",
+                value: "use strict"
+            }
+        });
+    }
+
+    var output = escodegen.generate(ensureJsASTStatement(jsAst), {comment: true});
 
     if(!opts.nodejs) {
         output.push("})();");
     }
 
-    // Add a newline at the end
-    output.push("");
-
-    return {type: resultType, output: output.join('\n')};
+    return {type: resultType, output: output};
 };
 exports.compile = compile;
 
@@ -737,6 +1165,7 @@ var processFlags = function(argv, opts) {
     case "--help":
         console.log("Roy: " + opts.info.description + "\n");
         console.log("-b --browser   : wrap the output in a top level function");
+        console.log("   --strict    : include \"use strict\";");
         console.log("-c --color     : colorful REPL mode");
         console.log("-h --help      : show this help");
         console.log("-p             : run without prelude (standard library)");
@@ -766,6 +1195,10 @@ var processFlags = function(argv, opts) {
     case "-b":
     case "--browser":
         opts.nodejs = false;
+        argv.shift();
+        break;
+    case "--strict":
+        opts.strict = true;
         argv.shift();
         break;
     case "-c":
@@ -861,7 +1294,8 @@ var main = function() {
         info: JSON.parse(fs.readFileSync(path.dirname(__dirname) + '/package.json', 'utf8')),
         nodejs: true,
         run: false,
-        includePrelude: true
+        includePrelude: true,
+        strict: false
     };
 
     processFlags(argv, opts);
@@ -871,4 +1305,6 @@ exports.main = main;
 if(exports && !module.parent) {
     main();
 }
+
+
 
