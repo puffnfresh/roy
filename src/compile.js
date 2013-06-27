@@ -1065,7 +1065,7 @@ var nodeRepl = function(opts) {
                 // Remember the source if it's a binding
                 tokens = lexer.tokenise(line);
                 ast = parser.parse(tokens);
-                ast[0].accept({
+                ast.body[0].accept({
                     visitLet: function(n) {
                         sources[n.name] = n.value;
                     }
