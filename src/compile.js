@@ -31,7 +31,7 @@ parser.lexer = typeparser.lexer =  {
 };
 
 var ensureJsASTStatement = function (node) {
-    if (/Expression$/.test(node.type)) {
+    if (/Expression$/.test(node.type) || node.type === 'Identifier' || node.type === 'Literal') {
         return { type: "ExpressionStatement", expression: node };
     }
     return node;

@@ -41,6 +41,16 @@ describe('compiler', function(){
         expect(compilerOutput('// HELLO\nconsole.log 123')).toEqual('// HELLO\nconsole.log(123);');
     });
 
+    it('should compile literal', function(){
+        expect(compilerOutput('42')).toEqual('42;');
+        expect(compilerOutput('\'string\'')).toEqual('\'string\';');
+        expect(compilerOutput('null')).toEqual('null;');
+    });
+
+    it('should compile identifier', function(){
+        expect(compilerOutput('roy')).toEqual('roy;');
+    });
+
     it('should only execute a match expression once', function(){
         expectExecutionToHaveExpectedOutput('good/match_expression_single_eval');
     });
