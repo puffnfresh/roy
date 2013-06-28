@@ -10,7 +10,7 @@ var IDENTIFIER = new RegExp(
     unicode.ECMA.identifier.source.replace('\\u03BB', '')
 );
 
-var NUMBER = /^-?[0-9]+(\.[0-9]+)?(e-?[0-9]+)?/;
+var NUMBER = /^-?[0-9]+(\.[0-9]+)?([eE]-?[0-9]+)?/;
 var STRING = /^(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/;
 var COMMENT = /^\/\/.*/;
 var WHITESPACE = /^[^\n\S]+/;
@@ -77,10 +77,10 @@ var stringToken = function() {
   if (token) {
     tokens.push(['STRING', token[0], lineno]);
     return token[0].length;
-    
+
   }
   return 0;
-};    
+};
 
 var genericToken = function() {
     var token = GENERIC.exec(chunk);
