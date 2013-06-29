@@ -7,7 +7,7 @@ deps:
 	npm install
 	npm prune
 
-site: all bundle
+site: all
 	[ -e roy.brianmckenna.org ] || mkdir roy.brianmckenna.org
 	cp -r site/* roy.brianmckenna.org
 	cp -r examples roy.brianmckenna.org
