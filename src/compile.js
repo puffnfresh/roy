@@ -30,8 +30,16 @@ parser.lexer = typeparser.lexer =  {
     }
 };
 
+var jsNodeIsExpression = function (node) {
+    return !! (/Expression$/.test(node.type) || node.type === 'Identifier' || node.type === 'Literal');
+};
+
+var jsNodeIsStatement = function (node) {
+    return !! (/Statement$/.test(node.type) || /Declaration$/.test(node.type));
+};
+
 var ensureJsASTStatement = function (node) {
-    if (/Expression$/.test(node.type) || node.type === 'Identifier' || node.type === 'Literal') {
+    if (jsNodeIsExpression(node)) {
         return { type: "ExpressionStatement", expression: node };
     }
     return node;
@@ -74,7 +82,7 @@ var liftComments = function (jsAst) {
             return [node, comments];
         }
         for (var key in node) if (node.hasOwnProperty(key)) {
-            if (key === "leadingComments" && /Expression$/.test(node.type)) {
+            if (key === "leadingComments" && jsNodeIsExpression(node)) {
                 // Lift comments from expressions
                 comments = comments.concat(node[key]);
                 delete node[key];
@@ -91,7 +99,7 @@ var liftComments = function (jsAst) {
                 }
             }
         }
-        if (! /Expression$/.test(node.type) && comments.length) {
+        if (jsNodeIsStatement(node) && comments.length) {
             // Attach lifted comments to statement nodes
             if (typeof node.leadingComments === "undefined") {
                 node.leadingComments = [];
@@ -1307,6 +1315,3 @@ exports.main = main;
 if(exports && !module.parent) {
     main();
 }
-
-
-
