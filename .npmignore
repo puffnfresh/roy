@@ -1,5 +1,3 @@
-lib/*.js
-
 node_modules
 dist
 docs/guide/_build/
