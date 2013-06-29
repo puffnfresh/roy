@@ -40,6 +40,10 @@ describe('compiler', function(){
     it('should preserve comments', function(){
         expect(compilerOutput('// HELLO\nconsole.log 123')).toEqual('// HELLO\nconsole.log(123);');
     });
+    it('should preserve comments on non output nodes', function(){
+        expect(compilerOutput('// Comment\ntype X = {a: Number}\nlet x:X = {a: 123}'))
+        .toEqual('// Comment\nvar x = { \'a\': 123 };');
+    });
 
     it('should compile literal', function(){
         expect(compilerOutput('42')).toEqual('42;');
@@ -100,4 +104,3 @@ describe('compiler', function(){
         });
     });
 });
-

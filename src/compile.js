@@ -142,6 +142,8 @@ var popIndent = function() {
     return getIndent();
 };
 
+var extraComments = [];
+
 var compileNodeWithEnvToJsAST = function(n, env, opts) {
     if(!opts) opts = {};
     var compileNode = function(n) {
@@ -842,7 +844,19 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             };
         }
     });
-    if (n.comments && n.comments.length) {
+    if (typeof result === "undefined"){
+        if (n.comments && n.comments.length) {
+            extraComments = extraComments.concat(n.comments);
+        }
+    } else {
+        if (extraComments && extraComments.length) {
+            if (! (n.comments && n.comments.length)) {
+                n.comments = extraComments;
+            } else {
+                n.comments = extraComments.concat(n.comments);
+            }
+            extraComments = [];
+        }
         result.leadingComments = _.map(n.comments, function (c) {
             var lines = c.value.split(/\r\n|\r|\n/g);
             return {
