@@ -913,13 +913,15 @@ var compile = function(source, env, aliases, opts) {
         });
     }
 
-    var output = escodegen.generate(ensureJsASTStatement(jsAst), {comment: true});
-
-    if(!opts.nodejs) {
-        output.push("})();");
-    }
-
-    return {type: resultType, output: output};
+    return {
+        type: resultType,
+        output: escodegen.generate(
+            ensureJsASTStatement(jsAst),
+            {
+                comment: true
+            }
+        )
+    };
 };
 exports.compile = compile;
 

@@ -1,10 +1,11 @@
 var roy = {};
 
 //= node_modules/underscore/underscore.js
+//= node_modules/escodegen/escodegen.browser.js
 
 (function(){
     var module = {"parent": true};
-    var modules = {"underscore": _};
+    var modules = {"underscore": _, "escodegen": escodegen};
     var load = {};
     var require = function(x){
         if(!modules[x]) {
