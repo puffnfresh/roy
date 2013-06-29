@@ -48,7 +48,6 @@ var identifierToken = function() {
         case 'case':
         case 'do':
         case 'return':
-        case 'macro':
         case 'with':
         case 'where':
             name = value.toUpperCase();
@@ -199,12 +198,7 @@ var literalToken = function() {
     case '[':
     case '|':
         next = chunk.slice(0, 2);
-        switch(next) {
-        case '[|':
-        case '|]':
-            tokens.push([next, next, lineno]);
-            return 2;
-        case '||':
+        if(next == '||') {
             tokens.push(['BOOLOP', next, lineno]);
             return 2;
         }
@@ -238,8 +232,7 @@ var literalToken = function() {
             tokens.push(['BOOLOP', next, lineno]);
             return 2;
         }
-        tokens.push([tag, tag, lineno]);
-        return 1;
+        return 0;
     case 'λ':
     case '\\':
         tokens.push(['LAMBDA', tag, lineno]);
