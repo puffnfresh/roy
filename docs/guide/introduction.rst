@@ -6,7 +6,6 @@ main features:
 
 * Damas-Hindley-Milner type inference
 * Whitespace significant syntax
-* Compile-time meta-programming
 * Simple tagged unions
 * Pattern matching
 * Structural typing
