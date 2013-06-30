@@ -68,10 +68,8 @@ var nodeRepl = function(opts) {
     var colorLog = function(color) {
         var args = [].slice.call(arguments, 1);
 
-        if(opts.colorConsole) {
-            args[0] = '\u001b[' + color + 'm' + args[0];
-            args[args.length - 1] = args[args.length - 1] + '\u001b[0m';
-        }
+        args[0] = '\u001b[' + color + 'm' + args[0];
+        args[args.length - 1] = args[args.length - 1] + '\u001b[0m';
 
         console.log.apply(console, args);
     };
@@ -312,7 +310,6 @@ var processFlags = function(argv, opts) {
         console.log("Roy: " + opts.info.description + "\n");
         console.log("-b --browser   : wrap the output in a top level function");
         console.log("   --strict    : include \"use strict\";");
-        console.log("-c --color     : colorful REPL mode");
         console.log("-h --help      : show this help");
         console.log("-p             : run without prelude (standard library)");
         console.log("-r [file]      : run Roy-code without JavaScript output");
@@ -349,7 +346,7 @@ var processFlags = function(argv, opts) {
         break;
     case "-c":
     case "--color":
-        opts.colorConsole = true;
+        // The default now
         nodeRepl(opts);
         return;
     default:
@@ -369,7 +366,6 @@ var main = function() {
 
     // Meta-commands configuration
     var opts = {
-        colorConsole: false,
         info: JSON.parse(fs.readFileSync(path.dirname(__dirname) + '/package.json', 'utf8')),
         nodejs: true,
         run: false,
