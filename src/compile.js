@@ -747,6 +747,13 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             });
             funcBody.push(copyLoop("__l__"));
             funcBody.push(copyLoop("__r__"));
+            funcBody.push({
+                type: "ReturnStatement",
+                argument: {
+                    type: "Identifier",
+                    name: "__o__"
+                }
+            });
 
             return {
                 type: "CallExpression",

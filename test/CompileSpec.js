@@ -102,5 +102,8 @@ describe('compiler', function(){
         it('where.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/where');
         });
+        it('with.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/with');
+        });
     });
 });

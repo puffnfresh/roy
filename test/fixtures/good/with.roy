@@ -1,0 +1,10 @@
+// Example of 'with' keyword
+let getGreeting x = x.greeting ++ x.spacing ++ x.target
+
+console.log (getGreeting {
+  greeting: "Hello"
+  spacing: ", "
+  extra: true
+} with {
+  target: "World"
+})
