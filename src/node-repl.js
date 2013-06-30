@@ -1,6 +1,7 @@
 var compile = require('./compile').compile,
     lexer = require('./lexer'),
-    parser = require('../lib/parser').parser;
+    parser = require('../lib/parser').parser,
+    _ = require('underscore');
 
 var getSandbox = function() {
     var sandbox = {require: require, exports: exports};
