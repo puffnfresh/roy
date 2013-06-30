@@ -1155,6 +1155,10 @@ function typeSubstitute(substitutions, type) {
         return type;
     } else if(type instanceof t.BooleanType) {
         return type;
+    } else if(type === undefined) {
+        throw new Error("Not handled: undefined type");
+    } else if(type === null) {
+        throw new Error("Not handled: null type");
     }
     throw new Error("Not handled: " + type.toString());
 }
