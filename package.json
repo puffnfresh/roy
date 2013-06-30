@@ -18,7 +18,7 @@
   },
   "scripts": {
     "install": "node src/grammar.js && node src/typegrammar.js",
-    "test": "$(npm bin)/grunt jasmine"
+    "test": "$(npm bin)/grunt jison jasmine"
   },
   "homepage": "http://roy.brianmckenna.org/",
   "dependencies": {
