@@ -65,6 +65,7 @@
     }
     </style>
     <script src="http://www.google-analytics.com/ga.js" async="async"></script>
+    <script src="underscore-min.js"></script>
     <script src="roy-min.js"></script>
     <script src="codemirror2/lib/codemirror.js"></script>
     <script src="codemirror2/lib/util/runmode.js"></script>
@@ -147,7 +148,6 @@
         document.getElementById('output').innerHTML += args.join(' ') + '\n';
     };
     var newConsole = {};
-    // TODO: Properly include Underscore
     _.each(['log', 'info', 'warn', 'error', 'trace', 'assert'], function(f) {
         newConsole[f] = function() {
             log.apply(null, arguments);

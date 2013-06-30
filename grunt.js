@@ -9,8 +9,16 @@ module.exports = function(grunt) {
             './lib/typeparser.js': './src/typegrammar.js',
             './lib/parser.js': './src/grammar.js'
         },
-        rigger: {
-            'roy.js': 'rigger-roy.js'
+        cjsify: {
+            'roy.js': {
+                entry: 'src/compile.js',
+                dir: __dirname,
+                options: {
+                    'export': 'roy',
+                    'ignoreMissing': true,
+                    'node': false
+                }
+            }
         },
         jasmine: {
             src: './test'
@@ -39,17 +47,14 @@ module.exports = function(grunt) {
         fs.writeFileSync(this.target, parser.generate());
     });
 
-    grunt.registerMultiTask('rigger', 'File concatentation by rigger.', function() {
-        var rigger = require('rigger'),
-            fs = require('fs'),
-            done = this.async(),
-            target = this.target;
+    grunt.registerMultiTask('cjsify', 'Bundling by commonjs-everywhere.', function() {
+        var cjsify = require('commonjs-everywhere').cjsify,
+            escodegen = require('escodegen'),
+            target = this.target,
+            ast = cjsify(this.data.entry, this.data.dir, this.data.options),
+            output = escodegen.generate(ast);
 
-        rigger(this.data, function(err, output) {
-            if(err) return grunt.log.error(err);
-            fs.writeFileSync(target, output);
-            done(true);
-        });
+        grunt.file.write(target, output);
     });
 
     // Watching the task doesn't work. Sadly jasmine-node
@@ -94,5 +99,5 @@ module.exports = function(grunt) {
         });
     });
 
-    grunt.registerTask('default', 'jison lint jasmine rigger min');
+    grunt.registerTask('default', 'jison lint jasmine cjsify min');
 };
