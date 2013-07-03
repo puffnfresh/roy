@@ -112,36 +112,6 @@ var liftComments = function (jsAst) {
     return helper(jsAst)[0];
 };
 
-// Compile an abstract syntax tree (AST) node to JavaScript.
-var indent = 0;
-var getIndent = function(extra) {
-    if(!extra) {
-        extra = 0;
-    }
-    var spacing = "";
-    var i;
-    for(i = 0; i < indent + extra; i++) {
-        spacing += "    ";
-    }
-    return spacing;
-};
-var joinIndent = function(args, extra) {
-    var lineIndent = "\n" + getIndent(extra);
-    var argIndent = args.join("\n" + getIndent(extra));
-    if(argIndent) {
-        return argIndent + lineIndent;
-    }
-    return "";
-};
-var pushIndent = function() {
-    indent++;
-    return getIndent();
-};
-var popIndent = function() {
-    indent--;
-    return getIndent();
-};
-
 var extraComments = [];
 
 var compileNodeWithEnvToJsAST = function(n, env, opts) {
