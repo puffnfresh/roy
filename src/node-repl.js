@@ -1,5 +1,6 @@
 var compile = require('./compile').compile,
     lexer = require('./lexer'),
+    loadModule = require('./modules').loadModule,
     parser = require('../lib/parser').parser,
     _ = require('underscore');
 
