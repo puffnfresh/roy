@@ -144,11 +144,13 @@ var nodeRepl = function(opts) {
                 // Remember the source if it's a binding
                 tokens = lexer.tokenise(line);
                 ast = parser.parse(tokens);
-                ast.body[0].accept({
-                    visitLet: function(n) {
-                        sources[n.name] = n.value;
-                    }
-                });
+                if (typeof ast.body[0] != 'undefined') {
+                    ast.body[0].accept({
+                        visitLet: function(n) {
+                            sources[n.name] = n.value;
+                        }
+                    });
+                }
 
                 // Just eval it
                 compiled = compile(line, env, aliases, {nodejs: true, filename: ".", run: true});
