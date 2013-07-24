@@ -7,6 +7,7 @@ var typecheck = require('./typeinference').typecheck,
     lexer = require('./lexer'),
     parser = require('../lib/parser').parser,
     typeparser = require('../lib/typeparser').parser,
+    brushtail = require('../lib/brushtail'),
     escodegen = require('escodegen'),
     _ = require('underscore');
 
@@ -908,6 +909,8 @@ var compile = function(source, env, aliases, opts) {
             }
         });
     }
+
+    brushtail.mutateAST(jsAst);
 
     return {
         type: resultType,
