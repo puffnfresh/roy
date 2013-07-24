@@ -1,0 +1,7 @@
+let count from to =
+  if from >= to then
+    from
+  else
+    count (from + 1) to
+
+console.log (count 0 1000000)
