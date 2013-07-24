@@ -174,48 +174,56 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
         },
         visitIfThenElse: function() {
             var ifTrue = _.map(splitComments(n.ifTrue), compileNode);
-            if (ifTrue.length) {
+            if (ifTrue.length === 1) {
+                ifTrue = ifTrue[0];
+            } else if (ifTrue.length > 1) {
                 ifTrue.push({
                     type: "ReturnStatement",
                     argument: ifTrue.pop()
                 });
+                ifTrue = {
+                    type: "CallExpression",
+                    'arguments': [],
+                    callee: {
+                        type: "FunctionExpression",
+                        id: null,
+                        params: [],
+                        body: {
+                            type: "BlockStatement",
+                            body: ensureJsASTStatements(ifTrue)
+                        }
+                    }
+                };
             }
-            ifTrue = ensureJsASTStatements(ifTrue);
 
             var ifFalse = _.map(splitComments(n.ifFalse), compileNode);
-            if (ifFalse.length) {
+            if (ifFalse.length === 1) {
+                ifFalse = ifFalse[0];
+            } else if (ifFalse.length > 1) {
                 ifFalse.push({
                     type: "ReturnStatement",
                     argument: ifFalse.pop()
                 });
+                ifFalse = {
+                    type: "CallExpression",
+                    'arguments': [],
+                    callee: {
+                        type: "FunctionExpression",
+                        id: null,
+                        params: [],
+                        body: {
+                            type: "BlockStatement",
+                            body: ensureJsASTStatements(ifFalse)
+                        }
+                    }
+                };
             }
-            ifFalse = ensureJsASTStatements(ifFalse);
-
-            var funcBody = [{
-                type: "IfStatement",
-                test: compileNode(n.condition),
-                consequent: {
-                    type: "BlockStatement",
-                    body: ifTrue
-                },
-                alternate: {
-                    type: "BlockStatement",
-                    body: ifFalse
-                }
-            }];
 
             return {
-                type: "CallExpression",
-                'arguments': [],
-                callee: {
-                    type: "FunctionExpression",
-                    id: null,
-                    params: [],
-                    body: {
-                        type: "BlockStatement",
-                        body: funcBody
-                    }
-                }
+                type: "ConditionalExpression",
+                test: compileNode(n.condition),
+                consequent: ifTrue,
+                alternate: ifFalse
             };
         },
         // Let binding to JavaScript variable.
