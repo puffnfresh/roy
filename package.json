@@ -8,7 +8,7 @@
     "compiler"
   ],
   "author": "Brian McKenna <brian@brianmckenna.org> (http://brianmckenna.org/)",
-  "version": "0.1.5",
+  "version": "0.2.2",
   "engines": {
     "node": ">=0.4.0"
   },
@@ -17,19 +17,20 @@
     "roy": "./roy"
   },
   "scripts": {
-    "install": "$(npm bin)/grunt jison",
-    "test": "$(npm bin)/grunt lint jison jasmine"
+    "prepublish": "$(npm bin)/grunt jison",
+    "test": "$(npm bin)/grunt jison lint jasmine"
   },
   "homepage": "http://roy.brianmckenna.org/",
   "dependencies": {
-    "jison": "0.2.7",
+    "escodegen": "0.0.22",
     "source-map": "0.1.8",
     "underscore": "1.4.3",
     "unicode-categories": "0.9.1"
   },
   "devDependencies": {
+    "jison": "0.2.7",
     "grunt": "0.3.15",
-    "rigger": "0.5.2",
+    "commonjs-everywhere": "~0.8.0",
     "jasmine-node": "1.5.0"
   }
 }

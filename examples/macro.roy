@@ -1,7 +1,0 @@
-macro printArgLength =
-  console.log "Compiling to:" arguments.length
-  [| console.log &(arguments.length) |]
-
-printArgLength 1
-printArgLength 1 2
-printArgLength 1 2 3

@@ -1,12 +1,6 @@
-lib/*.js
-
 node_modules
 dist
 docs/guide/_build/
-src/parser.js
-src/typeparser.js
-test/fixtures/**/*.js
-test/fixtures/**/*.js.map
 examples/*.js
 roy.brianmckenna.org
 roy.js

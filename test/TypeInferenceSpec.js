@@ -16,7 +16,7 @@ describe('type inference', function() {
     });
 
     function parseCode(s) {
-        return parser.parse(lexer.tokenise(s));
+        return parser.parse(lexer.tokenise(s)).body;
     }
 
     function typeOfCode(s) {
@@ -59,6 +59,10 @@ describe('type inference', function() {
             expect(typeOfCode('{}')).toStringEqual('{}');
             expect(typeOfCode('{a: 1}')).toStringEqual('{a: Number}');
             expect(typeOfCode('{a: 1, b: true}')).toStringEqual('{a: Number, b: Boolean}');
+            expect(typeOfCode("{'a': 1}")).toStringEqual('{"a": Number}');
+            expect(typeOfCode('{"a": 1, \'b\': true}')).toStringEqual('{"a": Number, "b": Boolean}');
+            expect(typeOfCode("{4: '1'}")).toStringEqual("{4: String}");
+            expect(typeOfCode("{4: {'1': 1}}")).toStringEqual('{4: {"1": Number}}');
         });
 
         describe('arrays of primitive', function() {
@@ -77,7 +81,7 @@ describe('type inference', function() {
     describe("shouldn't type literal", function() {
         it('heterogeneous arrays', function() {
             expect(function() {
-                typeOfCode('[1, true]')
+                typeOfCode('[1, true]');
             }).toThrow(new Error("Type error on line 0: Number is not Boolean"));
         });
     });

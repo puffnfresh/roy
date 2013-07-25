@@ -38,7 +38,25 @@ describe('compiler', function(){
     }
 
     it('should preserve comments', function(){
-        expect(compilerOutput('// HELLO')).toEqual('// HELLO\n');
+        expect(compilerOutput('// HELLO\nconsole.log 123')).toEqual('// HELLO\nconsole.log(123);');
+    });
+    it('should preserve comments on non output nodes', function(){
+        expect(compilerOutput('// Comment\ntype X = {a: Number}\nlet x:X = {a: 123}'))
+        .toEqual('// Comment\nvar x = { \'a\': 123 };');
+    });
+
+    it('should compile literal', function(){
+        expect(compilerOutput('42')).toEqual('42;');
+        expect(compilerOutput('\'string\'')).toEqual('\'string\';');
+        expect(compilerOutput('null')).toEqual('null;');
+    });
+
+    it('should compile identifier', function(){
+        expect(compilerOutput('roy')).toEqual('roy;');
+    });
+
+    it('should only execute a match expression once', function(){
+        expectExecutionToHaveExpectedOutput('good/match_expression_single_eval');
     });
 
     describe('should execute', function() {
@@ -69,6 +87,12 @@ describe('compiler', function(){
         it('identity_monad.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/identity_monad');
         });
+        it('number.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/number');
+        });
+        it('object.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/object');
+        });
         it('option_monad.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/option_monad');
         });
@@ -86,6 +110,9 @@ describe('compiler', function(){
         });
         it('where.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/where');
+        });
+        it('with.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/with');
         });
     });
 

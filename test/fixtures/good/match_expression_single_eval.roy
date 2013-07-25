@@ -1,0 +1,10 @@
+data Either a b =
+  Left a | Right b
+
+let f = \() ->
+  console.log "This should only appear once"
+  Right 1
+
+match f()
+  case (Left x) = console.log x
+  case (Right x) = console.log x

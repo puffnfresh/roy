@@ -1,9 +1,8 @@
-# Roy
+# Roy [![Build Status](https://travis-ci.org/puffnfresh/roy.png?branch=master)](https://travis-ci.org/puffnfresh/roy)
 Roy is a small functional language that compiles to JavaScript. It has a few main features:
 
 * Damas-Hindley-Milner type inference
 * Whitespace significant syntax
-* Compile-time meta-programming
 * Simple tagged unions
 * Pattern matching
 * Structural typing

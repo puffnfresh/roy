@@ -7,8 +7,16 @@ module.exports = function(grunt) {
             './lib/typeparser.js': './src/typegrammar.js',
             './lib/parser.js': './src/grammar.js'
         },
-        rigger: {
-            'roy.js': 'rigger-roy.js'
+        cjsify: {
+            'roy.js': {
+                entry: 'src/compile.js',
+                dir: __dirname,
+                options: {
+                    'export': 'roy',
+                    'ignoreMissing': true,
+                    'node': false
+                }
+            }
         },
         jasmine: {
             specs: {
@@ -40,17 +48,14 @@ module.exports = function(grunt) {
         fs.writeFileSync(this.target, parser.generate());
     });
 
-    grunt.registerMultiTask('rigger', 'File concatentation by rigger.', function() {
-        var rigger = require('rigger'),
-            fs = require('fs'),
-            done = this.async(),
-            target = this.target;
+    grunt.registerMultiTask('cjsify', 'Bundling by commonjs-everywhere.', function() {
+        var cjsify = require('commonjs-everywhere').cjsify,
+            escodegen = require('escodegen'),
+            target = this.target,
+            ast = cjsify(this.data.entry, this.data.dir, this.data.options),
+            output = escodegen.generate(ast);
 
-        rigger(this.data, function(err, output) {
-            if(err) return grunt.log.error(err);
-            fs.writeFileSync(target, output);
-            done(true);
-        });
+        grunt.file.write(target, output);
     });
 
     grunt.registerMultiTask('jasmine', 'Testing by jasmine.', function() {
@@ -75,19 +80,22 @@ module.exports = function(grunt) {
         // Not nice (necessary for jasmine-node's asyncSpecWait, etc)
         for(key in jasmine) if(jasmine[key] instanceof Function) global[key] = jasmine[key];
 
+        function onComplete(runner) {
+            if (runner.results().failedCount > 0) {
+                process.exit(1);
+                return;
+            }
+            done(true);
+        };
+
         jasmine.executeSpecsInFolder({
             specFolders: [specDir],
             regExpSpec: /Comp.*Spec\.js/,
-            onComplete: function(runner) {
-                if (runner.results().failedCount > 0) {
-                    grunt.log.error();
-                }
-                done(true);
-            },
+            onComplete: onComplete,
             isVerbose: true,
             showColors: true
         });
     });
 
-    grunt.registerTask('default', 'jison lint jasmine rigger min');
+    grunt.registerTask('default', 'jison lint jasmine cjsify min');
 };

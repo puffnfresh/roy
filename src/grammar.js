@@ -20,8 +20,8 @@ var grammar = {
 
     "bnf": {
         "program": [
-            ["optBody EOF", "return $1;"],
-            ["SHEBANG TERMINATOR optBody EOF", "return $3;"]
+            ["optBody EOF", "return new yy.Module($1);"],
+            ["SHEBANG TERMINATOR optBody EOF", "return new yy.Module($3);"]
         ],
         "optBody": [
             ["", "$$ = [];"],
@@ -79,7 +79,7 @@ var grammar = {
             ["ifThenElse", "$$ = $1;"]
         ],
         "callArgument": [
-            ["( expression )", n("$$ = new yy.Expression($2);")],
+            ["( expression )", n("$$ = $2;")],
             ["! ( expression )", n("$$ = new yy.UnaryBooleanOperator($1, $3);")],
             ["accessor", "$$ = $1;"],
             ["callArgument @ callArgument", n("$$ = new yy.Access($1, $3);")],
@@ -134,8 +134,6 @@ var grammar = {
         "dataParamList": typegrammar.dataParamList,
         "optDataParamList": typegrammar.optDataParamList,
 
-        "typeClassDecl": [
-        ],
         "typeClassLines": [
             ["IDENTIFIER : type", "$$ = {}; $$[$1] = $3;"],
             ["typeClassLines TERMINATOR IDENTIFIER : type", "$$ = $1; $1[$3] = $5;"]
@@ -223,7 +221,13 @@ var grammar = {
         "keyPairs": [
             ["keywordOrIdentifier : expression", "$$ = {}; $$[$1] = $3;"],
             ["keyPairs , keywordOrIdentifier : expression", "$$ = $1; $1[$3] = $5;"],
-            ["keyPairs TERMINATOR optTerm keywordOrIdentifier : expression", "$$ = $1; $1[$4] = $6;"]
+            ["keyPairs TERMINATOR optTerm keywordOrIdentifier : expression", "$$ = $1; $1[$4] = $6;"],
+            ["STRING : expression", "$$ = {}; $$[$1] = $3;"],
+            ["keyPairs , STRING : expression", "$$ = $1; $1[$3] = $5;"],
+            ["keyPairs TERMINATOR optTerm STRING : expression", "$$ = $1; $1[$4] = $6;"],
+            ["NUMBER : expression", "$$ = {}; $$[$1] = $3;"],
+            ["keyPairs , NUMBER : expression", "$$ = $1; $1[$3] = $5;"],
+            ["keyPairs TERMINATOR optTerm NUMBER : expression", "$$ = $1; $1[$4] = $6;"]
         ],
         "optTerm": [
             ["", ""],

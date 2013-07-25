@@ -120,17 +120,19 @@ function objectSequence(A, o) {
 // TODO: Is possible to remove attribute duplication. Do it.
 nodes = toObject([
     attributedNode(
-        'Expression',
-        ['value'],
+        'Module',
+        ['body'],
         function(A) {
             return this.attribute.map(function(attribute) {
-                return function(value) {
-                    return nodes.Expression(value).withAttribute(attribute);
+                return function(body) {
+                    return nodes.Module(body).withAttribute(attribute);
                 };
-            }).ap(this.value.sequence(A));
+            }).ap(arraySequence(A, this.body, function(a) {
+                return a.sequence(A);
+            }));
         },
         function(f) {
-            return nodes.Expression(this.value.extend(f)).withAttribute(f(this));
+            return nodes.Module(arrayExtend(f)).withAttribute(f(this));
         }
     ),
     attributedNode(

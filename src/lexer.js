@@ -10,9 +10,9 @@ var IDENTIFIER = new RegExp(
     unicode.ECMA.identifier.source.replace('\\u03BB', '')
 );
 
-var NUMBER = /^-?[0-9]+(\.[0-9]+)?(e-?[0-9]+)?/;
+var NUMBER = /^-?[0-9]+(\.[0-9]+)?([eE][\-\+]?[0-9]+)?/;
 var STRING = /^(?:"(?:[^"\\]|\\.)*"|'(?:[^'\\]|\\.)*')/;
-var COMMENT = /^\/\/.*/;
+var COMMENT = /^\/\/(.*)/;
 var WHITESPACE = /^[^\n\S]+/;
 var INDENT = /^(?:\n[^\n\S]*)+/;
 var GENERIC = /^#([a-z]+)/;
@@ -48,7 +48,6 @@ var identifierToken = function() {
         case 'case':
         case 'do':
         case 'return':
-        case 'macro':
         case 'with':
         case 'where':
             name = value.toUpperCase();
@@ -77,10 +76,10 @@ var stringToken = function() {
   if (token) {
     tokens.push(['STRING', token[0], lineno]);
     return token[0].length;
-    
+
   }
   return 0;
-};    
+};
 
 var genericToken = function() {
     var token = GENERIC.exec(chunk);
@@ -94,7 +93,7 @@ var genericToken = function() {
 var commentToken = function() {
     var token = COMMENT.exec(chunk);
     if(token) {
-        tokens.push(['COMMENT', token[0], lineno]);
+        tokens.push(['COMMENT', token[1], lineno]);
         return token[0].length;
     }
     return 0;
@@ -199,12 +198,7 @@ var literalToken = function() {
     case '[':
     case '|':
         next = chunk.slice(0, 2);
-        switch(next) {
-        case '[|':
-        case '|]':
-            tokens.push([next, next, lineno]);
-            return 2;
-        case '||':
+        if(next == '||') {
             tokens.push(['BOOLOP', next, lineno]);
             return 2;
         }
@@ -238,8 +232,7 @@ var literalToken = function() {
             tokens.push(['BOOLOP', next, lineno]);
             return 2;
         }
-        tokens.push([tag, tag, lineno]);
-        return 1;
+        return 0;
     case 'λ':
     case '\\':
         tokens.push(['LAMBDA', tag, lineno]);

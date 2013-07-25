@@ -4,7 +4,7 @@ var nodes = require('./nodes');
 
 var fv = {};
 
-/** @typedef {node.Expression|node.Function|node.Instance|node.Return|node.Bind|node.Do|node.Match|node.Case|node.Assignment|node.Let|node.Call|node.IfThenElse|node.Comment|node.PropertyAccess|node.Access|node.BinaryGenericOperator|node.BinaryNumberOperator|node.BinaryBooleanOperator|node.BinaryStringOperator|node.With|node.Identifier|node.Tuple|node.Number|node.String|node.Boolean|node.Array|node.Object} */
+/** @typedef {node.Function|node.Instance|node.Return|node.Bind|node.Do|node.Match|node.Case|node.Assignment|node.Let|node.Call|node.IfThenElse|node.Comment|node.PropertyAccess|node.Access|node.BinaryGenericOperator|node.BinaryNumberOperator|node.BinaryBooleanOperator|node.BinaryStringOperator|node.With|node.Identifier|node.Tuple|node.Number|node.String|node.Boolean|node.Array|node.Object} */
 fv.Node;
 
 /**
@@ -15,9 +15,6 @@ fv.Node;
  */
 function getFreeVariables(node) {
     var visitor = {
-        visitExpression: function(node) {
-            return node.value.accept(visitor);
-        },
         visitFunction: function(node) {
             var bodyFreeVariables = getFreeVariablesOfBlock(node.value);
 

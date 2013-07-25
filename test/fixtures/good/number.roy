@@ -1,0 +1,11 @@
+// Test some large exponents
+console.log 1e32
+console.log 1E32
+console.log 1e+32
+console.log 1E+32
+console.log 1e-32
+console.log 1E-32
+
+// Test some small exponents
+console.log 1E+3
+console.log 1E-3
