@@ -1,8 +1,8 @@
 var typegrammar = require('./typegrammar').bnf;
 
-var n = function(s) {
+function n(s) {
     return s + "$$.lineno = yylineno;";
-};
+}
 
 var grammar = {
     "startSymbol": "program",
@@ -20,20 +20,37 @@ var grammar = {
 
     "bnf": {
         "program": [
-            ["EOF", "return [];"],
-            ["SHEBANG TERMINATOR body EOF", "return $3;"],
-            ["SHEBANG TERMINATOR EOF", "return [];"],
-            ["body EOF", "return $1;"]
+            ["optBody EOF", "return $1;"],
+            ["SHEBANG TERMINATOR optBody EOF", "return $3;"]
+        ],
+        "optBody": [
+            ["", "$$ = [];"],
+            ["body", "$$ = $1;"]
+        ],
+        "restBody": [
+            ["", "$$ = [];"],
+            ["TERMINATOR optBody", "$$ = $2;"]
         ],
         "body": [
-            ["line", "$$ = [$1];"],
-            ["body TERMINATOR line", "$$ = $1; $1.push($3);"],
-            ["body TERMINATOR", "$$ = $1;"]
+            ["COMMENT restBody", n("$$ = [new yy.Comment($1)].concat($2);")],
+            ["expression restBody", "$$ = [$1].concat($2);"],
+
+            ["LET IDENTIFIER optType = blockExpression restBody", "$$ = [new yy.Let($2, $5, $3, $6)];"],
+            ["LET IDENTIFIER paramList optType = blockExpression restBody", "$$ = [new yy.Let($2, [new yy.Function($3, $6)], $4, $7)];"],
+
+            // data Maybe a = Some a | None
+            ["DATA IDENTIFIER optDataParamList = dataList restBody", n("$$ = [new yy.Data($2, $3, $5, $6)];")],
+            ["DATA IDENTIFIER optDataParamList = INDENT dataList outdentOrEof restBody", n("$$ = [new yy.Data($2, $3, $6, $7)];")],
+
+            // type Person = {firstName: String, lastName: String}
+            ["TYPE IDENTIFIER = type restBody", n("$$ = [new yy.Type($2, $4, $5)];")],
+
+            ["TYPECLASS IDENTIFIER GENERIC { INDENT typeClassLines outdentOrEof TERMINATOR } restBody", "$$ = [new yy.TypeClass($2, new yy.Generic($3), $6, $10)];"],
+            ["INSTANCE IDENTIFIER = IDENTIFIER type object restBody", "$$ = [new yy.Instance($2, $4, $5, $6, $7)];"]
         ],
-        "line": [
-            ["statement", "$$ = $1;"],
-            ["expression", "$$ = $1;"],
-            ["COMMENT", n("$$ = new yy.Comment($1);")]
+        "blockExpression": [
+            ["block", "$$ = $1;"],
+            ["expression", "$$ = [$1];"]
         ],
         "block": [
             ["INDENT body outdentOrEof", "$$ = $2;"]
@@ -44,21 +61,14 @@ var grammar = {
             ["doBody TERMINATOR", "$$ = $1;"]
         ],
         "doLine": [
-            ["line", "$$ = $1;"],
+            ["LET IDENTIFIER optType = blockExpression restDoBody", "$$ = new yy.Let($2, $5, $3, $6);"],
+            ["LET IDENTIFIER paramList optType = blockExpression restDoBody", "$$ = new yy.Let($2, [new yy.Function($3, $6)], $4, $7);"],
+
             ["IDENTIFIER LEFTARROW doLine", n("$$ = new yy.Bind($1, $3);")],
             ["RETURN expression", n("$$ = new yy.Return($2);")]
         ],
         "doBlock": [
             ["INDENT doBody outdentOrEof", "$$ = $2;"]
-        ],
-        "statement": [
-            ["LET function", "$$ = $2;"],
-            ["LET binding", "$$ = $2;"],
-            ["dataDecl", "$$ = $1;"],
-            ["typeDecl", "$$ = $1;"],
-            ["typeClassDecl", "$$ = $1;"],
-            ["instanceDecl", "$$ = $1;"],
-            ["macro", "$$ = $1;"]
         ],
         "expression": [
             ["innerExpression", "$$ = $1;"],
@@ -70,9 +80,7 @@ var grammar = {
         ],
         "callArgument": [
             ["( expression )", n("$$ = new yy.Expression($2);")],
-            ["& ( expression )", n("$$ = new yy.Replacement($3);")],
             ["! ( expression )", n("$$ = new yy.UnaryBooleanOperator($1, $3);")],
-            ["[| expression |]", n("$$ = new yy.Quoted($2);")],
             ["accessor", "$$ = $1;"],
             ["callArgument @ callArgument", n("$$ = new yy.Access($1, $3);")],
             ["callArgument MATH callArgument", n("$$ = new yy.BinaryNumberOperator($2, $1, $3);")],
@@ -89,8 +97,8 @@ var grammar = {
             ["callArgument", "$$ = $1;"]
         ],
         "caseList": [
-            ["CASE pattern = expression", "$$ = [new yy.Case($2, $4)];"],
-            ["caseList TERMINATOR CASE pattern = expression", "$$ = $1; $1.push(new yy.Case($4, $6));"]
+            ["CASE pattern = expression", "$$ = [{pattern: $2, value: $4}];"],
+            ["caseList TERMINATOR CASE pattern = expression", "$$ = $1; $1.push({pattern: $4, value: $6});"]
         ],
         "pattern": [
             ["innerPattern", "$$ = $1;"],
@@ -110,19 +118,9 @@ var grammar = {
             ["IF innerExpression THEN innerExpression ELSE innerExpression", n("$$ = new yy.IfThenElse($2, [$4], [$6]);")]
         ],
 
-        // data Maybe a = Some a | None
-        "dataDecl": [
-            ["DATA IDENTIFIER optDataParamList = dataList", n("$$ = new yy.Data($2, $3, $5);")],
-            ["DATA IDENTIFIER optDataParamList = INDENT dataList outdentOrEof", n("$$ = new yy.Data($2, $3, $6);")]
-        ],
         "dataList": [
             ["IDENTIFIER optTypeParamList", "$$ = [new yy.Tag($1, $2)];"],
             ["dataList | IDENTIFIER optTypeParamList", "$$ = $1; $1.push(new yy.Tag($3, $4));"]
-        ],
-
-        // type Person = {firstName: String, lastName: String}
-        "typeDecl": [
-            ["TYPE IDENTIFIER = type", n("$$ = new yy.Type($2, $4);")]
         ],
 
         // For type annotations (from the typegrammar module)
@@ -137,21 +135,12 @@ var grammar = {
         "optDataParamList": typegrammar.optDataParamList,
 
         "typeClassDecl": [
-            ["TYPECLASS IDENTIFIER GENERIC { INDENT typeClassLines outdentOrEof TERMINATOR }", "$$ = new yy.TypeClass($2, new yy.Generic($3), $6);"]
         ],
         "typeClassLines": [
             ["IDENTIFIER : type", "$$ = {}; $$[$1] = $3;"],
             ["typeClassLines TERMINATOR IDENTIFIER : type", "$$ = $1; $1[$3] = $5;"]
         ],
 
-        "instanceDecl": [
-            ["INSTANCE IDENTIFIER = IDENTIFIER type object", "$$ = new yy.Instance($2, $4, $5, $6);"]
-        ],
-
-        "macro": [
-            ["MACRO IDENTIFIER = expression", n("$$ = new yy.Macro($2, [$4]);")],
-            ["MACRO IDENTIFIER = block", n("$$ = new yy.Macro($2, $4);")]
-        ],
         "function": [
             ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Let($1, [new yy.Function($2, $5, $6)], $3);")],
             ["IDENTIFIER paramList optType = expression", n("$$ = new yy.Let($1, [new yy.Function($2, [$5])], $3);")]

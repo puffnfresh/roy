@@ -1,6 +1,6 @@
 var lexer = require('./lexer'),
     typeparser = require('../lib/typeparser').parser,
-    nodes = require('./nodes').nodes,
+    nodes = require('./nodes'),
     types = require('./types'),
     _ = require('underscore');
 

@@ -8,11 +8,9 @@ var _ = require('underscore');
 //     fun id x = x
 //
 // Here, `id` has the polymorphic type `#a -> #a`.
-function Variable() {
-    this.id = Variable.nextId;
-    Variable.nextId++;
+function Variable(id) {
+    this.id = id;
 }
-Variable.nextId = 0;
 exports.Variable = Variable;
 
 function toChar(n) {
@@ -122,7 +120,7 @@ RowObjectType.prototype.toString = function() {
     for(p in this.props) {
         strs.push(p + ': ' + this.props[p].toString());
     }
-    return '{' + this.row.toString() + ', ' + strs.join(', ') + '}';
+    return '{' + this.row.toString() + ' | ' + strs.join(', ') + '}';
 };
 exports.RowObjectType = RowObjectType;
 

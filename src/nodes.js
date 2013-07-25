@@ -1,435 +1,650 @@
-exports.nodes = {
-    Expression: function(value) {
-        this.value = value;
+var _ = require('underscore'),
+    nodes;
 
-        this.accept = function(a) {
-            if(a.visitExpression) {
-                return a.visitExpression(this);
-            }
-        };
-    },
-    Arg: function(name, type) {
-        this.name = name;
+function attributedNode(name, properties, sequence, extend) {
+    var visitHandle = 'visit' + name;
 
-        // Optional
-        this.type = type;
+    function forProperties(f) {
+        _.each(properties, function(property, i) {
+            f(property, i);
+        });
+    }
 
-        this.accept = function(a) {
-            if(a.visitArg) {
-                return a.visitArg(this);
-            }
-        };
-    },
-    Function: function(args, value, whereDecls) {
-        this.args = args;
-        this.value = value;
+    function create(proto) {
+        function Ctor() {
+        }
+        Ctor.prototype = Attributed.prototype;
+        return new Ctor();
+    }
 
-        // Optional
-        this.whereDecls = whereDecls || [];
+    function Attributed() {
+        var self = this,
+            args = arguments;
 
-        this.accept = function(a) {
-            if(a.visitFunction) {
-                return a.visitFunction(this);
-            }
-        };
-    },
-    Data: function(name, args, tags) {
-        this.name = name;
-        this.args = args;
-        this.tags = tags;
+        if(!(self instanceof Attributed)) {
+            self = create(Attributed.prototype);
+        }
 
-        this.accept = function(a) {
-            if(a.visitData) {
-                return a.visitData(this);
-            }
-        };
-    },
-    Type: function(name, value) {
-        this.name = name;
-        this.value = value;
+        forProperties(function(property, i) {
+            self[property] = args[i];
+        });
 
-        this.accept = function(a) {
-            if(a.visitType) {
-                return a.visitType(this);
-            }
-        };
-    },
-    TypeClass: function(name, generic, types) {
-        this.name = name;
-        this.generic = generic;
-        this.types = types;
+        self.attribute = null;
 
-        this.accept = function(a) {
-            if(a.visitTypeClass) {
-                return a.visitTypeClass(this);
-            }
-        };
-    },
-    Instance: function(name, typeClassName, typeName, object) {
-        this.name = name;
-        this.typeClassName = typeClassName;
-        this.typeName = typeName;
-        this.object = object;
+        return self;
+    }
+    Attributed._name = name;
+    Attributed.prototype.accept = function(a) {
+        if(a[visitHandle]) {
+            return a[visitHandle](this);
+        }
+    };
+    Attributed.prototype.withAttribute = function(a) {
+        var self = this,
+            instance = create(Attributed.prototype);
 
-        this.accept = function(a) {
-            if(a.visitInstance) {
-                return a.visitInstance(this);
-            }
-        };
-    },
-    Generic: function(value) {
-        this.value = value;
+        forProperties(function(property) {
+            instance[property] = self[property];
+        });
 
-        this.accept = function(a) {
-            if(a.visitGeneric) {
-                return a.visitGeneric(this);
-            }
-        };
-    },
-    TypeFunction: function(args) {
-        this.args = args;
+        instance.attribute = a;
 
-        this.accept = function(a) {
-            if(a.visitTypeFunction) {
-                return a.visitTypeFunction(this);
-            }
-        };
-    },
-    TypeName: function(value, args) {
-        this.value = value;
-        this.args = args;
+        return instance;
+    };
+    Attributed.prototype.sequence = sequence;
+    Attributed.prototype.extend = extend;
 
-        this.accept = function(a) {
-            if(a.visitTypeName) {
-                return a.visitTypeName(this);
-            }
-        };
-    },
-    TypeObject: function(values) {
-        this.values = values;
+    return Attributed;
+}
 
-        this.accept = function(a) {
-            if(a.visitTypeObject) {
-                return a.visitTypeObject(this);
-            }
-        };
-    },
-    TypeArray: function(value) {
-        this.value = value;
+function toObject(nodes) {
+    var o = {};
+    _.each(nodes, function(node) {
+        var name = node._name;
+        o[name] = node;
+    });
+    return o;
+}
 
-        this.accept = function(a) {
-            if(a.visitTypeArray) {
-                return a.visitTypeArray(this);
-            }
-        };
-    },
-    // TODO REMOVE
-    Return: function(value) {
-        this.value = value;
+function singleton(k, v) {
+    var r  = {};
+    r[k] = v;
+    return r;
+}
 
-        this.isReturn = true;
+function arrayExtend(as, f) {
+    return _.map(as, function(a) {
+        return a.extend(f);
+    });
+}
 
-        this.accept = function(a) {
-            if(a.visitReturn) {
-                return a.visitReturn(this);
-            }
-        };
-    },
-    // TODO REMOVE
-    Bind: function(name, value) {
-        this.name = name;
-        this.value = value;
+function arraySequence(A, as, f) {
+    var values = A.of([]),
+        i;
 
-        this.isBind = true;
-
-        // Set in compile stage
-        this.rest = [];
-
-        this.accept = function(a) {
-            if(a.visitBind) {
-                return a.visitBind(this);
-            }
-        };
-    },
-    Do: function(value, body) {
-        this.value = value;
-        this.body = body;
-
-        this.accept = function(a) {
-            if(a.visitDo) {
-                return a.visitDo(this);
-            }
-        };
-    },
-    Match: function(value, cases) {
-        this.value = value;
-        this.cases = cases;
-
-        this.accept = function(a) {
-            if(a.visitMatch) {
-                return a.visitMatch(this);
-            }
-        };
-    },
-    // TODO REMOVE
-    Case: function(pattern, value) {
-        this.pattern = pattern;
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitCase) {
-                return a.visitCase(this);
-            }
-        };
-    },
-    // TODO REMOVE
-    Tag: function(name, vars) {
-        this.name = name;
-        this.vars = vars;
-
-        this.accept = function(a) {
-            if(a.visitTag) {
-                return a.visitTag(this);
-            }
-        };
-    },
-    // TODO REMOVE
-    Pattern: function(tag, vars) {
-        this.tag = tag;
-        this.vars = vars;
-
-        this.accept = function(a) {
-            if(a.visitPattern) {
-                return a.visitPattern(this);
-            }
-        };
-    },
-    Assignment: function(name, value) {
-        this.name = name;
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitAssignment) {
-                return a.visitAssignment(this);
-            }
-        };
-    },
-    Let: function(name, value, type) {
-        this.name = name;
-        this.value = value;
-
-        // Optional
-        this.type = type;
-
-        this.accept = function(a) {
-            if(a.visitLet) {
-                return a.visitLet(this);
-            }
-        };
-    },
-    Call: function(func, args) {
-        this.func = func;
-        this.args = args;
-
-        this.accept = function(a) {
-            if(a.visitCall) {
-                return a.visitCall(this);
-            }
-        };
-    },
-    IfThenElse: function(condition, ifTrue, ifFalse) {
-        this.condition = condition;
-        this.ifTrue = ifTrue;
-        this.ifFalse = ifFalse;
-
-        this.accept = function(a) {
-            if(a.visitIfThenElse) {
-                return a.visitIfThenElse(this);
-            }
-        };
-    },
-    Comment: function(value) {
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitComment) {
-                return a.visitComment(this);
-            }
-        };
-    },
-    PropertyAccess: function(value, property) {
-        this.value = value;
-        this.property = property;
-
-        this.accept = function(a) {
-            if(a.visitPropertyAccess) {
-                return a.visitPropertyAccess(this);
-            }
-        };
-    },
-    Access: function(value, property) {
-        this.value = value;
-        this.property = property;
-
-        this.accept = function(a) {
-            if(a.visitAccess) {
-                return a.visitAccess(this);
-            }
-        };
-    },
-    UnaryBooleanOperator: function(name, value) {
-        this.name = name;
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitUnaryBooleanOperator) {
-                return a.visitUnaryBooleanOperator(this);
-            }
-        };
-    },
-    BinaryGenericOperator: function(name, left, right) {
-        this.name = name;
-        this.left = left;
-        this.right = right;
-
-        this.accept = function(a) {
-            if(a.visitBinaryGenericOperator) {
-                return a.visitBinaryGenericOperator(this);
-            }
-        };
-    },
-    BinaryNumberOperator: function(name, left, right) {
-        this.name = name;
-        this.left = left;
-        this.right = right;
-
-        this.accept = function(a) {
-            if(a.visitBinaryNumberOperator) {
-                return a.visitBinaryNumberOperator(this);
-            }
-        };
-    },
-    BinaryBooleanOperator: function(name, left, right) {
-        this.name = name;
-        this.left = left;
-        this.right = right;
-
-        this.accept = function(a) {
-            if(a.visitBinaryBooleanOperator) {
-                return a.visitBinaryBooleanOperator(this);
-            }
-        };
-    },
-    BinaryStringOperator: function(name, left, right) {
-        this.name = name;
-        this.left = left;
-        this.right = right;
-
-        this.accept = function(a) {
-            if(a.visitBinaryStringOperator) {
-                return a.visitBinaryStringOperator(this);
-            }
-        };
-    },
-    With: function(left, right) {
-        this.left = left;
-        this.right = right;
-
-        this.accept = function(a) {
-            if(a.visitWith) {
-                return a.visitWith(this);
-            }
-        };
-    },
-    Replacement: function(value) {
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitReplacement) {
-                return a.visitReplacement(this);
-            }
-        };
-    },
-    Macro: function(name, body) {
-        this.name = name;
-        this.body = body;
-
-        this.accept = function(a) {
-            if(a.visitMacro) {
-                return a.visitMacro(this);
-            }
-        };
-    },
-    Quoted: function(value) {
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitQuoted) {
-                return a.visitQuoted(this);
-            }
-        };
-    },
-    Identifier: function(value) {
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitIdentifier) {
-                return a.visitIdentifier(this);
-            }
-        };
-    },
-    Tuple: function(values) {
-        this.values= values;
-
-        this.accept = function(a) {
-            if(a.visitTuple) {
-                return a.visitTuple(this);
-            }
-        };
-    },
-    Number: function(value) {
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitNumber) {
-                return a.visitNumber(this);
-            }
-        };
-    },
-    String: function(value) {
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitString) {
-                return a.visitString(this);
-            }
-        };
-    },
-    Boolean: function(value) {
-        this.value = value;
-
-        this.accept = function(a) {
-            if(a.visitBoolean) {
-                return a.visitBoolean(this);
-            }
-        };
-    },
-    Array: function(values) {
-        this.values = values;
-
-        this.accept = function(a) {
-            if(a.visitArray) {
-                return a.visitArray(this);
-            }
-        };
-    },
-    Object: function(values) {
-        this.values = values;
-
-        this.accept = function(a) {
-            if(a.visitObject) {
-                return a.visitObject(this);
-            }
+    function append(value) {
+        return function(values) {
+            return values.concat([value]);
         };
     }
-};
+
+    _.each(as, function(a) {
+        values = f(a).map(append).ap(values);
+    });
+
+    return values;
+}
+
+function objectSequence(A, o) {
+    var object = A.of({}),
+        k;
+
+    function setter(k) {
+        return function(v) {
+            return function(o) {
+                return _.extend(
+                    o,
+                    singleton(k, v)
+                );
+            };
+        };
+    }
+
+    _.each(o, function(v, k) {
+        object = v.sequence(A).map(setter(k)).ap(object);
+    });
+
+    return object;
+}
+
+// TODO: Is possible to remove attribute duplication. Do it.
+nodes = toObject([
+    attributedNode(
+        'Expression',
+        ['value'],
+        function(A) {
+            return this.attribute.map(function(attribute) {
+                return function(value) {
+                    return nodes.Expression(value).withAttribute(attribute);
+                };
+            }).ap(this.value.sequence(A));
+        },
+        function(f) {
+            return nodes.Expression(this.value.extend(f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Function',
+        ['args', 'value', 'whereDecls'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(value) {
+                    return nodes.Function(self.args, value, undefined).withAttribute(attribute);
+                };
+            }).ap(arraySequence(A, this.value, function(a) {
+                return a.sequence(A);
+            }));
+        },
+        function(f) {
+            return nodes.Function(this.args, arrayExtend(this.value, f), undefined).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Data',
+        ['name', 'args', 'tags', 'body'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(body) {
+                    return nodes.Data(self.name, self.args, self.tags).withAttribute(attribute);
+                };
+            }).ap(arraySequence(A, this.body, function(a) {
+                return a.sequence(A);
+            }));
+        },
+        function(f) {
+            return nodes.Data(this.name, this.args, this.tags, arrayExtend(this.body, f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Type',
+        ['name', 'value', 'body'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(body) {
+                    return nodes.Type(self.name, self.value).withAttribute(attribute);
+                };
+            }).ap(arraySequence(A, this.body), function(a) {
+                return a.sequence(A);
+            });
+        },
+        function(f) {
+            return nodes.Type(this.name, this.value, arrayExtend(this.body, f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'TypeClass',
+        ['name', 'generic', 'types', 'body'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(body) {
+                    return nodes.TypeClass(self.name, self.generic, self.types, body).withAttribute(attribute);
+                };
+            }).ap(arraySequence(A, this.body), function(a) {
+                return a.sequence(A);
+            });
+        },
+        function(f) {
+            return nodes.TypeClass(this.name, this.generic, this.types, arrayExtend(this.body, f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Instance',
+        ['name', 'typeClassName', 'typeName', 'object', 'body'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(object) {
+                    return function(body) {
+                        return nodes.Instance(self.name, self.typeClassName, self.typeName, object, body).withAttribute(attribute);
+                    };
+                };
+            }).ap(this.object.sequence(A)).ap(arraySequence(A, this.body), function(a) {
+                return a.sequence(A);
+            });
+        },
+        function(f) {
+            var object = {};
+            _.each(this.object, function(value, key) {
+                object[key] = value.extend(f);
+            });
+            return nodes.Instance(this.name, this.typeClassName, this.typeName, object, arrayExtend(this.body, f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Generic',
+        ['value'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return nodes.Generic(self.value).withAttribute(attribute);
+            });
+        },
+        function(f) {
+            return nodes.Generic(this.value).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'TypeFunction',
+        ['args'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return nodes.TypeFunction(self.args).withAttribute(attribute);
+            });
+        },
+        function(f) {
+            return nodes.TypeFunction(this.args).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'TypeName',
+        ['value', 'args'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return nodes.TypeName(self.value, self.args).withAttribute(attribute);
+            });
+        },
+        function(f) {
+            return this.TypeName(this.value, this.args).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'TypeObject',
+        ['values'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return nodes.TypeObject(self.values).withAttribute(attribute);
+            });
+        },
+        function(f) {
+            return nodes.TypeObject(this.values).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'TypeArray',
+        ['value'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return nodes.TypeArray(self.value).withAttribute(attribute);
+            });
+        },
+        function(f) {
+            return nodes.TypeArray(this.value).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Do',
+        ['value', 'body'],
+        function(A) {
+            // TODO: Tricky
+        },
+        function(f) {
+            throw new Error("TODO");
+        }
+    ),
+    attributedNode(
+        'Match',
+        ['value', 'cases'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return nodes.Match(self.value, cases).withAttribute(attribute);
+            }).ap(arraySequence(A, this.cases, function(a) {
+                return a.value.sequence(A).map(function(v) {
+                    return {
+                        pattern: a.pattern,
+                        value: v
+                    };
+                });
+            }));
+        },
+        function(f) {
+            var cases = _.map(this.cases, function(cas) {
+                return {
+                    pattern: cas.pattern,
+                    value: cas.value.extend(f)
+                };
+            });
+            return nodes.Match(this.value.extend(f), cases).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Let',
+        ['name', 'value', 'type', 'body'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(value) {
+                    return function(body) {
+                        return nodes.Let(self.name, value, self.type, body).withAttribute(attribute);
+                    };
+                };
+            }).ap(arraySequence(A, this.value, function(a) {
+                return a.sequence(A);
+            })).ap(arraySequence(A, this.body, function(a) {
+                return a.sequence(A);
+            }));
+        },
+        function(f) {
+            return nodes.Let(this.name, arrayExtend(this.value, f), this.type, arrayExtend(this.body, f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Call',
+        ['func', 'args'],
+        function(A) {
+            return this.attribute.map(function(attribute) {
+                return function(func) {
+                    return function(args) {
+                        return nodes.Call(func, args).withAttribute(attribute);
+                    };
+                };
+            }).ap(this.func.sequence(A)).ap(arraySequence(A, this.args, function(a) {
+                return a.sequence(A);
+            }));
+        },
+        function(f) {
+            var args = _.map(this.args, function(arg) {
+                return arg.extend(f);
+            });
+            return nodes.Call(this.func.extend(f), args).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'IfThenElse',
+        ['condition', 'ifTrue', 'ifFalse'],
+        function(A) {
+            return this.attribute.map(function(attribute) {
+                return function(condition) {
+                    return function(ifTrue) {
+                        return function(ifFalse) {
+                            return nodes.IfThenElse(condition, ifTrue, ifFalse).withAttribute(attribute);
+                        };
+                    };
+                };
+            }).ap(this.condition.sequence(A)).ap(arraySequence(A, this.ifTrue, function(a) {
+                return a.sequence(A);
+            })).ap(arraySequence(A, this.ifFalse, function(a) {
+                return a.sequence(A);
+            }));
+        },
+        function(f) {
+            return nodes.IfThenElse(this.condition.extend(f), arrayExtend(this.ifTrue, f), arrayExtend(this.ifFalse, f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Comment',
+        ['value'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return nodes.Comment(self.value).withAttribute(attribute);
+            });
+        },
+        function(f) {
+            return nodes.Comment(this.value).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'PropertyAccess',
+        ['value', 'property'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(value) {
+                    return nodes.PropertyAccess(value, self.property).withAttribute(attribute);
+                };
+            }).ap(this.value.sequence(A));
+        },
+        function(f) {
+            return nodes.PropertyAccess(this.value.extend(f), this.property).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Access',
+        ['value', 'property'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(value) {
+                    return nodes.Access(value, self.property).withAttribute(attribute);
+                };
+            }).ap(this.value.sequence(A));
+        },
+        function(f) {
+            return nodes.Access(this.value.extend(f), this.property).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'UnaryBooleanOperator',
+        ['name', 'value'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(value) {
+                    return nodes.BinaryGenericOperator(self.name, value).withAttribute(attribute);
+                };
+            }).ap(this.value.sequence(A));
+        },
+        function(f) {
+            return nodes.UnaryBooleanOperator(this.name, this.value.extend(f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'BinaryGenericOperator',
+        ['name', 'left', 'right'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(left) {
+                    return function(right) {
+                        return nodes.BinaryGenericOperator(self.name, left, right).withAttribute(attribute);
+                    };
+                };
+            }).ap(this.left.sequence(A)).ap(this.right.sequence(A));
+        },
+        function(f) {
+            return nodes.BinaryGenericOperator(this.name, this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'BinaryNumberOperator',
+        ['name', 'left', 'right'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(left) {
+                    return function(right) {
+                        return nodes.BinaryNumberOperator(self.name, left, right).withAttribute(attribute);
+                    };
+                };
+            }).ap(this.left.sequence(A)).ap(this.right.sequence(A));
+        },
+        function(f) {
+            return nodes.BinaryNumberOperator(this.name, this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'BinaryBooleanOperator',
+        ['name', 'left', 'right'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(left) {
+                    return function(right) {
+                        return nodes.BinaryBooleanOperator(self.name, left, right).withAttribute(attribute);
+                    };
+                };
+            }).ap(this.left.sequence(A)).ap(this.right.sequence(A));
+        },
+        function(f) {
+            return nodes.BinaryBooleanOperator(this.name, this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'BinaryStringOperator',
+        ['name', 'left', 'right'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(left) {
+                    return function(right) {
+                        return nodes.BinaryStringOperator(self.name, left, right).withAttribute(attribute);
+                    };
+                };
+            }).ap(this.left.sequence(A)).ap(this.right.sequence(A));
+        },
+        function(f) {
+            return nodes.BinaryStringOperator(this.name, this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'With',
+        ['left', 'right'],
+        function(A) {
+            return this.attribute.map(function(attribute) {
+                return function(left) {
+                    return function(right) {
+                        return nodes.With(left, right).withAttribute(attribute);
+                    };
+                };
+            }).ap(this.left.sequence(A)).ap(this.right.sequence(A));
+        },
+        function(f) {
+            return nodes.With(this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Identifier',
+        ['value'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return nodes.Identifier(this.value).withAttribute(attribute);
+            });
+        },
+        function(f) {
+            return nodes.Identifier(this.value).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Tuple',
+        ['values'],
+        function(A) {
+            return this.attribute.map(function(attribute) {
+                return function(values) {
+                    return nodes.Tuple(values).withAttribute(attribute);
+                };
+            }).ap(arraySequence(A, this.values, function(a) {
+                return a.sequence(A);
+            }));
+        },
+        function(f) {
+            return nodes.Tuple(arrayExtend(this.values, f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Number',
+        ['value'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return nodes.Number(self.value).withAttribute(attribute);
+            });
+        },
+        function(f) {
+            return nodes.Number(this.value).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'String',
+        ['value'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return nodes.String(self.value).withAttribute(attribute);
+            });
+        },
+        function(f) {
+            return nodes.String(this.value).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Boolean',
+        ['value'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return nodes.Boolean(self.value).withAttribute(attribute);
+            });
+        },
+        function(f) {
+            return nodes.Boolean(this.value).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Array',
+        ['values'],
+        function(A) {
+            return this.attribute.map(function(attribute) {
+                return function(values) {
+                    return nodes.Array(values).withAttribute(attribute);
+                };
+            }).ap(arraySequence(A, this.values, function(a) {
+                return a.sequence(A);
+            }));
+        },
+        function(f) {
+            return nodes.Array(arrayExtend(this.values, f)).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
+        'Object',
+        ['values'],
+        function(A) {
+            return this.attribute.map(function(attribute) {
+                return function(values) {
+                    return nodes.Object(values).withAttribute(attribute);
+                };
+            }).ap(objectSequence(A, this.values));
+        },
+        function(f) {
+            var values = {};
+            _.each(this.values, function(value, key) {
+                values[key] = value.extend(f);
+            });
+            return nodes.Object(values).withAttribute(f(this));
+        }
+    ),
+
+    // TODO: Remove
+    attributedNode('Arg', ['name', 'type']),
+    attributedNode('Assignment', ['name', 'value']),
+    attributedNode('Remove', ['value']),
+    attributedNode('Bind', ['name', 'value']),
+    attributedNode('Case', ['pattern', 'value']),
+    attributedNode('Tag', ['name', 'vars']),
+    attributedNode('Pattern', ['tag', 'vars']),
+    attributedNode('Replacement', ['value']),
+    attributedNode('Macro', ['name', 'body']),
+    attributedNode('Quoted', ['value'])
+]);
+
+module.exports = nodes;

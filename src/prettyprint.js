@@ -5,9 +5,6 @@ var prettyPrint = function(n) {
         visitFunction: function() {
             return "\\" + _.map(n.args, prettyPrint).join(" ") + " -> " + _.map(n.body, prettyPrint);
         },
-        visitArg: function() {
-            return n.name;
-        },
         visitLet: function() {
             return "let " + n.name + " = " + prettyPrint(n.value);
         },

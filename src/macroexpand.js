@@ -1,4 +1,4 @@
-var nodes = require('./nodes').nodes,
+var nodes = require('./nodes'),
     _ = require('underscore');
 
 var macros = {};

@@ -4,7 +4,7 @@ var typecheck = require('./typeinference').typecheck,
     exportType = require('./modules').exportType,
     types = require('./types'),
     nodeToType = require('./typeinference').nodeToType,
-    nodes = require('./nodes').nodes,
+    nodes = require('./nodes'),
     lexer = require('./lexer'),
     parser = require('../lib/parser').parser,
     typeparser = require('../lib/typeparser').parser,
@@ -421,21 +421,7 @@ var compileNodeWithEnv = function(n, env, opts) {
 };
 exports.compileNodeWithEnv = compileNodeWithEnv;
 
-function isStatement(node) {
-    return !!node.accept({
-        visitComment: function() {
-            return true;
-        },
-        visitData: function() {
-            return true;
-        },
-        visitLet: function() {
-            return true;
-        }
-    });
-}
-
-var compile = function(source, env, aliases, opts) {
+function compile(source, env, aliases, opts) {
     if(!env) env = {};
     if(!aliases) aliases = {};
     if(!opts) opts = {};
@@ -448,10 +434,7 @@ var compile = function(source, env, aliases, opts) {
     ast = macroexpand(ast, env, opts);
 
     // Typecheck the AST. Any type errors will throw an exception.
-    var resultType;
-    if(_.reject(ast, isStatement).length) {
-        resultType = typecheck(ast);
-    }
+    var resultType = typecheck(ast);
 
     // Export types
     ast = _.map(ast, function(n) {
@@ -506,7 +489,7 @@ var compile = function(source, env, aliases, opts) {
     output.push("");
 
     return {type: resultType, output: output.join('\n')};
-};
+}
 exports.compile = compile;
 
 var getSandbox = function() {
