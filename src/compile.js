@@ -7,7 +7,7 @@ var typecheck = require('./typeinference').typecheck,
     lexer = require('./lexer'),
     parser = require('../lib/parser').parser,
     typeparser = require('../lib/typeparser').parser,
-    brushtail = require('../lib/brushtail'),
+    brushtail = require('brushtail'),
     escodegen = require('escodegen'),
     _ = require('underscore');
 

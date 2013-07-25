@@ -26,8 +26,7 @@
     "source-map": "0.1.8",
     "underscore": "1.2.0",
     "unicode-categories": "0.9.1",
-    "estraverse": "1.2.0",
-    "escope": "0.0.14"
+    "brushtail": "0.0.1"
   },
   "devDependencies": {
     "jison": "0.2.7",
