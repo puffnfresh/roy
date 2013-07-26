@@ -118,7 +118,6 @@ var lineToken = function() {
     if(token) {
         var lastNewline = token[0].lastIndexOf("\n") + 1;
         var size = token[0].length - lastNewline;
-        var terminated = false;
         if(size > indent) {
             indents.push(size);
             tokens.push(['INDENT', size - indent, lineno]);
