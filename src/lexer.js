@@ -264,19 +264,11 @@ var shebangToken = function(chunk) {
     return 0;
 };
 
-exports.tokenise = function(source) {
+var tokenise = function(source, tokenizers) {
     /*jshint boss:true*/
-    indent = 0;
-    indents = [];
-    tokens = [];
-    lineno = 0;
     var i = 0, chunk;
 
     function getDiff(chunk) {
-        var tokenizers = [identifierToken, numberToken,
-            stringToken, genericToken, commentToken, whitespaceToken,
-            lineToken, literalToken, shebangToken];
-
         return _.foldl(tokenizers, function(diff, tokenizer) {
             return diff ? diff : tokenizer.apply(tokenizer, [chunk]);
         }, 0);
@@ -290,6 +282,18 @@ exports.tokenise = function(source) {
         lineno += source.slice(i, i + diff).split('\n').length - 1;
         i += diff;
     }
-    tokens.push(['EOF', '', lineno]);
+
     return tokens;
+};
+
+exports.tokenise = function(source) {
+    indent = 0;
+    indents = [];
+    tokens = [];
+    lineno = 0;
+    
+    return tokenise(source, [identifierToken, numberToken,
+            stringToken, genericToken, commentToken, whitespaceToken,
+            lineToken, literalToken, shebangToken]
+            ).concat([['EOF', '', lineno]]);
 };
