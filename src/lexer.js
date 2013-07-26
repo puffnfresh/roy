@@ -38,13 +38,12 @@ var keywordTokens = {
     'where':     'WHERE'
 };
 
-var chunk;
 var indent;
 var indents;
 var tokens;
 var lineno;
 
-var identifierToken = function() {
+var identifierToken = function(chunk) {
     var token = IDENTIFIER.exec(chunk);
 
     if(token) {
@@ -57,7 +56,7 @@ var identifierToken = function() {
     return 0;
 };
 
-var numberToken = function() {
+var numberToken = function(chunk) {
     var token = NUMBER.exec(chunk);
     if(token) {
         tokens.push(['NUMBER', token[0], lineno]);
@@ -66,7 +65,7 @@ var numberToken = function() {
     return 0;
 };
 
-var stringToken = function() {
+var stringToken = function(chunk) {
   var token = STRING.exec(chunk);
   if (token) {
     tokens.push(['STRING', token[0], lineno]);
@@ -76,7 +75,7 @@ var stringToken = function() {
   return 0;
 };
 
-var genericToken = function() {
+var genericToken = function(chunk) {
     var token = GENERIC.exec(chunk);
     if(token) {
         tokens.push(['GENERIC', token[1], lineno]);
@@ -85,7 +84,7 @@ var genericToken = function() {
     return 0;
 };
 
-var commentToken = function() {
+var commentToken = function(chunk) {
     var token = COMMENT.exec(chunk);
     if(token) {
         tokens.push(['COMMENT', token[0], lineno]);
@@ -94,7 +93,7 @@ var commentToken = function() {
     return 0;
 };
 
-var whitespaceToken = function() {
+var whitespaceToken = function(chunk) {
     var token = WHITESPACE.exec(chunk);
     if(token) {
         return token[0].length;
@@ -108,7 +107,7 @@ var lineContinuer = {
     "where": true
 };
 
-var lineToken = function() {
+var lineToken = function(chunk) {
     var token = INDENT.exec(chunk);
     if(token) {
         var lastNewline = token[0].lastIndexOf("\n") + 1;
@@ -133,13 +132,14 @@ var lineToken = function() {
                 }
             }
         }
+
         indent = size;
         return token[0].length;
     }
     return 0;
 };
 
-var literalToken = function() {
+var literalToken = function(chunk) {
     var tag = chunk.slice(0, 1);
     var next;
     switch(tag) {
@@ -254,7 +254,7 @@ var literalToken = function() {
     return 0;
 };
 
-var shebangToken = function() {
+var shebangToken = function(chunk) {
     var token = SHEBANG.exec(chunk);
     if (token) {
         tokens.push(['SHEBANG', token[0], lineno]);
@@ -269,9 +269,9 @@ exports.tokenise = function(source) {
     indents = [];
     tokens = [];
     lineno = 0;
-    var i = 0;
+    var i = 0, chunk;
     while(chunk = source.slice(i)) {
-        var diff = identifierToken() || numberToken() || stringToken() || genericToken() || commentToken() || whitespaceToken() || lineToken() || literalToken() || shebangToken();
+        var diff = identifierToken(chunk) || numberToken(chunk) || stringToken(chunk) || genericToken(chunk) || commentToken(chunk) || whitespaceToken(chunk) || lineToken(chunk) || literalToken(chunk) || shebangToken(chunk);
         if(!diff) {
             throw "Couldn't tokenise: " + chunk.substring(0, chunk.indexOf("\n") > -1 ? chunk.indexOf("\n") : chunk.length);
         }
