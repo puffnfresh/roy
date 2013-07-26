@@ -1,4 +1,5 @@
-var unicode = require('unicode-categories');
+var unicode = require('unicode-categories'),
+    _ = require('underscore');
 
 // http://es5.github.com/#x7.6
 // ECMAscript identifier starts with `$`, `_`,
@@ -270,8 +271,19 @@ exports.tokenise = function(source) {
     tokens = [];
     lineno = 0;
     var i = 0, chunk;
+
+    function getDiff(chunk) {
+        var tokenizers = [identifierToken, numberToken,
+            stringToken, genericToken, commentToken, whitespaceToken,
+            lineToken, literalToken, shebangToken];
+
+        return _.foldl(tokenizers, function(diff, tokenizer) {
+            return diff ? diff : tokenizer.apply(tokenizer, [chunk]);
+        }, 0);
+    }
+
     while(chunk = source.slice(i)) {
-        var diff = identifierToken(chunk) || numberToken(chunk) || stringToken(chunk) || genericToken(chunk) || commentToken(chunk) || whitespaceToken(chunk) || lineToken(chunk) || literalToken(chunk) || shebangToken(chunk);
+        var diff = getDiff(chunk);
         if(!diff) {
             throw "Couldn't tokenise: " + chunk.substring(0, chunk.indexOf("\n") > -1 ? chunk.indexOf("\n") : chunk.length);
         }
