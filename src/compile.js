@@ -30,21 +30,21 @@ parser.lexer = typeparser.lexer =  {
     }
 };
 
-var jsNodeIsExpression = function (node) {
+function jsNodeIsExpression(node) {
     return !! (/Expression$/.test(node.type) || node.type === 'Identifier' || node.type === 'Literal');
-};
+}
 
-var jsNodeIsStatement = function (node) {
+function jsNodeIsStatement(node) {
     return !! (/Statement$/.test(node.type) || /Declaration$/.test(node.type));
-};
+}
 
-var ensureJsASTStatement = function (node) {
+function ensureJsASTStatement(node) {
     if (jsNodeIsExpression(node)) {
         return { type: "ExpressionStatement", expression: node };
     }
     return node;
-};
-var ensureJsASTStatements = function (nodes) {
+}
+function ensureJsASTStatements(nodes) {
     if (typeof nodes.length !== "undefined") {
         return _.map(
             _.filter(nodes, function (x) {
@@ -57,10 +57,10 @@ var ensureJsASTStatements = function (nodes) {
     } else {
         throw new Error("ensureJsASTStatements wasn't given an Array, got " + nodes + " (" + typeof nodes + ")");
     }
-};
+}
 
 // Separate end comments from other expressions
-var splitComments = function(body) {
+function splitComments(body) {
     return _.reduceRight(body, function(accum, node) {
         if(accum.length && node instanceof nodes.Comment) {
             if (! accum[0].comments) {
@@ -72,9 +72,9 @@ var splitComments = function(body) {
         accum.unshift(node);
         return accum;
     }, []);
-};
+}
 // Ensure comments are attached to a statement where possible
-var liftComments = function (jsAst) {
+function liftComments(jsAst) {
     var helper = function (node) {
         var result, i, comments = [];
         if (! (node && node.type)) {
@@ -110,15 +110,15 @@ var liftComments = function (jsAst) {
         return [node, comments];
     };
     return helper(jsAst)[0];
-};
+}
 
 var extraComments = [];
 
-var compileNodeWithEnvToJsAST = function(n, env, opts) {
+function compileNodeWithEnvToJsAST(n, env, opts) {
     if(!opts) opts = {};
-    var compileNode = function(n) {
+    function compileNode(n) {
         return compileNodeWithEnvToJsAST(n, env);
-    };
+    }
     var result = n.accept({
         // Top level file
         visitModule: function() {
@@ -812,9 +812,9 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
         });
     }
     return result;
-};
+}
 exports.compileNodeWithEnvToJsAST = compileNodeWithEnvToJsAST;
-var compileNodeWithEnv = function (n, env, opts) {
+function compileNodeWithEnv(n, env, opts) {
     var ast = compileNodeWithEnvToJsAST(n, env, opts);
     if (typeof ast === "string") {
 //        console.warn("Got AST already transformed into string: ", ast);
@@ -826,7 +826,7 @@ var compileNodeWithEnv = function (n, env, opts) {
         var generated = escodegen.generate(ensureJsASTStatement(ast), {comment: true});
         return generated;
     }
-};
+}
 exports.compileNodeWithEnv = compileNodeWithEnv;
 
 function compile(source, env, aliases, opts) {
