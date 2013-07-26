@@ -18,6 +18,26 @@ var INDENT = /^(?:\n[^\n\S]*)+/;
 var GENERIC = /^#([a-z]+)/;
 var SHEBANG = /^#!.*/;
 
+var keywordTokens = {
+    'true':      'BOOLEAN',
+    'false':     'BOOLEAN',
+    'Function':  'FUNCTION',
+    'let':       'LET',
+    'if':        'IF',
+    'instance':  'INSTANCE',
+    'then':      'THEN',
+    'else':      'ELSE',
+    'data':      'DATA',
+    'type':      'TYPE',
+    'typeclass': 'TYPECLASS',
+    'match':     'MATCH',
+    'case':      'CASE',
+    'do':        'DO',
+    'return':    'RETURN',
+    'with':      'WITH',
+    'where':     'WHERE'
+};
+
 var chunk;
 var indent;
 var indents;
@@ -25,37 +45,12 @@ var tokens;
 var lineno;
 
 var identifierToken = function() {
-    var value,
-        name,
-        token = IDENTIFIER.exec(chunk);
+    var token = IDENTIFIER.exec(chunk);
+
     if(token) {
-        value = token[0];
-        switch(value) {
-        case 'true':
-        case 'false':
-            name = 'BOOLEAN';
-            break;
-        case 'Function':
-        case 'let':
-        case 'if':
-        case 'instance':
-        case 'then':
-        case 'else':
-        case 'data':
-        case 'type':
-        case 'typeclass':
-        case 'match':
-        case 'case':
-        case 'do':
-        case 'return':
-        case 'with':
-        case 'where':
-            name = value.toUpperCase();
-            break;
-        default:
-            name = 'IDENTIFIER';
-            break;
-        }
+        var value = token[0],
+            name = keywordTokens[value] || 'IDENTIFIER';
+
         tokens.push([name, value, lineno]);
         return token[0].length;
     }
