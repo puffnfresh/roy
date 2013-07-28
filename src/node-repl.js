@@ -28,7 +28,7 @@ var getFileContents = function(filename) {
 
     // Check to see if an extension is specified, if so, don't bother
     // checking others
-    if (/\..+$/.test(filename)) {
+    if(/\..+$/.test(filename)) {
         source = fs.readFileSync(filename, 'utf8');
         filenames = [filename];
     } else {
@@ -123,7 +123,7 @@ var nodeRepl = function(opts) {
                 } else {
                     if(metacommand[1]){
                         colorLog(33, metacommand[1], "is not defined.");
-                    }else{
+                    } else {
                         console.log("Usage :s command ");
                         console.log(":s [identifier] :: show original code about identifier.");
                     }
@@ -144,7 +144,7 @@ var nodeRepl = function(opts) {
                 // Remember the source if it's a binding
                 tokens = lexer.tokenise(line);
                 ast = parser.parse(tokens);
-                if (typeof ast.body[0] != 'undefined') {
+                if(typeof ast.body[0] != 'undefined') {
                     ast.body[0].accept({
                         visitLet: function(n) {
                             sources[n.name] = n.value;

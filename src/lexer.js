@@ -73,10 +73,9 @@ var numberToken = function() {
 
 var stringToken = function() {
   var token = STRING.exec(chunk);
-  if (token) {
+  if(token) {
     tokens.push(['STRING', token[0], lineno]);
     return token[0].length;
-
   }
   return 0;
 };
@@ -134,7 +133,7 @@ var lineToken = function() {
             if(tokens.length > 0) {
                 var lookahead = IDENTIFIER.exec(chunk.slice(token[0].length));
 
-                if (!lookahead || !lineContinuer[lookahead[0]]) {
+                if(!lookahead || !lineContinuer[lookahead[0]]) {
                     tokens.push(['TERMINATOR', token[0].substring(0, lastNewline), lineno]);
                 }
             }
@@ -220,7 +219,7 @@ var literalToken = function() {
         return 1;
     case '-':
         next = chunk.slice(0, 2);
-        if (next == '->') {
+        if(next == '->') {
             tokens.push(['RIGHTARROW', next, lineno]);
             return 2;
         }
@@ -262,7 +261,7 @@ var literalToken = function() {
 
 var shebangToken = function() {
     var token = SHEBANG.exec(chunk);
-    if (token) {
+    if(token) {
         tokens.push(['SHEBANG', token[0], lineno]);
         return token[0].length;
     }

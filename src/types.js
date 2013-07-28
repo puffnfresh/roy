@@ -105,7 +105,7 @@ ObjectType.prototype.toString = function() {
     var n;
     var e;
     for(p in this.props) {
-        if (_.isString(p)) {
+        if(_.isString(p)) {
             // Replace any double quotes by their escaped version.
             // Also replace any escaped single quotes.
             e = p.replace(/"|\\"/g, '\\"').replace(/(\\\\)|\\(')/g, '$1$2');
