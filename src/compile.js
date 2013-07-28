@@ -30,40 +30,46 @@ parser.lexer = typeparser.lexer =  {
     }
 };
 
-function jsNodeIsExpression(node) {
-    return !! (/Expression$/.test(node.type) || node.type === 'Identifier' || node.type === 'Literal');
+function isExpression(node) {
+    return (/Expression$/).test(node.type) || node.type == 'Identifier' || node.type == 'Literal';
 }
 
-function jsNodeIsStatement(node) {
-    return !! (/Statement$/.test(node.type) || /Declaration$/.test(node.type));
+function isStatement(node) {
+    return (/Statement$/).test(node.type) || /Declaration$/.test(node.type);
 }
 
-function ensureJsASTStatement(node) {
-    if (jsNodeIsExpression(node)) {
-        return { type: "ExpressionStatement", expression: node };
+function flatMap(a, f) {
+    return _.flatten(_.map(a, f));
+}
+
+function ensureStatement(node) {
+    if(isExpression(node)) {
+        return {
+            type: "ExpressionStatement",
+            expression: node
+        };
     }
     return node;
 }
-function ensureJsASTStatements(nodes) {
-    if (typeof nodes.length !== "undefined") {
-        return _.map(
-            _.filter(nodes, function (x) {
-                // console.log("x:", x);
-                // console.log("typeof x:", typeof x);
-                return typeof x !== "undefined";
-            }),
-            ensureJsASTStatement
-        );
-    } else {
-        throw new Error("ensureJsASTStatements wasn't given an Array, got " + nodes + " (" + typeof nodes + ")");
+
+function ensureStatements(nodes) {
+    // Some nodes have multiple statements, anything that emits
+    // multiple statements should be flattened with its context.
+    function flattenBlocks(node) {
+        if(node.type == "BlockStatement") {
+            return node.body;
+        }
+        return [node];
     }
+
+    return flatMap(_.filter(nodes, _.identity), _.compose(flattenBlocks, ensureStatement));
 }
 
 // Separate end comments from other expressions
 function splitComments(body) {
     return _.reduceRight(body, function(accum, node) {
         if(accum.length && node instanceof nodes.Comment) {
-            if (! accum[0].comments) {
+            if(!accum[0].comments) {
                 accum[0].comments = [];
             }
             accum[0].comments.unshift(node);
@@ -73,158 +79,136 @@ function splitComments(body) {
         return accum;
     }, []);
 }
+
 // Ensure comments are attached to a statement where possible
-function liftComments(jsAst) {
+function liftComments(jsNode) {
     var helper = function (node) {
-        var result, i, comments = [];
-        if (! (node && node.type)) {
+        var comments = [],
+            result,
+            key,
+            i;
+
+        if(!(node && node.type)) {
             // Break out early when we're not looking at a proper node
             return [node, comments];
         }
-        for (var key in node) if (node.hasOwnProperty(key)) {
-            if (key === "leadingComments" && jsNodeIsExpression(node)) {
+
+        for(key in node) if(node.hasOwnProperty(key)) {
+            if(key == "leadingComments" && isExpression(node)) {
                 // Lift comments from expressions
                 comments = comments.concat(node[key]);
                 delete node[key];
-            } else if (node[key] && node[key].type) {
+            } else if(node[key] && node[key].type) {
                 // Recurse into child nodes...
                 result = helper(node[key]);
                 comments = comments.concat(result[1]);
-            } else if (node[key] && node[key].length) {
+            } else if(node[key] && node[key].length) {
                 // ...and arrays of nodes
-                for (i = 0; i < node[key].length; i += 1) {
+                for(i = 0; i < node[key].length; i += 1) {
                     result = helper(node[key][i]);
                     node[key][i] = result[0];
                     comments = comments.concat(result[1]);
                 }
             }
         }
-        if (jsNodeIsStatement(node) && comments.length) {
+
+        if(isStatement(node) && comments.length) {
             // Attach lifted comments to statement nodes
-            if (typeof node.leadingComments === "undefined") {
+            if(typeof node.leadingComments == "undefined") {
                 node.leadingComments = [];
             }
             node.leadingComments = node.leadingComments.concat(comments);
             comments = [];
         }
+
         return [node, comments];
     };
-    return helper(jsAst)[0];
+    return helper(jsNode)[0];
+}
+
+function blockToExpression(nodes) {
+    if(nodes.length == 1) {
+        return nodes[0];
+    }
+
+    return {
+        type: "CallExpression",
+        'arguments': [],
+        callee: {
+            type: "FunctionExpression",
+            id: null,
+            params: [],
+            body: {
+                type: "BlockStatement",
+                body: ensureStatements(nodes).slice(0, nodes.length - 1).concat([{
+                    type: "ReturnStatement",
+                    argument: nodes[nodes.length - 1]
+                }])
+            }
+        }
+    };
 }
 
 var extraComments = [];
 
-function compileNodeWithEnvToJsAST(n, env, opts) {
-    if(!opts) opts = {};
-    function compileNode(n) {
-        return compileNodeWithEnvToJsAST(n, env);
-    }
+function compileNode(n) {
     var result = n.accept({
-        // Top level file
         visitModule: function() {
             var nodes = _.map(splitComments(n.body), compileNode);
             return {
                 type: "Program",
-                body: ensureJsASTStatements(nodes)
+                body: ensureStatements(nodes)
             };
         },
-        // Function definition to JavaScript function.
         visitFunction: function() {
-            var body = {
-                type: "BlockStatement",
-                body: []
-            };
-            if (n.whereDecls.length) {
-                _.each(n.whereDecls, function (w) {
-                    body.body.push(compileNode(w));
+            var exprsWithoutComments = _.map(splitComments(n.value), compileNode),
+                body = _.map(n.whereDecls, function(w) {
+                    return compileNode(w);
                 });
-            }
-            var exprsWithoutComments = _.map(splitComments(n.body), compileNode);
-            exprsWithoutComments.push({
+
+            exprsWithoutComments[exprsWithoutComments.length - 1] = {
                 type: "ReturnStatement",
-                argument: exprsWithoutComments.pop()
-            });
-            body.body = ensureJsASTStatements(body.body.concat(exprsWithoutComments));
-            var func = {
+                argument: exprsWithoutComments[exprsWithoutComments.length - 1]
+            };
+
+            return {
                 type: "FunctionExpression",
                 id: null,
-                params: _.map(n.args, function (a) {
+                params: _.map(n.args, function(a) {
                     return {
                         type: "Identifier",
                         name: a.name
                     };
                 }),
-                body: body
+                body: {
+                    type: "BlockStatement",
+                    body: ensureStatements(body.concat(exprsWithoutComments))
+                }
             };
-            return func;
         },
         visitIfThenElse: function() {
-            var ifTrue = _.map(splitComments(n.ifTrue), compileNode);
-            if (ifTrue.length === 1) {
-                ifTrue = ifTrue[0];
-            } else if (ifTrue.length > 1) {
-                ifTrue.push({
-                    type: "ReturnStatement",
-                    argument: ifTrue.pop()
-                });
-                ifTrue = {
-                    type: "CallExpression",
-                    'arguments': [],
-                    callee: {
-                        type: "FunctionExpression",
-                        id: null,
-                        params: [],
-                        body: {
-                            type: "BlockStatement",
-                            body: ensureJsASTStatements(ifTrue)
-                        }
-                    }
-                };
-            }
-
-            var ifFalse = _.map(splitComments(n.ifFalse), compileNode);
-            if (ifFalse.length === 1) {
-                ifFalse = ifFalse[0];
-            } else if (ifFalse.length > 1) {
-                ifFalse.push({
-                    type: "ReturnStatement",
-                    argument: ifFalse.pop()
-                });
-                ifFalse = {
-                    type: "CallExpression",
-                    'arguments': [],
-                    callee: {
-                        type: "FunctionExpression",
-                        id: null,
-                        params: [],
-                        body: {
-                            type: "BlockStatement",
-                            body: ensureJsASTStatements(ifFalse)
-                        }
-                    }
-                };
-            }
-
             return {
                 type: "ConditionalExpression",
                 test: compileNode(n.condition),
-                consequent: ifTrue,
-                alternate: ifFalse
+                consequent: blockToExpression(_.map(splitComments(n.ifTrue), compileNode)),
+                alternate: blockToExpression(_.map(splitComments(n.ifFalse), compileNode))
             };
         },
-        // Let binding to JavaScript variable.
         visitLet: function() {
             return {
-                type: "VariableDeclaration",
-                kind: "var",
-                declarations: [{
-                    type: "VariableDeclarator",
-                    id: {
-                        type: "Identifier",
-                        name: n.name
-                    },
-                    init: compileNode(n.value)
-                }]
+                type: "BlockStatement",
+                body: [{
+                    type: "VariableDeclaration",
+                    kind: "var",
+                    declarations: [{
+                        type: "VariableDeclarator",
+                        id: {
+                            type: "Identifier",
+                            name: n.name
+                        },
+                        init: blockToExpression(_.map(n.value, compileNode))
+                    }]
+                }].concat(ensureStatements(_.map(n.body, compileNode)))
             };
         },
         visitInstance: function() {
@@ -250,10 +234,88 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
             };
         },
         visitData: function() {
+            function compileTag(tag) {
+                var tagName = {
+                    type: "Identifier",
+                    name: tag.name
+                };
+                var args = _.map(tag.vars, function(v, i) {
+                    return {
+                        type: "Identifier",
+                        name: v.value + "_" + i
+                    };
+                });
+                var setters = _.map(args, function(v, i) {
+                    // "this._" + i + " = " + v;
+                    return {
+                        type: "ExpressionStatement",
+                        expression: {
+                            type: "AssignmentExpression",
+                            operator: "=",
+                            left: {
+                                type: "MemberExpression",
+                                computed: false,
+                                object: {
+                                    type: "ThisExpression"
+                                },
+                                property: {
+                                    type: "Identifier",
+                                    name: "_" + i
+                                }
+                            },
+                            right: v
+                        }
+                    };
+                });
+                var constructorCheck = {
+                    type: "IfStatement",
+                    test: {
+                        type: "UnaryExpression",
+                        operator: "!",
+                        argument: {
+                            type: "BinaryExpression",
+                            operator: "instanceof",
+                            left: { type: "ThisExpression" },
+                            right: tagName
+                        }
+                    },
+                    consequent: {
+                        type: "BlockStatement",
+                        body: [{
+                            type: "ReturnStatement",
+                            argument: {
+                                type: "NewExpression",
+                                callee: tagName,
+                                'arguments': args
+                            }
+                        }]
+                    },
+                    alternate: null
+                };
+                setters.unshift(constructorCheck);
+                var constructorBody = {
+                    type: "BlockStatement",
+                    body: ensureStatements(setters)
+                };
+                return {
+                    type: "VariableDeclarator",
+                    id: tagName,
+                    init: {
+                        type: "FunctionExpression",
+                        id: null,
+                        params: args,
+                        body: constructorBody
+                    }
+                };
+            }
+
             return {
-                type: "VariableDeclaration",
-                kind: "var",
-                declarations: _.map(n.tags, compileNode)
+                type: "BlockStatement",
+                body: [{
+                    type: "VariableDeclaration",
+                    kind: "var",
+                    declarations: _.map(n.tags, compileTag)
+                }].concat(ensureStatements(_.map(n.body, compileNode)))
             };
         },
         visitReturn: function() {
@@ -303,7 +365,7 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
                     }],
                     body: {
                         type: "BlockStatement",
-                        body: ensureJsASTStatements(body)
+                        body: ensureStatements(body)
                     }
                 }]
             };
@@ -340,84 +402,8 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
                 }
             };
         },
-        visitTag: function() {
-            var tagName = {
-                type: "Identifier",
-                name: n.name
-            };
-            var args = _.map(n.vars, function(v, i) {
-                return {
-                    type: "Identifier",
-                    name: v.value + "_" + i
-                };
-            });
-            var setters = _.map(args, function(v, i) {
-                return { // "this._" + i + " = " + v;
-                    type: "ExpressionStatement",
-                    expression: {
-                        type: "AssignmentExpression",
-                        operator: "=",
-                        left: {
-                            type: "MemberExpression",
-                            computed: false,
-                            object: {
-                                type: "ThisExpression"
-                            },
-                            property: {
-                                type: "Identifier",
-                                name: "_" + i
-                            }
-                        },
-                        right: v
-                    }
-                };
-            });
-            var constructorCheck = {
-                type: "IfStatement",
-                test: {
-                    type: "UnaryExpression",
-                    operator: "!",
-                    argument: {
-                        type: "BinaryExpression",
-                        operator: "instanceof",
-                        left: { type: "ThisExpression" },
-                        right: tagName
-                    }
-                },
-                consequent: {
-                    type: "BlockStatement",
-                    body: [{
-                        type: "ReturnStatement",
-                        argument: {
-                            type: "NewExpression",
-                            callee: tagName,
-                            'arguments': args
-                        }
-                    }]
-                },
-                alternate: null
-            };
-            setters.unshift(constructorCheck);
-            var constructorBody = {
-                type: "BlockStatement",
-                body: ensureJsASTStatements(setters)
-            };
-            return {
-                type: "VariableDeclarator",
-                id: tagName,
-                init: {
-                    type: "FunctionExpression",
-                    id: null,
-                    params: args,
-                    body: constructorBody
-                }
-            };
-        },
         visitMatch: function() {
             valuePlaceholder = '__match';
-            var flatMap = function(a, f) {
-                return _.flatten(_.map(a, f));
-            };
 
             var pathConditions = _.map(n.cases, function(c) {
                 var getVars = function(pattern, varPath) {
@@ -449,7 +435,7 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
                             }
                         });
                     });
-                    if (decls.length) {
+                    if(decls.length) {
                         return {
                             type: "VariableDeclaration",
                             kind: "var",
@@ -477,8 +463,8 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
                     });
                 };
                 var tagPaths = getTagPaths(c.pattern, []);
-                var makeCondition = function (e) {
-                    var pieces = _.reduceRight(e.path, function (structure, piece) {
+                var makeCondition = function(e) {
+                    var pieces = _.reduceRight(e.path, function(structure, piece) {
                         return {
                             type: "MemberExpression",
                             computed: false,
@@ -494,7 +480,7 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
                     };
                 };
                 var extraConditions = null;
-                if (tagPaths.length) {
+                if(tagPaths.length) {
                     var lastCondition = makeCondition(tagPaths.pop());
                     extraConditions = _.reduceRight(tagPaths, function(conditions, e) {
                         return {
@@ -514,7 +500,7 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
                 var maxPath = maxTagPath != -Infinity ? maxTagPath.path : [];
 
                 var body = [];
-                if (vars) {
+                if(vars) {
                     body.push(vars);
                 }
                 body.push({
@@ -527,7 +513,7 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
                     left: { type: "Identifier", name: valuePlaceholder },
                     right: { type: "Identifier", name: c.pattern.tag.value }
                 };
-                if (extraConditions) {
+                if(extraConditions) {
                     test = {
                         type: "LogicalExpression",
                         operator: "&&",
@@ -542,7 +528,7 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
                         test: test,
                         consequent: {
                             type: "BlockStatement",
-                            body: ensureJsASTStatements(body)
+                            body: ensureStatements(body)
                         },
                         alternate: null
                     }
@@ -564,29 +550,18 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
                     params: [{ type: "Identifier", name: valuePlaceholder }],
                     body: {
                         type: "BlockStatement",
-                        body: ensureJsASTStatements(cases)
+                        body: ensureStatements(cases)
                     }
                 }
             };
         },
-        // Call to JavaScript call.
         visitCall: function() {
             var args = _.map(n.args, compileNode);
-            if (n.typeClassInstance) {
-                args.unshift({
-                    type: "Identifier",
-                    name: n.typeClassInstance
-                });
-            }
-
             return {
                 type: "CallExpression",
                 "arguments": args,
                 callee: compileNode(n.func)
             };
-            // if(n.func.value == 'import') {
-            //     return importModule(JSON.parse(n.args[0].value), env, opts);
-            // }
         },
         visitPropertyAccess: function() {
             return {
@@ -644,7 +619,9 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
             };
         },
         visitWith: function() {
-            var copyLoop = function (varName) {
+            var funcBody = [];
+
+            function copyLoop(varName) {
                 return {
                     type: "ForInStatement",
                     left: { type: "Identifier", name: "__n__" },
@@ -672,8 +649,8 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
                         }]
                     }
                 };
-            };
-            var funcBody = [];
+            }
+
             funcBody.push({
                 type: "VariableDeclaration",
                 kind: "var",
@@ -704,26 +681,16 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
                         { type: "Identifier", name: "__l__" },
                         { type: "Identifier", name: "__r__" }
                     ],
-                    body: { type: "BlockStatement", body: ensureJsASTStatement(funcBody) }
+                    body: {
+                        type: "BlockStatement",
+                        body: ensureStatement(funcBody)
+                    }
                 }
             };
         },
+
         // Print all other nodes directly.
         visitIdentifier: function() {
-            if(n.typeClassInstance) {
-                return {
-                    type: "MemberExpression",
-                    computed: false,
-                    object: {
-                        type: "Identifier",
-                        name: n.typeClassInstance
-                    },
-                    property: {
-                        type: "Identifier",
-                        name: n.value
-                    }
-                };
-            }
             return {
                 type: "Identifier",
                 name: n.value
@@ -745,7 +712,7 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
         visitBoolean: function() {
             return {
                 type: "Literal",
-                value: n.value === "true"
+                value: n.value == "true"
             };
         },
         visitUnit: function() {
@@ -767,14 +734,18 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
             };
         },
         visitObject: function() {
-            var cleanedKey, key, pairs = [];
+            var pairs = [],
+                cleanedKey,
+                key;
 
             for(key in n.values) {
-                if (key[0] === "'" || key[0] === '"') {
+                // TODO: Urgh, not properly handling strings.
+                if(key[0] == "'" || key[0] == '"') {
                     cleanedKey = String.prototype.slice.call(key, 1, key.length-1);
                 } else {
                     cleanedKey = key;
                 }
+
                 pairs.push({
                     type: "Property",
                     key: {
@@ -784,26 +755,28 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
                     value: compileNode(n.values[key])
                 });
             }
+
             return {
                 type: "ObjectExpression",
                 properties: pairs
             };
         }
     });
-    if (typeof result === "undefined"){
-        if (n.comments && n.comments.length) {
+
+    if(typeof result == "undefined"){
+        if(n.comments && n.comments.length) {
             extraComments = extraComments.concat(n.comments);
         }
     } else {
-        if (extraComments && extraComments.length) {
-            if (! (n.comments && n.comments.length)) {
+        if(extraComments && extraComments.length) {
+            if(!(n.comments && n.comments.length)) {
                 n.comments = extraComments;
             } else {
                 n.comments = extraComments.concat(n.comments);
             }
             extraComments = [];
         }
-        result.leadingComments = _.map(n.comments, function (c) {
+        result.leadingComments = _.map(n.comments, function(c) {
             var lines = c.value.split(/\r\n|\r|\n/g);
             return {
                 type: lines.length > 1 ? "Block" : "Line",
@@ -811,49 +784,32 @@ function compileNodeWithEnvToJsAST(n, env, opts) {
             };
         });
     }
+
     return result;
 }
-exports.compileNodeWithEnvToJsAST = compileNodeWithEnvToJsAST;
-function compileNodeWithEnv(n, env, opts) {
-    var ast = compileNodeWithEnvToJsAST(n, env, opts);
-    if (typeof ast === "string") {
-//        console.warn("Got AST already transformed into string: ", ast);
-        return ast;
-    } else if (typeof ast === "undefined") {
-        return "";
-    } else {
-        ast = liftComments(ast);
-        var generated = escodegen.generate(ensureJsASTStatement(ast), {comment: true});
-        return generated;
-    }
-}
-exports.compileNodeWithEnv = compileNodeWithEnv;
+exports.compileNode = compileNode;
 
-function compile(source, env, aliases, opts) {
-    if(!env) env = {};
-    if(!aliases) aliases = {};
+function compile(source, opts) {
+    var tokens = lexer.tokenise(source),
+        royNode = parser.parse(tokens),
+        resultType = typecheck(royNode),
+        jsNode;
+
     if(!opts) opts = {};
 
     if(!opts.exported) opts.exported = {};
 
-    // Parse the file to an AST.
-    var tokens = lexer.tokenise(source);
-    var ast = parser.parse(tokens);
-
-    // Typecheck the AST. Any type errors will throw an exception.
-    var resultType = typecheck(ast.body, env, aliases);
-
     // Export types
-    ast.body = _.map(ast.body, function(n) {
+    royNode.body = _.map(royNode.body, function(n) {
         if(n instanceof nodes.Call && n.func.value == 'export') {
             return exportType(n.args[0], env, opts.exported, opts.nodejs);
         }
         return n;
     });
 
-    var jsAst = liftComments(compileNodeWithEnvToJsAST(ast, env, opts));
-    if (!opts.nodejs) {
-        jsAst.body = [{
+    jsNode = liftComments(compileNode(royNode));
+    if(!opts.nodejs) {
+        jsNode.body = [{
             type: "ExpressionStatement",
             expression: {
                 type: "CallExpression",
@@ -864,15 +820,15 @@ function compile(source, env, aliases, opts) {
                     params: [],
                     body: {
                         type: "BlockStatement",
-                        body: jsAst.body
+                        body: jsNode.body
                     }
                 }
             }
         }];
     }
 
-    if (opts.strict) {
-        jsAst.body.unshift({
+    if(opts.strict) {
+        jsNode.body.unshift({
             type: "ExpressionStatement",
             expression: {
                 type: "Literal",
@@ -883,12 +839,9 @@ function compile(source, env, aliases, opts) {
 
     return {
         type: resultType,
-        output: escodegen.generate(
-            ensureJsASTStatement(jsAst),
-            {
-                comment: true
-            }
-        )
+        output: escodegen.generate(jsNode, {
+            comment: true
+        })
     };
 }
 exports.compile = compile;

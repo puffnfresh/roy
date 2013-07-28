@@ -1,5 +1,6 @@
 var typegrammar = require('./typegrammar').bnf;
 
+// TODO: Getting lineno on arrays...
 function n(s) {
     return s + "$$.lineno = yylineno;";
 }
@@ -20,8 +21,8 @@ var grammar = {
 
     "bnf": {
         "program": [
-            ["optBody EOF", "return new yy.Module($1);"],
-            ["SHEBANG TERMINATOR optBody EOF", "return new yy.Module($3);"]
+            ["optBody EOF", n("return new yy.Module($1);")],
+            ["SHEBANG TERMINATOR optBody EOF", n("return new yy.Module($3);")]
         ],
         "optBody": [
             ["", "$$ = [];"],
@@ -40,7 +41,7 @@ var grammar = {
 
             // data Maybe a = Some a | None
             ["DATA IDENTIFIER optDataParamList = dataList restBody", n("$$ = [new yy.Data($2, $3, $5, $6)];")],
-            ["DATA IDENTIFIER optDataParamList = INDENT dataList outdentOrEof restBody", n("$$ = [new yy.Data($2, $3, $6, $7)];")],
+            ["DATA IDENTIFIER optDataParamList = INDENT dataList outdentOrEof restBody", n("$$ = [new yy.Data($2, $3, $6, $8)];")],
 
             // type Person = {firstName: String, lastName: String}
             ["TYPE IDENTIFIER = type restBody", n("$$ = [new yy.Type($2, $4, $5)];")],
@@ -64,8 +65,8 @@ var grammar = {
             ["LET IDENTIFIER optType = blockExpression restDoBody", "$$ = new yy.Let($2, $5, $3, $6);"],
             ["LET IDENTIFIER paramList optType = blockExpression restDoBody", "$$ = new yy.Let($2, [new yy.Function($3, $6)], $4, $7);"],
 
-            ["IDENTIFIER LEFTARROW doLine", n("$$ = new yy.Bind($1, $3);")],
-            ["RETURN expression", n("$$ = new yy.Return($2);")]
+            ["IDENTIFIER LEFTARROW doLine", n("$$ = {name: $1, value: $3};")],
+            ["RETURN expression", n("$$ = {value: $2};")]
         ],
         "doBlock": [
             ["INDENT doBody outdentOrEof", "$$ = $2;"]
@@ -102,10 +103,10 @@ var grammar = {
         ],
         "pattern": [
             ["innerPattern", "$$ = $1;"],
-            ["identifier", n("$$ = new yy.Pattern($1, []);")]
+            ["identifier", n("$$ = {tag: $1, vars: []};")]
         ],
         "innerPattern": [
-            ["( identifier patternIdentifiers )", n("$$ = new yy.Pattern($2, $3);")]
+            ["( identifier patternIdentifiers )", n("$$ = {tag: $2, vars: $3};")]
         ],
         "patternIdentifiers": [
             ["identifier", "$$ = [$1];"],
@@ -119,8 +120,8 @@ var grammar = {
         ],
 
         "dataList": [
-            ["IDENTIFIER optTypeParamList", "$$ = [new yy.Tag($1, $2)];"],
-            ["dataList | IDENTIFIER optTypeParamList", "$$ = $1; $1.push(new yy.Tag($3, $4));"]
+            ["IDENTIFIER optTypeParamList", "$$ = [{name: $1, vars: $2}];"],
+            ["dataList | IDENTIFIER optTypeParamList", "$$ = $1; $1.push({name: $3, vars: $4});"]
         ],
 
         // For type annotations (from the typegrammar module)
@@ -154,8 +155,8 @@ var grammar = {
             ["paramList param", "$$ = $1; $1.push($2);"]
         ],
         "param": [
-            ["IDENTIFIER", n("$$ = new yy.Arg($1);")],
-            ["( IDENTIFIER : type )", n("$$ = new yy.Arg($2, $4);")]
+            ["IDENTIFIER", n("$$ = {name: $1};")],
+            ["( IDENTIFIER : type )", n("$$ = {name: $2, type: $4};")]
         ],
         "optType": [
             ["", ""],

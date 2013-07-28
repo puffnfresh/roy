@@ -245,6 +245,17 @@ function inMonomorphic(monomorphic, s) {
 // ## Statefully generate inference constraints
 function generate(node) {
     return node.accept({
+        visitModule: function() {
+            return generateBody(node.body).chain(function(values) {
+                if(!values.length) {
+                    return freshVariable.map(function(type) {
+                        return new InferenceResult(type);
+                    });
+                }
+                return State.of(InferenceResult.concat(values));
+            });
+        },
+
         visitComment: function() {
             throw new Error("Trying to calculate type of a comment");
         },
@@ -563,6 +574,9 @@ function generate(node) {
                 });
             });
         },
+        visitType: function() {
+            throw new Error("TODO: Type");
+        },
         visitTypeClass: function() {
             throw new Error("TODO: TypeClass");
         },
@@ -640,6 +654,9 @@ function generate(node) {
                     ])
                     .withType(new t.BooleanType());
             });
+        },
+        visitWith: function() {
+            throw new Error("TODO: With");
         },
 
         visitObject: function() {
@@ -1039,15 +1056,10 @@ function typeSubstitute(substitutions, type) {
 exports.substitute = typeSubstitute;
 
 // Run inference on an array of AST nodes.
-function typecheck(nodes) {
-    return generateBody(nodes).chain(function(results) {
-        var combined;
-        if(!results.length) {
-            return State.of(freshVariable);
-        }
-        combined = InferenceResult.concat(results);
-        return solve(combined.constraints).map(function(substitutions) {
-            return typeSubstitute(substitutions, combined.type);
+function typecheck(module) {
+    return memoizedGenerate(module).chain(function(result) {
+        return solve(result.constraints).map(function(substitutions) {
+            return typeSubstitute(substitutions, result.type);
         });
     }).evalState(GenerateState.init);
 }

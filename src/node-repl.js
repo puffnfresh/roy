@@ -107,7 +107,7 @@ var nodeRepl = function(opts) {
                 // Load
                 filename = metacommand[1];
                 source = getFileContents(filename);
-                compiled = compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
+                compiled = compile(source, {nodejs: true, filename: ".", run: true});
                 break;
             case ":t":
                 if(metacommand[1] in env) {
@@ -153,7 +153,7 @@ var nodeRepl = function(opts) {
                 }
 
                 // Just eval it
-                compiled = compile(line, env, aliases, {nodejs: true, filename: ".", run: true});
+                compiled = compile(line, {nodejs: true, filename: ".", run: true});
                 break;
             }
 
@@ -277,7 +277,7 @@ var runRoy = function(argv, opts) {
         var SourceMapGenerator = require('source-map').SourceMapGenerator;
         var sourceMap = new SourceMapGenerator({file: path.basename(outputPath)});
 
-        var compiled = compile(source, env, aliases, {
+        var compiled = compile(source, {
             nodejs: opts.nodejs,
             filename: filename,
             run: opts.run,
@@ -289,7 +289,7 @@ var runRoy = function(argv, opts) {
             output = vm.runInNewContext(compiled.output, sandbox, 'eval');
         } else {
             // Write the JavaScript output.
-            fs.writeFile(outputPath, compiled.output + '//@ sourceMappingURL=' + path.basename(outputPath) + '.map\n', 'utf8');
+            fs.writeFile(outputPath, compiled.output + '\n//@ sourceMappingURL=' + path.basename(outputPath) + '.map\n', 'utf8');
             fs.writeFile(outputPath + '.map', sourceMap.toString(), 'utf8');
             writeModule(env, exported, filename.replace(extensions, '.roym'));
         }

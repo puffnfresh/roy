@@ -38,8 +38,8 @@ var bnf = {
         ["optTypePairs , keywordOrIdentifier : type", "$$ = $1; $1[$3] = $5;"]
     ],
     "dataParamList": [
-        ["IDENTIFIER", "$$ = [new yy.Arg($1)];"],
-        ["dataParamList IDENTIFIER", "$$ = $1; $1.push(new yy.Arg($2));"]
+        ["IDENTIFIER", "$$ = [{name: $1}];"],
+        ["dataParamList IDENTIFIER", "$$ = $1; $1.push({name: $2});"]
     ],
     "optDataParamList": [
         ["", "$$ = [];"],

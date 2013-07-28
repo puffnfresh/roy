@@ -634,19 +634,7 @@ nodes = toObject([
             });
             return nodes.Object(values).withAttribute(f(this));
         }
-    ),
-
-    // TODO: Remove
-    attributedNode('Arg', ['name', 'type']),
-    attributedNode('Assignment', ['name', 'value']),
-    attributedNode('Remove', ['value']),
-    attributedNode('Bind', ['name', 'value']),
-    attributedNode('Case', ['pattern', 'value']),
-    attributedNode('Tag', ['name', 'vars']),
-    attributedNode('Pattern', ['tag', 'vars']),
-    attributedNode('Replacement', ['value']),
-    attributedNode('Macro', ['name', 'body']),
-    attributedNode('Quoted', ['value'])
+    )
 ]);
 
 module.exports = nodes;

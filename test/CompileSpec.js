@@ -6,7 +6,7 @@ describe('compiler', function(){
         processBin = process.argv[0];
 
     function compilerOutput(s) {
-        return roy.compile(s, {}, {}, {nodejs: true}).output;
+        return roy.compile(s, {nodejs: true}).output;
     }
 
     function fixtureCompilerOutput(s) {
@@ -60,6 +60,9 @@ describe('compiler', function(){
     });
 
     describe('should execute', function() {
+        it('let.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/let');
+        });
         it('accessors.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/accessors');
         });
