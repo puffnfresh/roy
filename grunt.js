@@ -41,7 +41,7 @@ module.exports = function(grunt) {
     grunt.registerMultiTask('jison', 'Parser generator by jison.', function() {
         var Parser = require('jison').Parser,
             grammar = require(this.data).grammar;
-            parser = new Parser(grammar, {debug: true}),
+            parser = new Parser(grammar, {debug: grunt.option('debug')}),
             fs = require('fs');
 
         fs.writeFileSync(this.target, parser.generate());
