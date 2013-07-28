@@ -78,6 +78,9 @@ describe('compiler', function(){
         it('map.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/map');
         });
+        it('match_expensive.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/match_expensive');
+        });
         it('monoid.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/monoid');
         });
