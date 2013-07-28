@@ -4,18 +4,18 @@ var compile = require('./compile').compile,
     parser = require('../lib/parser').parser,
     _ = require('underscore');
 
-var getSandbox = function() {
-    var sandbox = {require: require, exports: exports};
+function getSandbox() {
+    var sandbox = {require: require, exports: exports},
+        name;
 
-    var name;
     for(name in global) {
         sandbox[name] = global[name];
     }
 
     return sandbox;
-};
+}
 
-var getFileContents = function(filename) {
+function getFileContents(filename) {
     var fs = require('fs'),
         exts = ["", ".roy", ".lroy"],
         filenames = _.map(exts, function(ext){
@@ -45,58 +45,60 @@ var getFileContents = function(filename) {
     }
 
     return source;
-};
+}
 
-var nodeRepl = function(opts) {
+function nodeRepl(opts) {
     var readline = require('readline'),
+        fs = require('fs'),
         path = require('path'),
         vm = require('vm'),
-        prettyPrint = require('./prettyprint').prettyPrint;
+        prettyPrint = require('./prettyprint').prettyPrint,
 
-    var stdout = process.stdout;
-    var stdin = process.openStdin();
-    var repl = readline.createInterface(stdin, stdout);
+        prelude = fs.readFileSync(path.dirname(__dirname) + '/lib/prelude.roy', 'utf8'),
 
-    var env = {};
-    var sources = {};
-    var aliases = {};
-    var sandbox = getSandbox();
+        stdout = process.stdout,
+        stdin = process.openStdin(),
+        repl = readline.createInterface(stdin, stdout),
+
+        env = {},
+        sources = {},
+        aliases = {},
+        sandbox = getSandbox();
 
     // Prologue
     console.log("Roy: " + opts.info.description);
     console.log(opts.info.author);
     console.log(":? for help");
 
-    var colorLog = function(color) {
+    function colorLog(color) {
         var args = [].slice.call(arguments, 1);
 
         args[0] = '\u001b[' + color + 'm' + args[0];
         args[args.length - 1] = args[args.length - 1] + '\u001b[0m';
 
         console.log.apply(console, args);
-    };
+    }
 
     // Include the standard library
-    var fs = require('fs');
-    var prelude = fs.readFileSync(path.dirname(__dirname) + '/lib/prelude.roy', 'utf8');
-    vm.runInNewContext(compile(prelude, env, {}, {nodejs: true}).output, sandbox, 'eval');
+    vm.runInNewContext(compile(prelude, {nodejs: true}).output, sandbox, 'eval');
     repl.setPrompt('roy> ');
     repl.on('close', function() {
         stdin.destroy();
     });
     repl.on('line', function(line) {
-        var compiled;
-        var output;
+        var metacommand = line.replace(/^\s+/, '').split(' '),
+            compiled,
+            output,
 
-        var filename;
-        var source;
+            filename,
+            source,
 
-        var tokens;
-        var ast;
+            tokens,
+            ast;
+
 
         // Check for a "metacommand"
         // e.g. ":q" or ":l test.roy"
-        var metacommand = line.replace(/^\s+/, '').split(' ');
         try {
             switch(metacommand[0]) {
             case ":q":
@@ -170,77 +172,32 @@ var nodeRepl = function(opts) {
         repl.prompt();
     });
     repl.prompt();
-};
+}
 
-var writeModule = function(env, exported, filename) {
-    var fs = require('fs');
+function writeModule(env, exported, filename) {
+    var fs = require('fs'),
+        moduleOutput = _.map(exported, function(v, k) {
+            if(v instanceof types.TagType) {
+                return 'type ' + v.toString().replace(/#/g, '');
+            }
+            return k + ': ' + v.toString();
+        }).join('\n') + '\n';
 
-    var moduleOutput = _.map(exported, function(v, k) {
-        if(v instanceof types.TagType) {
-            return 'type ' + v.toString().replace(/#/g, '');
-        }
-        return k + ': ' + v.toString();
-    }).join('\n') + '\n';
     fs.writeFile(filename, moduleOutput, 'utf8');
-};
+}
 
-var importModule = function(name, env, opts) {
-    var addTypesToEnv = function(moduleTypes) {
-        _.each(moduleTypes, function(v, k) {
-            var dataType = [new types.TagNameType(k)];
-            _.each(function() {
-                dataType.push(new types.Variable());
-            });
-            env[k] = new types.TagType(dataType);
-        });
-    };
+function runRoy(argv, opts) {
+    var fs = require('fs'),
+        path = require('path'),
+        vm = require('vm'),
 
-    var moduleTypes;
-    if(opts.nodejs) {
-        // Need to convert to absolute paths for the CLI
-        if(opts.run) {
-            var path = require("path");
-            name = path.resolve(path.dirname(opts.filename), name);
-        }
+        extensions = /\.l?roy$/,
 
-        moduleTypes = loadModule(name, opts);
-        addTypesToEnv(moduleTypes.types);
-        var variable = name.substr(name.lastIndexOf("/") + 1);
-        env[variable] = new types.Variable();
-        var props = {};
-        _.each(moduleTypes.env, function(v, k) {
-            props[k] = nodeToType(v, env, {});
-        });
-        env[variable] = new types.ObjectType(props);
-
-        console.log("Using sync CommonJS module:", name);
-
-        return variable + " = require(" + JSON.stringify(name) + ")";
-    } else {
-        moduleTypes = loadModule(name, opts);
-        addTypesToEnv(moduleTypes.types);
-        _.each(moduleTypes.env, function(v, k) {
-            env[k] = nodeToType(v, env, {});
-        });
-
-        if(console) console.log("Using browser module:", name);
-
-        return "";
-    }
-};
-
-var runRoy = function(argv, opts) {
-    var fs = require('fs');
-    var path = require('path');
-    var vm = require('vm');
-
-    var extensions = /\.l?roy$/;
-    var literateExtension = /\.lroy$/;
-
-    var exported;
-    var env = {};
-    var aliases = {};
-    var sandbox = getSandbox();
+        env = {},
+        aliases = {},
+        sandbox = getSandbox(),
+        exported,
+        modules;
 
     if(opts.run) {
         // Include the standard library
@@ -248,7 +205,7 @@ var runRoy = function(argv, opts) {
             argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
         }
     } else {
-        var modules = [];
+        modules = [];
         if(!argv.length || argv[0] != 'lib/prelude.roy') {
             modules.push(path.dirname(__dirname) + '/lib/prelude');
         }
@@ -263,21 +220,16 @@ var runRoy = function(argv, opts) {
 
     _.each(argv, function(filename) {
         // Read the file content.
-        var source = getFileContents(filename);
+        var source = getFileContents(filename),
+            outputPath = filename.replace(extensions, '.js'),
+            SourceMapGenerator = require('source-map').SourceMapGenerator,
+            sourceMap = new SourceMapGenerator({file: path.basename(outputPath)}),
+            compiled;
 
-        if(filename.match(literateExtension)) {
-            // Strip out the Markdown.
-            source = source.match(/^ {4,}.+$/mg).join('\n').replace(/^ {4}/gm, '');
-        } else {
-            console.assert(filename.match(extensions), 'Filename must end with ".roy" or ".lroy"');
-        }
+        console.assert(filename.match(extensions), 'Filename must end with ".roy" or ".lroy"');
 
         exported = {};
-        var outputPath = filename.replace(extensions, '.js');
-        var SourceMapGenerator = require('source-map').SourceMapGenerator;
-        var sourceMap = new SourceMapGenerator({file: path.basename(outputPath)});
-
-        var compiled = compile(source, {
+        compiled = compile(source, {
             nodejs: opts.nodejs,
             filename: filename,
             run: opts.run,
@@ -294,9 +246,11 @@ var runRoy = function(argv, opts) {
             writeModule(env, exported, filename.replace(extensions, '.roym'));
         }
     });
-};
+}
 
-var processFlags = function(argv, opts) {
+function processFlags(argv, opts) {
+    var source;
+
     if(argv.length === 0) {
         nodeRepl(opts);
         return;
@@ -322,14 +276,14 @@ var processFlags = function(argv, opts) {
         return;
     case "-s":
     case "--stdio":
-        var source = '';
+        source = '';
         process.stdin.resume();
         process.stdin.setEncoding('utf8');
         process.stdin.on('data', function(data) {
             source += data;
         });
         process.stdin.on('end', function() {
-            console.log(compile(source, null, null, opts).output);
+            console.log(compile(source, opts).output);
         });
         return;
     case "-p":
@@ -359,26 +313,24 @@ var processFlags = function(argv, opts) {
     }
 
     processFlags(argv, opts);
-};
+}
 
-var main = function() {
-    var argv = process.argv.slice(2);
+function main() {
+    var argv = process.argv.slice(2),
+        fs = require('fs'),
+        path = require('path'),
 
-    // Roy package information
-    var fs = require('fs');
-    var path = require('path');
-
-    // Meta-commands configuration
-    var opts = {
-        info: JSON.parse(fs.readFileSync(path.dirname(__dirname) + '/package.json', 'utf8')),
-        nodejs: true,
-        run: false,
-        includePrelude: true,
-        strict: false
-    };
+        // Meta-commands configuration
+        opts = {
+            info: JSON.parse(fs.readFileSync(path.dirname(__dirname) + '/package.json', 'utf8')),
+            nodejs: true,
+            run: false,
+            includePrelude: true,
+            strict: false
+        };
 
     processFlags(argv, opts);
-};
+}
 module.exports = main;
 
 if(module && !module.parent) {
