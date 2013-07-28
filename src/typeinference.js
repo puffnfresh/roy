@@ -656,7 +656,19 @@ function generate(node) {
             });
         },
         visitWith: function() {
-            throw new Error("TODO: With");
+            return freshVariable.chain(function(type) {
+                return memoizedGenerate(node.left).chain(function(a) {
+                    return memoizedGenerate(node.right).map(function(b) {
+                        var rowType = new t.RowObjectType(type, {});
+                        return a.append(b)
+                            .withConstraints([
+                                new EqualityConstraint(rowType, a.type, node),
+                                new EqualityConstraint(rowType, b.type, node)
+                            ])
+                            .withType(rowType);
+                    });
+                });
+            });
         },
 
         visitObject: function() {
