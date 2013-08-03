@@ -35,6 +35,17 @@ module.exports = function(grunt) {
                 files: ['./src/*.js', './test/*Spec.js'],
                 tasks: 'jasmine'
             }
+        },
+        jshint: {
+            options: {
+                es3: true,
+                indent: 4,
+                noarg: true,
+                node: true,
+                trailing: true,
+                undef: true,
+                unused: true
+            }
         }
     });
 
