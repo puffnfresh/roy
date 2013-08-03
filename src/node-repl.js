@@ -2,6 +2,8 @@ var compile = require('./compile').compile,
     lexer = require('./lexer'),
     loadModule = require('./modules').loadModule,
     parser = require('../lib/parser').parser,
+    types = require('./types'),
+    nodeToType = require('./typeinference').nodeToType,
     _ = require('underscore');
 
 var getSandbox = function() {
