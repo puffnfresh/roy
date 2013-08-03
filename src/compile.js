@@ -450,7 +450,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
             };
         },
         visitMatch: function() {
-            valuePlaceholder = '__match';
+            var valuePlaceholder = '__match';
             var flatMap = function(a, f) {
                 return _.flatten(_.map(a, f));
             };

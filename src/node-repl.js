@@ -286,7 +286,7 @@ var runRoy = function(argv, opts) {
         });
         if(opts.run) {
             // Execute the JavaScript output.
-            output = vm.runInNewContext(compiled.output, sandbox, 'eval');
+            var output = vm.runInNewContext(compiled.output, sandbox, 'eval');
         } else {
             // Write the JavaScript output.
             fs.writeFile(outputPath, compiled.output + '//@ sourceMappingURL=' + path.basename(outputPath) + '.map\n', 'utf8');
