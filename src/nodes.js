@@ -307,7 +307,9 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.Match(self.value, cases).withAttribute(attribute);
+                return function(cases) {
+                    return nodes.Match(self.value, cases).withAttribute(attribute);
+                };
             }).ap(arraySequence(A, this.cases, function(a) {
                 return a.value.sequence(A).map(function(v) {
                     return {

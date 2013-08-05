@@ -2,6 +2,8 @@ var compile = require('./compile').compile,
     lexer = require('./lexer'),
     loadModule = require('./modules').loadModule,
     parser = require('../lib/parser').parser,
+    types = require('./types'),
+    nodeToType = require('./typeinference').nodeToType,
     _ = require('underscore');
 
 function getSandbox() {
@@ -238,7 +240,7 @@ function runRoy(argv, opts) {
         });
         if(opts.run) {
             // Execute the JavaScript output.
-            output = vm.runInNewContext(compiled.output, sandbox, 'eval');
+            var output = vm.runInNewContext(compiled.output, sandbox, 'eval');
         } else {
             // Write the JavaScript output.
             fs.writeFile(outputPath, compiled.output + '\n//@ sourceMappingURL=' + path.basename(outputPath) + '.map\n', 'utf8');

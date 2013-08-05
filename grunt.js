@@ -36,13 +36,24 @@ module.exports = function(grunt) {
                 files: ['./src/*.js', './test/*Spec.js'],
                 tasks: 'jasmine'
             }
+        },
+        jshint: {
+            options: {
+                es3: true,
+                indent: 4,
+                noarg: true,
+                node: true,
+                trailing: true,
+                undef: true,
+                unused: true
+            }
         }
     });
 
     grunt.registerMultiTask('jison', 'Parser generator by jison.', function() {
         var Parser = require('jison').Parser,
             grammar = require(this.data).grammar;
-            parser = new Parser(grammar, {debug: true}),
+            parser = new Parser(grammar, {debug: grunt.option('debug')}),
             fs = require('fs');
 
         fs.writeFileSync(this.target, parser.generate());

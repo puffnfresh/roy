@@ -371,39 +371,13 @@ function compileNode(n) {
             };
         },
         visitDo: function() {
-            var monadDecl = {
-                type: "VariableDeclaration",
-                kind: "var",
-                declarations: [{
-                    type: "VariableDeclarator",
-                    id: {
-                        type: "Identifier",
-                        name: "__monad__"
-                    },
-                    init: compileNode(n.value)
-                }]
-            };
-            var body = {
-                type: "BlockStatement",
-                body: []
-            };
-            body.body = _.flatten([monadDecl, compiledInit, {
-                type: "ReturnStatement",
-                argument: compileNode(firstBind)
-            }]);
-            return {
-                type: "CallExpression",
-                "arguments": [],
-                callee: {
-                    type: "FunctionExpression",
-                    id: null,
-                    params: [],
-                    body: body
-                }
-            };
+            throw new Error("TODO: Compile do notation");
         },
         visitMatch: function() {
-            valuePlaceholder = '__match';
+            var valuePlaceholder = '__match';
+            var flatMap = function(a, f) {
+                return _.flatten(_.map(a, f));
+            };
 
             var pathConditions = _.map(n.cases, function(c) {
                 var getVars = function(pattern, varPath) {
@@ -802,7 +776,7 @@ function compile(source, opts) {
     // Export types
     royNode.body = _.map(royNode.body, function(n) {
         if(n instanceof nodes.Call && n.func.value == 'export') {
-            return exportType(n.args[0], env, opts.exported, opts.nodejs);
+            return exportType(n.args[0], {}, opts.exported, opts.nodejs);
         }
         return n;
     });
