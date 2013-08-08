@@ -61,8 +61,7 @@ var colorLog = function(color) {
 var nodeRepl = function(opts) {
     var readline = require('readline'),
         path = require('path'),
-        vm = require('vm'),
-        prettyPrint = require('./prettyprint').prettyPrint;
+        vm = require('vm');
 
     var stdout = process.stdout;
     var stdin = process.openStdin();
@@ -103,7 +102,7 @@ var nodeRepl = function(opts) {
         var metacommand = line.replace(/^\s+/, '').split(' ');
         try {
             if (/:/.test(metacommand[0])) {
-                processMetacommand(metacommand);
+                compiled = processMetacommand(metacommand, env, aliases, sources);
             } else if (/(=|->)\s*$/.test(line)) {
                 // A block is starting.
                 inBlock = true;
@@ -112,6 +111,7 @@ var nodeRepl = function(opts) {
             } else if (inBlock && /\S/.test(line)) {
                 block.push('  ' + line);
             } else if (!inBlock || (inBlock && /^\s*$/.test(line))) {
+                var joined;
                 // End of a block.
                 inBlock = false;
                 repl.setPrompt('roy> ');
@@ -345,7 +345,11 @@ var processFlags = function(argv, opts) {
     processFlags(argv, opts);
 };
 
-var processMetacommand = function(commands) {
+var processMetacommand = function(commands, env, aliases, sources) {
+    var compiled,
+        prettyPrint = require('./prettyprint').prettyPrint,
+        source;
+
     switch(commands[0]) {
     case ":q":
         // Exit
@@ -353,10 +357,8 @@ var processMetacommand = function(commands) {
         break;
     case ":l":
         // Load
-        filename = commands[1];
-        source = getFileContents(filename);
-        compiled = compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
-        break;
+        source = getFileContents(commands[1]);
+        return compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
     case ":t":
         if(commands[1] in env) {
             console.log(env[commands[1]].toString());
@@ -377,8 +379,6 @@ var processMetacommand = function(commands) {
             }
         }
         break;
-    case ":?":
-        // Fall through to help.
     default:
         // Help
         colorLog(32, "Commands available from the prompt");
