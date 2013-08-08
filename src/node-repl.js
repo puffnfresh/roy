@@ -49,6 +49,15 @@ var getFileContents = function(filename) {
     return source;
 };
 
+var colorLog = function(color) {
+    var args = [].slice.call(arguments, 1);
+
+    args[0] = '\u001b[' + color + 'm' + args[0];
+    args[args.length - 1] = args[args.length - 1] + '\u001b[0m';
+
+    console.log.apply(console, args);
+};
+
 var nodeRepl = function(opts) {
     var readline = require('readline'),
         path = require('path'),
@@ -63,20 +72,13 @@ var nodeRepl = function(opts) {
     var sources = {};
     var aliases = {};
     var sandbox = getSandbox();
+    var block = [];
+    var inBlock = false;
 
     // Prologue
     console.log("Roy: " + opts.info.description);
     console.log(opts.info.author);
     console.log(":? for help");
-
-    var colorLog = function(color) {
-        var args = [].slice.call(arguments, 1);
-
-        args[0] = '\u001b[' + color + 'm' + args[0];
-        args[args.length - 1] = args[args.length - 1] + '\u001b[0m';
-
-        console.log.apply(console, args);
-    };
 
     // Include the standard library
     var fs = require('fs');
@@ -100,52 +102,25 @@ var nodeRepl = function(opts) {
         // e.g. ":q" or ":l test.roy"
         var metacommand = line.replace(/^\s+/, '').split(' ');
         try {
-            switch(metacommand[0]) {
-            case ":q":
-                // Exit
-                process.exit();
-                break;
-            case ":l":
-                // Load
-                filename = metacommand[1];
-                source = getFileContents(filename);
-                compiled = compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
-                break;
-            case ":t":
-                if(metacommand[1] in env) {
-                    console.log(env[metacommand[1]].toString());
-                } else {
-                    colorLog(33, metacommand[1], "is not defined.");
-                }
-                break;
-            case ":s":
-                // Source
-                if(sources[metacommand[1]]) {
-                    colorLog(33, metacommand[1], "=", prettyPrint(sources[metacommand[1]]));
-                } else {
-                    if(metacommand[1]){
-                        colorLog(33, metacommand[1], "is not defined.");
-                    }else{
-                        console.log("Usage :s command ");
-                        console.log(":s [identifier] :: show original code about identifier.");
-                    }
-                }
-                break;
-            case ":?":
-                // Help
-                colorLog(32, "Commands available from the prompt");
-                console.log(":l -- load and run an external file");
-                console.log(":q -- exit REPL");
-                console.log(":s -- show original code about identifier");
-                console.log(":t -- show the type of the identifier");
-                console.log(":? -- show help");
-                break;
-            default:
-                // The line isn't a metacommand
-
-                // Remember the source if it's a binding
-                tokens = lexer.tokenise(line);
+            if (/:/.test(metacommand[0])) {
+                processMetacommand(metacommand);
+            } else if (/(=|->)\s*$/.test(line)) {
+                // A block is starting.
+                inBlock = true;
+                block.push(line);
+                repl.setPrompt('.... ');
+            } else if (inBlock && /\S/.test(line)) {
+                block.push('  ' + line);
+            } else if (!inBlock || (inBlock && /^\s*$/.test(line))) {
+                // End of a block.
+                inBlock = false;
+                repl.setPrompt('roy> ');
+                block.push(line);
+                joined = block.join('\n');
+                block = [];
+                tokens = lexer.tokenise(joined);
                 ast = parser.parse(tokens);
+                // Remember the source if it's a binding
                 if (typeof ast.body[0] != 'undefined') {
                     ast.body[0].accept({
                         // Simple bindings.
@@ -162,8 +137,7 @@ var nodeRepl = function(opts) {
                 }
 
                 // Just eval it
-                compiled = compile(line, env, aliases, {nodejs: true, filename: ".", run: true});
-                break;
+                compiled = compile(joined, env, aliases, {nodejs: true, filename: ".", run: true});
             }
 
             if(compiled) {
@@ -175,6 +149,7 @@ var nodeRepl = function(opts) {
             }
         } catch(e) {
             colorLog(31, (e.stack || e.toString()));
+            block = [];
         }
         repl.prompt();
     });
@@ -368,6 +343,52 @@ var processFlags = function(argv, opts) {
     }
 
     processFlags(argv, opts);
+};
+
+var processMetacommand = function(commands) {
+    switch(commands[0]) {
+    case ":q":
+        // Exit
+        process.exit();
+        break;
+    case ":l":
+        // Load
+        filename = commands[1];
+        source = getFileContents(filename);
+        compiled = compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
+        break;
+    case ":t":
+        if(commands[1] in env) {
+            console.log(env[commands[1]].toString());
+        } else {
+            colorLog(33, commands[1], "is not defined.");
+        }
+        break;
+    case ":s":
+        // Source
+        if(sources[commands[1]]) {
+            colorLog(33, commands[1], "=", prettyPrint(sources[commands[1]]));
+        } else {
+            if(commands[1]){
+                colorLog(33, commands[1], "is not defined.");
+            }else{
+                console.log("Usage :s command ");
+                console.log(":s [identifier] :: show original code about identifier.");
+            }
+        }
+        break;
+    case ":?":
+        // Fall through to help.
+    default:
+        // Help
+        colorLog(32, "Commands available from the prompt");
+        console.log(":l -- load and run an external file");
+        console.log(":q -- exit REPL");
+        console.log(":s -- show original code about identifier");
+        console.log(":t -- show the type of the identifier");
+        console.log(":? -- show help");
+        break;
+    }
 };
 
 var main = function() {
