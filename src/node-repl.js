@@ -148,8 +148,15 @@ var nodeRepl = function(opts) {
                 ast = parser.parse(tokens);
                 if (typeof ast.body[0] != 'undefined') {
                     ast.body[0].accept({
+                        // Simple bindings.
+                        // E.g.: let x = 37
                         visitLet: function(n) {
                             sources[n.name] = n.value;
+                        },
+                        // Bindings that are actually functions.
+                        // E.g.: let f x = 37
+                        visitFunction: function(n) {
+                            sources[n.name] = n;
                         }
                     });
                 }
