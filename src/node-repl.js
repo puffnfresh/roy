@@ -71,6 +71,7 @@ var nodeRepl = function(opts) {
     var sources = {};
     var aliases = {};
     var sandbox = getSandbox();
+
     var block = [];
     var inBlock = false;
 
@@ -90,9 +91,7 @@ var nodeRepl = function(opts) {
     repl.on('line', function(line) {
         var compiled;
         var output;
-
-        var filename;
-        var source;
+        var joined;
 
         var tokens;
         var ast;
@@ -101,26 +100,33 @@ var nodeRepl = function(opts) {
         // e.g. ":q" or ":l test.roy"
         var metacommand = line.replace(/^\s+/, '').split(' ');
         try {
-            if (/:/.test(metacommand[0])) {
-                compiled = processMetacommand(metacommand, env, aliases, sources);
-            } else if (/(=|->)\s*$/.test(line)) {
+            if (!inBlock && /:/.test(metacommand[0])) {
+                compiled = processMeta(metacommand, env, aliases, sources);
+            } else if (/(=|->|→|\(|{|\[|\bthen|\b(do|match).+?)\s*$/.test(line)) {
                 // A block is starting.
+                // E.g.: let, lambda, object, match, etc.
+                // Remember that, change the prompt to signify we're in a block,
+                // and start keeping track of the lines in this block.
                 inBlock = true;
+                repl.setPrompt('...  ');
                 block.push(line);
-                repl.setPrompt('.... ');
             } else if (inBlock && /\S/.test(line)) {
-                block.push('  ' + line);
-            } else if (!inBlock || (inBlock && /^\s*$/.test(line))) {
-                var joined;
+                // We're still in the block.
+                block.push(line);
+            } else {
                 // End of a block.
-                inBlock = false;
-                repl.setPrompt('roy> ');
+                // Add the final line to the block, and reset our stuff.
                 block.push(line);
                 joined = block.join('\n');
+
+                inBlock = false;
+                repl.setPrompt('roy> ');
                 block = [];
+
+                // Remember the source if it's a binding
                 tokens = lexer.tokenise(joined);
                 ast = parser.parse(tokens);
-                // Remember the source if it's a binding
+
                 if (typeof ast.body[0] != 'undefined') {
                     ast.body[0].accept({
                         // Simple bindings.
@@ -149,6 +155,7 @@ var nodeRepl = function(opts) {
             }
         } catch(e) {
             colorLog(31, (e.stack || e.toString()));
+            // Reset the block because something wasn't formatted properly.
             block = [];
         }
         repl.prompt();
@@ -345,7 +352,7 @@ var processFlags = function(argv, opts) {
     processFlags(argv, opts);
 };
 
-var processMetacommand = function(commands, env, aliases, sources) {
+var processMeta = function(commands, env, aliases, sources) {
     var compiled,
         prettyPrint = require('./prettyprint').prettyPrint,
         source;
