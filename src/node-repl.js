@@ -100,7 +100,7 @@ var nodeRepl = function(opts) {
         // e.g. ":q" or ":l test.roy"
         var metacommand = line.replace(/^\s+/, '').split(' ');
         try {
-            if (!inBlock && /:/.test(metacommand[0])) {
+            if (!inBlock && /^:/.test(metacommand[0])) {
                 compiled = processMeta(metacommand, env, aliases, sources);
             } else if (/(=|->|→|\(|\{|\[|\bthen|\b(do|match).+?)\s*$/.test(line)) {
                 // A block is starting.
@@ -386,7 +386,7 @@ var processMeta = function(commands, env, aliases, sources) {
             }
         }
         break;
-    default:
+    case ":?":
         // Help
         colorLog(32, "Commands available from the prompt");
         console.log(":l -- load and run an external file");
@@ -394,6 +394,10 @@ var processMeta = function(commands, env, aliases, sources) {
         console.log(":s -- show original code about identifier");
         console.log(":t -- show the type of the identifier");
         console.log(":? -- show help");
+        break;
+    default:
+        colorLog(31, "Invalid command");
+        console.log(":? for help");
         break;
     }
 };
