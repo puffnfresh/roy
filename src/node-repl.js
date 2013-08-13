@@ -102,13 +102,13 @@ var nodeRepl = function(opts) {
         try {
             if (!inBlock && /^:/.test(metacommand[0])) {
                 compiled = processMeta(metacommand, env, aliases, sources);
-            } else if (/(=|->|→|\(|\{|\[|\bthen|\b(do|match).+?)\s*$/.test(line)) {
+            } else if (/(=|->|→|\(|\{|\[|\bthen|\b(do|match)\s+.+?)\s*$/.test(line)) {
                 // A block is starting.
                 // E.g.: let, lambda, object, match, etc.
                 // Remember that, change the prompt to signify we're in a block,
                 // and start keeping track of the lines in this block.
                 inBlock = true;
-                repl.setPrompt('...  ');
+                repl.setPrompt('.... ');
                 block.push(line);
             } else if (inBlock && /\S/.test(line)) {
                 // We're still in the block.
