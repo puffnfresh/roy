@@ -49,11 +49,19 @@ var getFileContents = function(filename) {
     return source;
 };
 
+var colorLog = function(color) {
+    var args = [].slice.call(arguments, 1);
+
+    args[0] = '\u001b[' + color + 'm' + args[0];
+    args[args.length - 1] = args[args.length - 1] + '\u001b[0m';
+
+    console.log.apply(console, args);
+};
+
 var nodeRepl = function(opts) {
     var readline = require('readline'),
         path = require('path'),
-        vm = require('vm'),
-        prettyPrint = require('./prettyprint').prettyPrint;
+        vm = require('vm');
 
     var stdout = process.stdout;
     var stdin = process.openStdin();
@@ -64,19 +72,13 @@ var nodeRepl = function(opts) {
     var aliases = {};
     var sandbox = getSandbox();
 
+    var block = [];
+    var inBlock = false;
+
     // Prologue
     console.log("Roy: " + opts.info.description);
     console.log(opts.info.author);
     console.log(":? for help");
-
-    var colorLog = function(color) {
-        var args = [].slice.call(arguments, 1);
-
-        args[0] = '\u001b[' + color + 'm' + args[0];
-        args[args.length - 1] = args[args.length - 1] + '\u001b[0m';
-
-        console.log.apply(console, args);
-    };
 
     // Include the standard library
     var fs = require('fs');
@@ -89,9 +91,7 @@ var nodeRepl = function(opts) {
     repl.on('line', function(line) {
         var compiled;
         var output;
-
-        var filename;
-        var source;
+        var joined;
 
         var tokens;
         var ast;
@@ -100,52 +100,33 @@ var nodeRepl = function(opts) {
         // e.g. ":q" or ":l test.roy"
         var metacommand = line.replace(/^\s+/, '').split(' ');
         try {
-            switch(metacommand[0]) {
-            case ":q":
-                // Exit
-                process.exit();
-                break;
-            case ":l":
-                // Load
-                filename = metacommand[1];
-                source = getFileContents(filename);
-                compiled = compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
-                break;
-            case ":t":
-                if(metacommand[1] in env) {
-                    console.log(env[metacommand[1]].toString());
-                } else {
-                    colorLog(33, metacommand[1], "is not defined.");
-                }
-                break;
-            case ":s":
-                // Source
-                if(sources[metacommand[1]]) {
-                    colorLog(33, metacommand[1], "=", prettyPrint(sources[metacommand[1]]));
-                } else {
-                    if(metacommand[1]){
-                        colorLog(33, metacommand[1], "is not defined.");
-                    }else{
-                        console.log("Usage :s command ");
-                        console.log(":s [identifier] :: show original code about identifier.");
-                    }
-                }
-                break;
-            case ":?":
-                // Help
-                colorLog(32, "Commands available from the prompt");
-                console.log(":l -- load and run an external file");
-                console.log(":q -- exit REPL");
-                console.log(":s -- show original code about identifier");
-                console.log(":t -- show the type of the identifier");
-                console.log(":? -- show help");
-                break;
-            default:
-                // The line isn't a metacommand
+            if (!inBlock && /^:/.test(metacommand[0])) {
+                compiled = processMeta(metacommand, env, aliases, sources);
+            } else if (/(=|->|→|\(|\{|\[|\bthen|\b(do|match)\s+.+?)\s*$/.test(line)) {
+                // A block is starting.
+                // E.g.: let, lambda, object, match, etc.
+                // Remember that, change the prompt to signify we're in a block,
+                // and start keeping track of the lines in this block.
+                inBlock = true;
+                repl.setPrompt('.... ');
+                block.push(line);
+            } else if (inBlock && /\S/.test(line)) {
+                // We're still in the block.
+                block.push(line);
+            } else {
+                // End of a block.
+                // Add the final line to the block, and reset our stuff.
+                block.push(line);
+                joined = block.join('\n');
+
+                inBlock = false;
+                repl.setPrompt('roy> ');
+                block = [];
 
                 // Remember the source if it's a binding
-                tokens = lexer.tokenise(line);
+                tokens = lexer.tokenise(joined);
                 ast = parser.parse(tokens);
+
                 if (typeof ast.body[0] != 'undefined') {
                     ast.body[0].accept({
                         // Simple bindings.
@@ -162,8 +143,7 @@ var nodeRepl = function(opts) {
                 }
 
                 // Just eval it
-                compiled = compile(line, env, aliases, {nodejs: true, filename: ".", run: true});
-                break;
+                compiled = compile(joined, env, aliases, {nodejs: true, filename: ".", run: true});
             }
 
             if(compiled) {
@@ -175,6 +155,8 @@ var nodeRepl = function(opts) {
             }
         } catch(e) {
             colorLog(31, (e.stack || e.toString()));
+            // Reset the block because something wasn't formatted properly.
+            block = [];
         }
         repl.prompt();
     });
@@ -368,6 +350,56 @@ var processFlags = function(argv, opts) {
     }
 
     processFlags(argv, opts);
+};
+
+var processMeta = function(commands, env, aliases, sources) {
+    var compiled,
+        prettyPrint = require('./prettyprint').prettyPrint,
+        source;
+
+    switch(commands[0]) {
+    case ":q":
+        // Exit
+        process.exit();
+        break;
+    case ":l":
+        // Load
+        source = getFileContents(commands[1]);
+        return compile(source, env, aliases, {nodejs: true, filename: ".", run: true});
+    case ":t":
+        if(commands[1] in env) {
+            console.log(env[commands[1]].toString());
+        } else {
+            colorLog(33, commands[1], "is not defined.");
+        }
+        break;
+    case ":s":
+        // Source
+        if(sources[commands[1]]) {
+            colorLog(33, commands[1], "=", prettyPrint(sources[commands[1]]));
+        } else {
+            if(commands[1]){
+                colorLog(33, commands[1], "is not defined.");
+            }else{
+                console.log("Usage :s command ");
+                console.log(":s [identifier] :: show original code about identifier.");
+            }
+        }
+        break;
+    case ":?":
+        // Help
+        colorLog(32, "Commands available from the prompt");
+        console.log(":l -- load and run an external file");
+        console.log(":q -- exit REPL");
+        console.log(":s -- show original code about identifier");
+        console.log(":t -- show the type of the identifier");
+        console.log(":? -- show help");
+        break;
+    default:
+        colorLog(31, "Invalid command");
+        console.log(":? for help");
+        break;
+    }
 };
 
 var main = function() {
