@@ -33,6 +33,8 @@ var grammar = {
         "line": [
             ["statement", "$$ = $1;"],
             ["expression", "$$ = $1;"],
+            ["statement COMMENT", "$$ = $1;"],
+            ["expression COMMENT", "$$ = $1;"],
             ["COMMENT", n("$$ = new yy.Comment($1);")]
         ],
         "block": [

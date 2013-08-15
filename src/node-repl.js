@@ -49,6 +49,7 @@ var getFileContents = function(filename) {
     return source;
 };
 
+
 var nodeRepl = function(opts) {
     var readline = require('readline'),
         path = require('path'),
@@ -68,6 +69,16 @@ var nodeRepl = function(opts) {
     console.log("Roy: " + opts.info.description);
     console.log(opts.info.author);
     console.log(":? for help");
+
+    var usage = function() {
+        colorLog(32, "Commands available from the prompt");
+        console.log(":l -- load and run an external file");
+        console.log(":q -- exit REPL");
+        console.log(":s -- show original code about identifier");
+        console.log(":t -- show the type of the identifier");
+        console.log(":? -- show help");
+    }
+
 
     var colorLog = function(color) {
         var args = [].slice.call(arguments, 1);
@@ -133,37 +144,37 @@ var nodeRepl = function(opts) {
                 break;
             case ":?":
                 // Help
-                colorLog(32, "Commands available from the prompt");
-                console.log(":l -- load and run an external file");
-                console.log(":q -- exit REPL");
-                console.log(":s -- show original code about identifier");
-                console.log(":t -- show the type of the identifier");
-                console.log(":? -- show help");
+                usage()
                 break;
             default:
-                // The line isn't a metacommand
+                if (metacommand[0].substr(0, 1) == ':') {
+                    // The line isn't a known metacommand
+                    colorLog(33, "Command " + metacommand[0] + "is not defined")
+                    usage()
+                } else {
 
-                // Remember the source if it's a binding
-                tokens = lexer.tokenise(line);
-                ast = parser.parse(tokens);
-                if (typeof ast.body[0] != 'undefined') {
-                    ast.body[0].accept({
-                        // Simple bindings.
-                        // E.g.: let x = 37
-                        visitLet: function(n) {
-                            sources[n.name] = n.value;
-                        },
-                        // Bindings that are actually functions.
-                        // E.g.: let f x = 37
-                        visitFunction: function(n) {
-                            sources[n.name] = n;
-                        }
-                    });
+                    // Remember the source if it's a binding
+                    tokens = lexer.tokenise(line);
+                    ast = parser.parse(tokens);
+                    if (typeof ast.body[0] != 'undefined') {
+                        ast.body[0].accept({
+                            // Simple bindings.
+                            // E.g.: let x = 37
+                            visitLet: function(n) {
+                                sources[n.name] = n.value;
+                            },
+                            // Bindings that are actually functions.
+                            // E.g.: let f x = 37
+                            visitFunction: function(n) {
+                                sources[n.name] = n;
+                            }
+                        });
+                    }
+    
+                    // Just eval it
+                    compiled = compile(line, env, aliases, {nodejs: true, filename: ".", run: true});
+                    break;
                 }
-
-                // Just eval it
-                compiled = compile(line, env, aliases, {nodejs: true, filename: ".", run: true});
-                break;
             }
 
             if(compiled) {
