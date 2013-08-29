@@ -87,6 +87,9 @@ describe('compiler', function(){
         it('object.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/object');
         });
+        it('typesynonym.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/typesynonym');
+        });
         it('option_monad.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/option_monad');
         });

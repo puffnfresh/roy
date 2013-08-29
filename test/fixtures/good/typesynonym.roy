@@ -1,0 +1,6 @@
+type one = { field: String }
+
+type two = {
+   field: String
+}
+
