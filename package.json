@@ -25,7 +25,8 @@
     "escodegen": "0.0.22",
     "source-map": "0.1.8",
     "underscore": "1.2.0",
-    "unicode-categories": "0.9.1"
+    "unicode-categories": "0.9.1",
+    "brushtail": "0.0.1"
   },
   "devDependencies": {
     "jison": "0.2.7",

@@ -108,5 +108,8 @@ describe('compiler', function(){
         it('with.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/with');
         });
+        it('tco.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/tco');
+        });
     });
 });
