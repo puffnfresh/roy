@@ -24,7 +24,7 @@
   "dependencies": {
     "escodegen": "0.0.22",
     "source-map": "0.1.8",
-    "underscore": "1.2.0",
+    "underscore": "1.5.2",
     "unicode-categories": "0.9.1"
   },
   "devDependencies": {
