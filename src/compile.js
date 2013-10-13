@@ -547,7 +547,7 @@ var compileNodeWithEnvToJsAST = function(n, env, opts) {
                 var maxTagPath = _.max(tagPaths, function(t) {
                     return t.path.length;
                 });
-                var maxPath = maxTagPath ? maxTagPath.path : [];
+                var maxPath = maxTagPath === -Infinity ? [] : maxTagPath.path;
 
                 var body = [];
                 if (vars) {
