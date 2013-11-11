@@ -13,11 +13,10 @@ function EqualityConstraint(a, b, node) {
     this.a = a;
     this.b = b;
     this.node = node;
-
-    this.cata = function(f, _a, _b, _c) {
-        return f(this);
-    };
 }
+EqualityConstraint.prototype.cata = function(f, _a, _b) {
+    return f(this);
+};
 
 // #### Implicit constraints
 function ImplicitConstraint(a, b, monomorphic, node) {
@@ -25,22 +24,20 @@ function ImplicitConstraint(a, b, monomorphic, node) {
     this.b = b;
     this.monomorphic = monomorphic;
     this.node = node;
-
-    this.cata = function(_a, f, _b, _c) {
-        return f(this);
-    };
 }
+ImplicitConstraint.prototype.cata = function(_a, f, _b) {
+    return f(this);
+};
 
 // #### Explicit constraints
 function ExplicitConstraint(a, scheme, node) {
     this.a = a;
     this.scheme = scheme;
     this.node = node;
-
-    this.cata = function(_a, _b, f, _c) {
-        return f(this);
-    };
 }
+ExplicitConstraint.prototype.cata = function(_a, _b, f) {
+    return f(this);
+};
 
 // ### Type scheme
 function Scheme(s, t) {
@@ -53,10 +50,12 @@ function Scheme(s, t) {
 
   Semigroup containing constraints, assumptions and a type.
 **/
-function InferenceResult(type, constraints, assumptions) {
+function InferenceResult(type, constraints, assumptions, predicates, instances) {
     this.type = type;
     this.constraints = constraints || [];
     this.assumptions = assumptions || {};
+    this.predicates = predicates || [];
+    this.instances = instances || [];
 }
 InferenceResult.concat = function(results) {
     return _.reduce(results.slice(1), function(accum, result) {
@@ -65,33 +64,61 @@ InferenceResult.concat = function(results) {
 };
 InferenceResult.prototype.append = function(result) {
     var constraints = this.constraints.concat(result.constraints),
-        assumptions = mergeAssumptions(this.assumptions, result.assumptions);
+        assumptions = mergeAssumptions(this.assumptions, result.assumptions),
+        predicates = this.predicates.concat(result.predicates),
+        instances = this.instances.concat(result.instances);
 
     return new InferenceResult(
         result.type,
         constraints,
-        assumptions
+        assumptions,
+        predicates,
+        instances
     );
 };
 InferenceResult.prototype.withType = function(type) {
     return new InferenceResult(
         type,
         this.constraints,
-        this.assumptions
+        this.assumptions,
+        this.predicates,
+        this.instances
     );
 };
 InferenceResult.prototype.withConstraints = function(constraints) {
     return new InferenceResult(
         this.type,
         this.constraints.concat(constraints),
-        this.assumptions
+        this.assumptions,
+        this.predicates,
+        this.instances
     );
 };
 InferenceResult.prototype.withAssumptions = function(assumptions) {
     return new InferenceResult(
         this.type,
         this.constraints,
-        mergeAssumptions(this.assumptions, assumptions)
+        mergeAssumptions(this.assumptions, assumptions),
+        this.predicates,
+        this.instances
+    );
+};
+InferenceResult.prototype.withPredicates = function(predicates) {
+    return new InferenceResult(
+        this.type,
+        this.constraints,
+        this.assumptions,
+        this.predicates.concat(predicates),
+        this.instances
+    );
+};
+InferenceResult.prototype.withInstances = function(instances) {
+    return new InferenceResult(
+        this.type,
+        this.constraints,
+        this.assumptions,
+        this.predicates,
+        this.instances.concat(instances)
     );
 };
 
@@ -257,7 +284,10 @@ function generate(node) {
         },
 
         visitComment: function() {
-            throw new Error("Trying to calculate type of a comment");
+            // TODO: Damn it. Comments should be attributes on nodes.
+            return freshVariable.map(function(type) {
+                return new InferenceResult(type);
+            });
         },
         visitIdentifier: function() {
             return freshVariable.map(function(type) {
@@ -266,7 +296,8 @@ function generate(node) {
                 return new InferenceResult(
                     type,
                     [],
-                    assumptions
+                    assumptions,
+                    [{todo: type}]
                 );
             });
         },
@@ -361,6 +392,7 @@ function generate(node) {
                                 .withConstraints(constraintsFromLet)
                                 .withConstraints(result.constraints)
                                 .withAssumptions(assumptionsWithoutLet)
+                                .withPredicates(result.predicates)
                                 .withType(result.type)
                         );
                     });
@@ -381,12 +413,9 @@ function generate(node) {
                     }
 
                     body = InferenceResult.concat(values);
-                    assumptionsWithoutTags = _.pick(
+                    assumptionsWithoutTags = _.omit(
                         body.assumptions,
-                        _.difference(
-                            _.keys(body.assumptions),
-                            _.pluck(node.tags, 'name')
-                        )
+                        _.pluck(node.tags, 'name')
                     );
                     return _.reduce(
                         node.tags,
@@ -578,10 +607,69 @@ function generate(node) {
             throw new Error("TODO: Type");
         },
         visitTypeClass: function() {
-            throw new Error("TODO: TypeClass");
+            return generateBody(node.body).chain(function(body) {
+                var result,
+                    assumptionsWithoutTypeClass,
+                    constraintPredicates = [];
+
+                if(!body.length) {
+                    return freshVariable.map(function(type) {
+                        return new InferenceResult(type);
+                    });
+                }
+
+                result = InferenceResult.concat(body);
+                assumptionsWithoutTypeClass = _.omit(
+                    result.assumptions,
+                    _.keys(node.types)
+                );
+
+                _.each(node.types, function(typeNode, name) {
+                    if(!result.assumptions[name]) return;
+
+                    _.each(result.assumptions[name], function(assumption) {
+                        constraintPredicates.push(freshVariable.chain(function(type) {
+                            var bindings = {};
+                            bindings[node.generic.value] = type;
+                            return nodeToType(typeNode, bindings).map(function(ascribedType) {
+                                return {
+                                    predicate: {type: type, assumption: assumption, name: node.name},
+                                    constraint: new EqualityConstraint(assumption, ascribedType, node)
+                                };
+                            });
+                        }));
+                    });
+                });
+
+                return arraySequence(constraintPredicates).map(function(cps) {
+                    var constraints = _.pluck(cps, 'constraint'),
+                        predicates = _.pluck(cps, 'predicate');
+
+                    return new InferenceResult(result.type)
+                        .withConstraints(result.constraints)
+                        .withAssumptions(assumptionsWithoutTypeClass)
+                        .withPredicates(result.predicates)
+                        .withInstances(result.instances)
+                        .withPredicates(predicates)
+                        .withConstraints(constraints);
+                });
+            });
         },
         visitInstance: function() {
-            throw new Error("TODO: Instance");
+            return generateBody(node.body).chain(function(values) {
+                return nodeToType(node.typeName, {}).map(function(type) {
+                    var instance = {
+                        name: node.name,
+                        typeClassName: node.typeClassName,
+                        type: type
+                    };
+
+                    // TODO: Type check bodies
+
+                    return InferenceResult.concat(values)
+                        .withInstances([instance]);
+                });
+            });
         },
 
         visitExpression: function() {
@@ -718,46 +806,72 @@ function generate(node) {
 }
 exports.generate = generate;
 
-function nodeToType(node, vars) {
-    if(!vars) vars = {};
-
-    function recurse(n) {
-        return nodeToType(n, vars);
-    }
-
-    return node.accept({
+function freeTypeVariables(typeNode) {
+    return typeNode.accept({
         visitGeneric: function() {
-            if(!vars[node.value]) {
-                //vars[node.value] = new t.Variable();
-                throw new Error("TODO: Need to chuck this in the State monad");
-            }
-            return vars[node.value];
+            return [typeNode.value];
         },
         visitTypeFunction: function() {
-            return new t.FunctionType(_.map(node.args, recurse));
+            return [].concat.apply([], _.map(typeNode.args, freeTypeVariables));
         },
         visitTypeName: function() {
-            if(!node.args.length) {
-                switch(node.value) {
-                case 'String':
-                    return new t.StringType();
-                case 'Number':
-                    return new t.NumberType();
-                case 'Boolean':
-                    return new t.BooleanType();
-                case 'Unit':
-                    return new t.UnitType();
-                }
-            }
-            // TODO: Lookup name from aliases and data
-            throw new Error("TODO #1: visitTypeName");
+            return [];
         },
         visitTypeArray: function() {
-            throw new Error("TODO #1: visitTypeArray");
+            throw new Error("TODO: visitTypeArray");
         },
         visitTypeObject: function() {
-            throw new Error("TODO #1: visitTypeObject");
+            throw new Error("TODO1: visitTypeObject");
         }
+    });
+}
+
+function nodeToType(node, bindings) {
+    return arraySequence(_.map(freeTypeVariables(node), function(name) {
+        if(bindings[name]) {
+            return State.of([name, bindings[name]]);
+        }
+
+        return freshVariable.map(function(varType) {
+            return [name, varType];
+        });
+    })).map(function(namedVars) {
+        var bindings = _.object(namedVars);
+
+        function recurse(node) {
+            return node.accept({
+                visitGeneric: function() {
+                    return bindings[node.value];
+                },
+                visitTypeFunction: function() {
+                    return new t.FunctionType(_.map(node.args, recurse));
+                },
+                visitTypeName: function() {
+                    if(!node.args.length) {
+                        switch(node.value) {
+                        case 'String':
+                            return new t.StringType();
+                        case 'Number':
+                            return new t.NumberType();
+                        case 'Boolean':
+                            return new t.BooleanType();
+                        case 'Unit':
+                            return new t.UnitType();
+                        }
+                    }
+                    // TODO: Lookup name from aliases and data
+                    throw new Error("TODO: visitTypeName");
+                },
+                visitTypeArray: function() {
+                    throw new Error("TODO: visitTypeArray");
+                },
+                visitTypeObject: function() {
+                    throw new Error("TODO: visitTypeObject");
+                }
+            });
+        }
+
+        return recurse(node);
     });
 }
 
@@ -803,8 +917,6 @@ function solve(constraints) {
                         return 'other';
                     }, function() {
                         return 'implicit';
-                    }, function() {
-                        return 'other';
                     }, function() {
                         return 'other';
                     });
@@ -1058,20 +1170,57 @@ function typeSubstitute(substitutions, type) {
         return type;
     } else if(type instanceof t.BooleanType) {
         return type;
-    } else if(type === undefined) {
-        throw new Error("Not handled: undefined type");
-    } else if(type === null) {
-        throw new Error("Not handled: null type");
     }
     throw new Error("Not handled: " + type.toString());
 }
 exports.substitute = typeSubstitute;
 
+function calculateAttribute(substitutions, predicates, instances, node) {
+    var type = typeSubstitute(substitutions, node.attribute.type),
+        foundPredicate = _.find(predicates, function(predicate) {
+            return predicate.assumption == node.attribute.type;
+        }),
+        foundInstance = _.find(instances, function(instance) {
+            var foundType,
+                instanceType;
+
+            if(!foundPredicate) return false;
+
+            foundType = typeSubstitute(substitutions, foundPredicate.type);
+
+            // TODO: Propagate predicates
+            if(foundType instanceof t.Variable)
+                throw new Error("Trying to find instance of " + instance.typeClassName + " for " + foundType.toString());
+
+            instanceType = typeSubstitute(substitutions, instance.type);
+
+            // TODO: Make MGU better
+            try {
+                return mostGeneralUnifier(foundType, instanceType);
+            } catch(e) {
+                return false;
+            }
+        });
+
+    if(foundPredicate && !foundInstance) {
+        throw new Error("Couldn't find instance for " + typeSubstitute(substitutions, foundPredicate.toString()));
+    }
+
+    return {
+        type: type,
+        witness: foundInstance && foundInstance.name
+    };
+}
+
 // Run inference on an array of AST nodes.
 function typecheck(module) {
-    return memoizedGenerate(module).chain(function(result) {
-        return solve(result.constraints).map(function(substitutions) {
-            return typeSubstitute(substitutions, result.type);
+    return module.extend(memoizedGenerate).sequence(State).chain(function(result) {
+        return solve(result.attribute.constraints).map(function(substitutions) {
+            return result.extend(function(node) {
+                var predicates = result.attribute.predicates,
+                    instances = result.attribute.instances;
+                return calculateAttribute(substitutions, predicates, instances, node);
+            });
         });
     }).evalState(GenerateState.init);
 }

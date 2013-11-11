@@ -132,7 +132,7 @@ nodes = toObject([
             }));
         },
         function(f) {
-            return nodes.Module(arrayExtend(f)).withAttribute(f(this));
+            return nodes.Module(arrayExtend(this.body, f)).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -178,9 +178,9 @@ nodes = toObject([
                 return function(body) {
                     return nodes.Type(self.name, self.value).withAttribute(attribute);
                 };
-            }).ap(arraySequence(A, this.body), function(a) {
+            }).ap(arraySequence(A, this.body, function(a) {
                 return a.sequence(A);
-            });
+            }));
         },
         function(f) {
             return nodes.Type(this.name, this.value, arrayExtend(this.body, f)).withAttribute(f(this));
@@ -195,9 +195,9 @@ nodes = toObject([
                 return function(body) {
                     return nodes.TypeClass(self.name, self.generic, self.types, body).withAttribute(attribute);
                 };
-            }).ap(arraySequence(A, this.body), function(a) {
+            }).ap(arraySequence(A, this.body, function(a) {
                 return a.sequence(A);
-            });
+            }));
         },
         function(f) {
             return nodes.TypeClass(this.name, this.generic, this.types, arrayExtend(this.body, f)).withAttribute(f(this));
@@ -214,18 +214,15 @@ nodes = toObject([
                         return nodes.Instance(self.name, self.typeClassName, self.typeName, object, body).withAttribute(attribute);
                     };
                 };
-            }).ap(this.object.sequence(A)).ap(arraySequence(A, this.body), function(a) {
+            }).ap(this.object.sequence(A)).ap(arraySequence(A, this.body, function(a) {
                 return a.sequence(A);
-            });
+            }));
         },
         function(f) {
-            var object = {};
-            _.each(this.object, function(value, key) {
-                object[key] = value.extend(f);
-            });
-            return nodes.Instance(this.name, this.typeClassName, this.typeName, object, arrayExtend(this.body, f)).withAttribute(f(this));
+            return nodes.Instance(this.name, this.typeClassName, this.typeName, this.object.extend(f), arrayExtend(this.body, f)).withAttribute(f(this));
         }
     ),
+
     attributedNode(
         'Generic',
         ['value'],
@@ -291,6 +288,7 @@ nodes = toObject([
             return nodes.TypeArray(this.value).withAttribute(f(this));
         }
     ),
+
     attributedNode(
         'Do',
         ['value', 'body'],
@@ -541,7 +539,7 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.Identifier(this.value).withAttribute(attribute);
+                return nodes.Identifier(self.value).withAttribute(attribute);
             });
         },
         function(f) {

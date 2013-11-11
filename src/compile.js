@@ -211,18 +211,27 @@ function compileNode(n) {
                 }].concat(ensureStatements(_.map(n.body, compileNode)))
             };
         },
+        visitTypeClass: function() {
+            return {
+                type: "BlockStatement",
+                body: ensureStatements(_.map(n.body, compileNode))
+            };
+        },
         visitInstance: function() {
             return {
-                type: "VariableDeclaration",
-                kind: "var",
-                declarations: [{
-                    type: "VariableDeclarator",
-                    id: {
-                        type: "Identifier",
-                        name: n.name
-                    },
-                    init: compileNode(n.object)
-                }]
+                type: "BlockStatement",
+                body: [{
+                    type: "VariableDeclaration",
+                    kind: "var",
+                    declarations: [{
+                        type: "VariableDeclarator",
+                        id: {
+                            type: "Identifier",
+                            name: n.name
+                        },
+                        init: compileNode(n.object)
+                    }]
+                }].concat(ensureStatements(_.map(n.body, compileNode)))
             };
         },
         visitAssignment: function() {
@@ -665,10 +674,22 @@ function compileNode(n) {
 
         // Print all other nodes directly.
         visitIdentifier: function() {
-            return {
+            var identifier = {
                 type: "Identifier",
                 name: n.value
             };
+
+            if(n.attribute.witness) {
+                return {
+                    type: "MemberExpression",
+                    object: {
+                        type: "Identifier",
+                        name: n.attribute.witness
+                    },
+                    property: identifier
+                };
+            }
+            return identifier;
         },
         visitNumber: function() {
             return {
@@ -765,8 +786,8 @@ exports.compileNode = compileNode;
 
 function compile(source, opts) {
     var tokens = lexer.tokenise(source),
-        royNode = parser.parse(tokens),
-        resultType = typecheck(royNode),
+        untypedNode = parser.parse(tokens),
+        typedNode = typecheck(untypedNode),
         jsNode;
 
     if(!opts) opts = {};
@@ -774,14 +795,15 @@ function compile(source, opts) {
     if(!opts.exported) opts.exported = {};
 
     // Export types
-    royNode.body = _.map(royNode.body, function(n) {
+    // TODO: Fix exporting
+    /*typedNode.body = _.map(royNode.body, function(n) {
         if(n instanceof nodes.Call && n.func.value == 'export') {
             return exportType(n.args[0], {}, opts.exported, opts.nodejs);
         }
         return n;
-    });
+    });*/
 
-    jsNode = liftComments(compileNode(royNode));
+    jsNode = liftComments(compileNode(typedNode));
     if(!opts.nodejs) {
         jsNode.body = [{
             type: "ExpressionStatement",
@@ -812,7 +834,7 @@ function compile(source, opts) {
     }
 
     return {
-        type: resultType,
+        type: typedNode.attribute.type,
         output: escodegen.generate(jsNode, {
             comment: true
         })
