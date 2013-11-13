@@ -16,4 +16,4 @@ let identityMonad = {
 do identityMonad
   a <- Id "Hello"
   b <- Id "World"
-  return a ++ " " ++ b
+  identityMonad.return a ++ " " ++ b

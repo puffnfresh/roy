@@ -84,9 +84,6 @@ describe('compiler', function(){
         it('map.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/map');
         });
-        it('monoid.roy with expected output', function() {
-            expectExecutionToHaveExpectedOutput('good/monoid');
-        });
         it('identity_monad.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/identity_monad');
         });

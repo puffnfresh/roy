@@ -44,10 +44,7 @@ var grammar = {
             ["DATA IDENTIFIER optDataParamList = INDENT dataList outdentOrEof restBody", n("$$ = [new yy.Data($2, $3, $6, $8)];")],
 
             // type Person = {firstName: String, lastName: String}
-            ["TYPE IDENTIFIER = type restBody", n("$$ = [new yy.Type($2, $4, $5)];")],
-
-            ["TYPECLASS IDENTIFIER GENERIC { INDENT typeClassLines outdentOrEof TERMINATOR } restBody", "$$ = [new yy.TypeClass($2, new yy.Generic($3), $6, $10)];"],
-            ["INSTANCE IDENTIFIER = IDENTIFIER type object restBody", "$$ = [new yy.Instance($2, $4, $5, $6, $7)];"]
+            ["TYPE IDENTIFIER = type restBody", n("$$ = [new yy.Type($2, $4, $5)];")]
         ],
         "blockExpression": [
             ["block", "$$ = $1;"],
@@ -57,16 +54,12 @@ var grammar = {
             ["INDENT body outdentOrEof", "$$ = $2;"]
         ],
         "doBody": [
-            ["doLine", "$$ = [$1];"],
-            ["doBody TERMINATOR doLine", "$$ = $1; $1.push($3);"],
-            ["doBody TERMINATOR", "$$ = $1;"]
-        ],
-        "doLine": [
-            ["LET IDENTIFIER optType = blockExpression restDoBody", "$$ = new yy.Let($2, $5, $3, $6);"],
-            ["LET IDENTIFIER paramList optType = blockExpression restDoBody", "$$ = new yy.Let($2, [new yy.Function($3, $6)], $4, $7);"],
+            ["LET IDENTIFIER optType = blockExpression TERMINATOR doBody", "$$ = $7; $7.unshift({type: 'let', name: $2, optType: $3, value: $5});"],
+            ["LET IDENTIFIER paramList optType = blockExpression TERMINATOR doBody", "$$ = $8; $8.unshift({type: 'let', name: $2, optType: $4, value: [new yy.Function($3, $6)]});"],
 
-            ["IDENTIFIER LEFTARROW doLine", n("$$ = {name: $1, value: $3};")],
-            ["RETURN expression", n("$$ = {value: $2};")]
+            ["IDENTIFIER LEFTARROW expression TERMINATOR doBody", "$$ = $5; $5.unshift({type: 'bind', name: $1, value: $3});"],
+            ["expression TERMINATOR doBody", "$$ = $3; $3.unshift({type: 'expression', value: $1});"],
+            ["expression", "$$ = [{type: 'expression', value: $1}];"]
         ],
         "doBlock": [
             ["INDENT doBody outdentOrEof", "$$ = $2;"]
@@ -134,11 +127,6 @@ var grammar = {
         "optTypePairs": typegrammar.optTypePairs,
         "dataParamList": typegrammar.dataParamList,
         "optDataParamList": typegrammar.optDataParamList,
-
-        "typeClassLines": [
-            ["IDENTIFIER : type", "$$ = {}; $$[$1] = $3;"],
-            ["typeClassLines TERMINATOR IDENTIFIER : type", "$$ = $1; $1[$3] = $5;"]
-        ],
 
         "function": [
             ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Let($1, [new yy.Function($2, $5, $6)], $3);")],

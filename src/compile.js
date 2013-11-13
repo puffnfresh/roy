@@ -211,29 +211,6 @@ function compileNode(n) {
                 }].concat(ensureStatements(_.map(n.body, compileNode)))
             };
         },
-        visitTypeClass: function() {
-            return {
-                type: "BlockStatement",
-                body: ensureStatements(_.map(n.body, compileNode))
-            };
-        },
-        visitInstance: function() {
-            return {
-                type: "BlockStatement",
-                body: [{
-                    type: "VariableDeclaration",
-                    kind: "var",
-                    declarations: [{
-                        type: "VariableDeclarator",
-                        id: {
-                            type: "Identifier",
-                            name: n.name
-                        },
-                        init: compileNode(n.object)
-                    }]
-                }].concat(ensureStatements(_.map(n.body, compileNode)))
-            };
-        },
         visitAssignment: function() {
             return {
                 type: "AssignmentExpression",
@@ -380,7 +357,72 @@ function compileNode(n) {
             };
         },
         visitDo: function() {
-            throw new Error("TODO: Compile do notation");
+            var last = _.last(n.body),
+                l = [{ type: "ReturnStatement", argument: compileNode(last.value) }];
+
+            if(last.type != 'expression') {
+                throw new Error('TODO: Give good error');
+            }
+
+            function compileBind(value, names, l) {
+                return [{
+                    type: "ReturnStatement",
+                    argument: {
+                        type: "CallExpression",
+                        "arguments": [
+                            compileNode(value),
+                            {
+                                type: "FunctionExpression",
+                                id: null,
+                                params: _.map(names, function(n) {
+                                    return { type: "Identifier", name: n };
+                                }),
+                                body: {
+                                    type: "BlockStatement",
+                                    body: ensureStatements(l)
+                                }
+                            }
+                        ],
+                        callee: { type: "Identifier", name: "__bind__" }
+                    }
+                }];
+            }
+
+            _.each(_.initial(n.body).reverse(), function(b) {
+                switch(b.type) {
+                case 'bind':
+                    l = compileBind(b.value, [b.name], l);
+                    break;
+                case 'let':
+                    l.unshift({
+                        type: "VariableDeclaration",
+                        kind: "var",
+                        declarations: [{
+                            type: "VariableDeclarator",
+                            id: { type: "Identifier", name: b.name },
+                            init: blockToExpression(_.map(b.value, compileNode))
+                        }]
+                    });
+                    break;
+                case 'expression':
+                    l = compileBind(b.value, [], l);
+                    break;
+                }
+            });
+
+            return {
+                type: "CallExpression",
+                "arguments": [compileNode(n.value)],
+                callee: {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: [{ type: "Identifier", name: "__bind__" }],
+                    body: {
+                        type: "BlockStatement",
+                        body: ensureStatements(l)
+                    }
+                }
+            };
         },
         visitMatch: function() {
             var valuePlaceholder = '__match';

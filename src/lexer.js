@@ -25,16 +25,13 @@ var keywordTokens = {
     'Function':  'FUNCTION',
     'let':       'LET',
     'if':        'IF',
-    'instance':  'INSTANCE',
     'then':      'THEN',
     'else':      'ELSE',
     'data':      'DATA',
     'type':      'TYPE',
-    'typeclass': 'TYPECLASS',
     'match':     'MATCH',
     'case':      'CASE',
     'do':        'DO',
-    'return':    'RETURN',
     'with':      'WITH',
     'where':     'WHERE'
 };

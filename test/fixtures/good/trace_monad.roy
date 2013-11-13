@@ -7,10 +7,10 @@ let traceMonad = {
     f x
 }
 
-console.log (do traceMonad
+console.log (do traceMonad.bind
   w ← 1
   let x = 2
   y ← 3
   z ← 4
-  return w + x + y + z
+  traceMonad.return w + x + y + z
 )

@@ -117,7 +117,6 @@ function objectSequence(A, o) {
     return object;
 }
 
-// TODO: Is possible to remove attribute duplication. Do it.
 nodes = toObject([
     attributedNode(
         'Module',
@@ -159,7 +158,7 @@ nodes = toObject([
             var self = this;
             return this.attribute.map(function(attribute) {
                 return function(body) {
-                    return nodes.Data(self.name, self.args, self.tags).withAttribute(attribute);
+                    return nodes.Data(self.name, self.args, self.tags, body).withAttribute(attribute);
                 };
             }).ap(arraySequence(A, this.body, function(a) {
                 return a.sequence(A);
@@ -184,42 +183,6 @@ nodes = toObject([
         },
         function(f) {
             return nodes.Type(this.name, this.value, arrayExtend(this.body, f)).withAttribute(f(this));
-        }
-    ),
-    attributedNode(
-        'TypeClass',
-        ['name', 'generic', 'types', 'body'],
-        function(A) {
-            var self = this;
-            return this.attribute.map(function(attribute) {
-                return function(body) {
-                    return nodes.TypeClass(self.name, self.generic, self.types, body).withAttribute(attribute);
-                };
-            }).ap(arraySequence(A, this.body, function(a) {
-                return a.sequence(A);
-            }));
-        },
-        function(f) {
-            return nodes.TypeClass(this.name, this.generic, this.types, arrayExtend(this.body, f)).withAttribute(f(this));
-        }
-    ),
-    attributedNode(
-        'Instance',
-        ['name', 'typeClassName', 'typeName', 'object', 'body'],
-        function(A) {
-            var self = this;
-            return this.attribute.map(function(attribute) {
-                return function(object) {
-                    return function(body) {
-                        return nodes.Instance(self.name, self.typeClassName, self.typeName, object, body).withAttribute(attribute);
-                    };
-                };
-            }).ap(this.object.sequence(A)).ap(arraySequence(A, this.body, function(a) {
-                return a.sequence(A);
-            }));
-        },
-        function(f) {
-            return nodes.Instance(this.name, this.typeClassName, this.typeName, this.object.extend(f), arrayExtend(this.body, f)).withAttribute(f(this));
         }
     ),
 
@@ -293,10 +256,53 @@ nodes = toObject([
         'Do',
         ['value', 'body'],
         function(A) {
-            // TODO: Tricky
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return function(value) {
+                    return function(body) {
+                        return nodes.Do(self.value, self.body).withAttribute(attribute);
+                    };
+                };
+            }).ap(this.value.sequence(A)).ap(arraySequence(A, this.body, function(a) {
+                var value;
+
+                switch(a.type) {
+                case 'let':
+                    value = arraySequence(A, a.value, function(a) {
+                        return a.sequence(A);
+                    });
+                    break;
+                case 'bind':
+                case 'expression':
+                    value = a.value.sequence(A);
+                    break;
+                }
+
+                return value.map(function(v) {
+                    return _.extend(a, {
+                        value: v
+                    });
+                });
+            }));
         },
         function(f) {
-            throw new Error("TODO");
+            return nodes.Do(this.value.extend(f), _.map(this.body, function(v) {
+                var value;
+
+                switch(v.type) {
+                case 'let':
+                    value = arrayExtend(v.value, f);
+                    break;
+                case 'bind':
+                case 'expression':
+                    value = v.value.extend(f);
+                    break;
+                }
+
+                return _.extend(v, {
+                    value: value
+                });
+            })).withAttribute(f(this));
         }
     ),
     attributedNode(

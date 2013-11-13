@@ -12,11 +12,11 @@ let optionMonad = {
     case None = None ()
 }
 
-let someSix = do optionMonad
+let someSix = do optionMonad.bind
   x ← Some 1
   let y = 2
   z ← Some 3
-  return x + y + z
+  optionMonad.return x + y + z
 
 let six = fromOption 0 someSix
 

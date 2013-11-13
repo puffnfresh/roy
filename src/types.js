@@ -152,13 +152,3 @@ function UnitType() {}
 UnitType.prototype = new BaseType();
 UnitType.prototype.name = "Unit";
 exports.UnitType = UnitType;
-
-function PredicateType(predicates, type) {
-    this.predicates = predicates;
-    this.type = type;
-}
-PredicateType.prototype = new BaseType();
-PredicateType.prototype.name = "Predicate";
-PredicateType.prototype.toString = function() {
-    return this.predicates + ' => ' + this.type.toString();
-};
