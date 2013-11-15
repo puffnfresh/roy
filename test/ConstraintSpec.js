@@ -1,5 +1,6 @@
 describe('constraint generation', function() {
     var lib = require('./SpecLib'),
+        typeinference = require('../src/typeinference'),
         types = require('../src/types');
 
     describe('should generate constraints for', function() {
@@ -14,7 +15,7 @@ describe('constraint generation', function() {
             var state = lib.generate('print 100');
 
             expect(state.constraints.length).toEqual(1);
-            expect(state.constraints[0].a instanceof types.Variable).toBe(true);
+            expect(state.constraints[0].a instanceof types.FunctionType).toBe(true);
             expect(state.constraints[0].b instanceof types.FunctionType).toBe(true);
 
             // Assumption for the `print` identifier
@@ -31,7 +32,7 @@ describe('constraint generation', function() {
             var state = lib.generate('let x = 100\nx');
             expect(state.assumptions).toEqual({});
             expect(state.constraints.length).toEqual(1);
-            expect(state.constraints[0].a instanceof types.Variable).toBe(true);
+            expect(state.constraints[0].a instanceof types.NumberType).toBe(true);
             expect(state.constraints[0].b instanceof types.NumberType).toBe(true);
             expect(state.constraints[0].monomorphic).toEqual([]);
         });
@@ -46,10 +47,10 @@ describe('constraint generation', function() {
             */
             expect(state.constraints.length).toEqual(4);
 
-            expect(state.constraints[0].a instanceof types.Variable).toBe(true);
-            expect(state.constraints[0].b instanceof types.FunctionType).toBe(true);
-            expect(state.constraints[0].b.types[0] instanceof types.BooleanType).toBe(true);
-            expect(state.constraints[0].b.types[1] instanceof types.Variable).toBe(true);
+            expect(state.constraints[1].b instanceof types.Variable).toBe(true);
+            expect(state.constraints[1].a instanceof types.FunctionType).toBe(true);
+            expect(state.constraints[1].a.types[0] instanceof types.BooleanType).toBe(true);
+            expect(state.constraints[1].a.types[1] instanceof types.Variable).toBe(true);
 
             // Two implicit constraints
 

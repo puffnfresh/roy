@@ -101,7 +101,7 @@ module.exports = function(grunt) {
 
         jasmine.executeSpecsInFolder({
             specFolders: [specDir],
-            regExpSpec: /Comp.*Spec\.js/,
+            regExpSpec: /.*Spec\.js/,
             onComplete: onComplete,
             isVerbose: true,
             showColors: true

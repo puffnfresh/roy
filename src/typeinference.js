@@ -91,6 +91,23 @@ InferenceResult.prototype.withAssumptions = function(assumptions) {
         mergeAssumptions(this.assumptions, assumptions)
     );
 };
+InferenceResult.prototype.substitute = function(substitutions) {
+    var assumptions = {};
+
+    _.each(this.assumptions, function(v, k) {
+        assumptions[k] = _.map(v, function(w) {
+            return typeSubstitute(substitutions, w);
+        });
+    });
+
+    return new InferenceResult(
+        typeSubstitute(substitutions, this.type),
+        _.map(this.constraints, function(c) {
+            return constraintSubstitute(substitutions, c);
+        }),
+        assumptions
+    );
+};
 
 function mergeAssumptions(a1, a2) {
     var merged = _.extend(_.clone(a1), a2);
@@ -159,6 +176,7 @@ State.put = function(s) {
 State.prototype.evalState = function(s) {
     return this.run(s)._1;
 };
+exports.State = State;
 
 /**
   ## Generating state
@@ -192,6 +210,7 @@ GenerateState.prototype.addAlias = function(name, type) {
     aliases[name] = type;
     return new GenerateState(this.variableId, this.monomorphic, this.memotable, _.extend(this.aliases, aliases));
 };
+exports.GenerateState = GenerateState;
 
 function memoizedGenerate(node) {
     return State.get.chain(function(s) {
@@ -210,6 +229,7 @@ function memoizedGenerate(node) {
         });
     });
 }
+exports.memoizedGenerate = memoizedGenerate;
 
 function arraySequence(as) {
     return _.reduce(as, function(state, aa) {
@@ -804,7 +824,9 @@ function nodeToType(node, bindings, aliases) {
                     });
                 },
                 visitTypeArray: function() {
-                    throw new Error("TODO: visitTypeArray");
+                    return nodeToType(node.value, bindings, aliases).map(function(n) {
+                        return new t.ArrayType(n);
+                    });
                 },
                 visitTypeObject: function() {
                     return arraySequence(_.map(node.values, function(v, k) {
@@ -919,6 +941,7 @@ function solve(constraints) {
         });
     });
 }
+exports.solve = solve;
 
 function free(type) {
     if(type instanceof t.Variable) {
@@ -1067,6 +1090,7 @@ function constraintSubstitute(substitutions, constraint) {
         );
     });
 }
+exports.constraintSubstitute = constraintSubstitute;
 
 function schemeSubstitute(substitutions, scheme) {
     var substitutionsWithoutScheme = {};
@@ -1122,7 +1146,7 @@ function typeSubstitute(substitutions, type) {
     }
     throw new Error("Not handled: " + type.toString());
 }
-exports.substitute = typeSubstitute;
+exports.typeSubstitute = typeSubstitute;
 
 // Run inference on an array of AST nodes.
 function typecheck(module) {
