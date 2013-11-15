@@ -1,0 +1,36 @@
+let f x =
+  let g y =
+    let z () = 3
+
+    if (x == 0) then
+      h y
+    else
+      x + y + (z ())
+
+  let h y =
+    if (x == 1) then
+      g y
+    else
+      x * y
+
+  let r: Number = g 1
+  r
+
+console.log (f 2)
+
+let g x =
+  let zero = Zero ()
+  evenToNumber (SuccEven (SuccOdd zero))
+
+let evenToNumber y = match y
+  case Zero = if id true then id 0 else id 0
+  case (SuccEven odd) = (oddToNumber odd) + 1
+
+let oddToNumber z = match z
+  case (SuccOdd even) = (evenToNumber even) + 1
+
+let id x = x
+data Even = Zero | SuccEven Odd
+data Odd = SuccOdd Even
+
+console.log (g 0)

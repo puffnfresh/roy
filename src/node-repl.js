@@ -42,7 +42,7 @@ function getFileContents(filename) {
         }
     }
 
-    if(!source) {
+    if(source === undefined) {
         throw new Error("File(s) not found: " + filenames.join(", "));
     }
 

@@ -142,11 +142,21 @@ function blockToExpression(nodes) {
                 type: "BlockStatement",
                 body: ensureStatements(nodes).slice(0, nodes.length - 1).concat([{
                     type: "ReturnStatement",
-                    argument: nodes[nodes.length - 1]
+                    argument: ensureExpression(nodes[nodes.length - 1])
                 }])
             }
         }
     };
+}
+
+function ensureExpression(node) {
+    switch(node.type) {
+    case "BlockStatement":
+        return blockToExpression(node.body);
+    case "ExpressionStatement":
+        return node.expression;
+    }
+    return node;
 }
 
 var extraComments = [];
@@ -168,7 +178,7 @@ function compileNode(n) {
 
             exprsWithoutComments[exprsWithoutComments.length - 1] = {
                 type: "ReturnStatement",
-                argument: exprsWithoutComments[exprsWithoutComments.length - 1]
+                argument: ensureExpression(exprsWithoutComments[exprsWithoutComments.length - 1])
             };
 
             return {
@@ -209,6 +219,12 @@ function compileNode(n) {
                         init: blockToExpression(_.map(n.value, compileNode))
                     }]
                 }].concat(ensureStatements(_.map(n.body, compileNode)))
+            };
+        },
+        visitType: function() {
+            return {
+                type: "BlockStatement",
+                body: ensureStatements(_.map(n.body, compileNode))
             };
         },
         visitAssignment: function() {
@@ -431,34 +447,33 @@ function compileNode(n) {
             };
 
             var pathConditions = _.map(n.cases, function(c) {
-                var getVars = function(pattern, varPath) {
+                function getVars(pattern, varPath) {
                     var decls = flatMap(pattern.vars, function(a, i) {
-                        var nextVarPath = varPath.slice();
+                        var nextVarPath = varPath.slice(),
+                            value;
+
                         nextVarPath.push(i);
 
-                        return a.accept({
-                            visitIdentifier: function() {
+                        if(typeof a == 'string') {
+                            if(a == '_') return [];
 
-                                if(a.value == '_') return [];
+                            value = _.reduceRight(nextVarPath, function(structure, varPathName) {
+                                return {
+                                    type: "MemberExpression",
+                                    computed: false,
+                                    object: structure,
+                                    property: { type: "Identifier", name: "_" + varPathName }
+                                };
+                            }, { type: "Identifier", name: valuePlaceholder });
 
-                                var value = _.reduceRight(nextVarPath, function(structure, varPathName) {
-                                    return {
-                                        type: "MemberExpression",
-                                        computed: false,
-                                        object: structure,
-                                        property: { type: "Identifier", name: "_" + varPathName }
-                                    };
-                                }, { type: "Identifier", name: valuePlaceholder });
-                                return [{
-                                    type: "VariableDeclarator",
-                                    id: { type: "Identifier", name: a.value },
-                                    init: value
-                                }];
-                            },
-                            visitPattern: function() {
-                                return getVars(a, nextVarPath).declarations;
-                            }
-                        });
+                            return [{
+                                type: "VariableDeclarator",
+                                id: { type: "Identifier", name: a },
+                                init: value
+                            }];
+                        }
+
+                        return getVars(a, nextVarPath).declarations;
                     });
                     if(decls.length) {
                         return {
@@ -467,28 +482,27 @@ function compileNode(n) {
                             declarations: decls
                         };
                     }
-                };
+                }
                 var vars = getVars(c.pattern, []);
 
-                var getTagPaths = function(pattern, patternPath) {
+                function getTagPaths(pattern, patternPath) {
                     return flatMap(pattern.vars, function(a, i) {
-                        var nextPatternPath = patternPath.slice();
+                        var nextPatternPath = patternPath.slice(),
+                            inner;
 
                         nextPatternPath.push(i);
-                        return a.accept({
-                            visitIdentifier: function() {
-                                return [];
-                            },
-                            visitPattern: function() {
-                                var inner = getTagPaths(a, nextPatternPath);
-                                inner.unshift({path: nextPatternPath, tag: a.tag});
-                                return inner;
-                            }
-                        });
+
+                        if(typeof a == 'string') {
+                            return [];
+                        }
+
+                        inner = getTagPaths(a, nextPatternPath);
+                        inner.unshift({path: nextPatternPath, tag: a.tag});
+                        return inner;
                     });
-                };
+                }
                 var tagPaths = getTagPaths(c.pattern, []);
-                var makeCondition = function(e) {
+                function makeCondition(e) {
                     var pieces = _.reduceRight(e.path, function(structure, piece) {
                         return {
                             type: "MemberExpression",
@@ -501,9 +515,9 @@ function compileNode(n) {
                         type: "BinaryExpression",
                         operator: "instanceof",
                         left: pieces,
-                        right: { type: "Identifier", name: e.tag.value }
+                        right: { type: "Identifier", name: e.tag }
                     };
-                };
+                }
                 var extraConditions = null;
                 if(tagPaths.length) {
                     var lastCondition = makeCondition(tagPaths.pop());
@@ -536,7 +550,7 @@ function compileNode(n) {
                     type: "BinaryExpression",
                     operator: "instanceof",
                     left: { type: "Identifier", name: valuePlaceholder },
-                    right: { type: "Identifier", name: c.pattern.tag.value }
+                    right: { type: "Identifier", name: c.pattern.tag }
                 };
                 if(extraConditions) {
                     test = {

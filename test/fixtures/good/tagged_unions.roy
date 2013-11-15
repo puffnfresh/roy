@@ -11,7 +11,7 @@ console.log (match x
 
 // Multiple argument unions
 
-data XYZ a b c = Z a b c | X b c | Y c
+data XYZ a b c = Z #a #b #c | X #b #c | Y #c
 
 Z 1 true "three"
 X 1 true

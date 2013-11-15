@@ -1,4 +1,4 @@
-data Either a b = Left a | Right b
+data Either a b = Left #a | Right #b
 
 let xor e = match e
   case (Left (Left n)) = 0

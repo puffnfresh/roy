@@ -96,16 +96,16 @@ var grammar = {
         ],
         "pattern": [
             ["innerPattern", "$$ = $1;"],
-            ["identifier", n("$$ = {tag: $1, vars: []};")]
+            ["IDENTIFIER", n("$$ = {tag: $1, vars: []};")]
         ],
         "innerPattern": [
-            ["( identifier patternIdentifiers )", n("$$ = {tag: $2, vars: $3};")]
+            ["( IDENTIFIER patternIdentifiers )", n("$$ = {tag: $2, vars: $3};")]
         ],
         "patternIdentifiers": [
-            ["identifier", "$$ = [$1];"],
+            ["IDENTIFIER", "$$ = [$1];"],
             ["innerPattern", "$$ = [$1];"],
             ["patternIdentifiers innerPattern", "$$ = $1; $1.push($2);"],
-            ["patternIdentifiers identifier", "$$ = $1; $1.push($2);"]
+            ["patternIdentifiers IDENTIFIER", "$$ = $1; $1.push($2);"]
         ],
         "ifThenElse": [
             ["IF innerExpression THEN block TERMINATOR ELSE block", n("$$ = new yy.IfThenElse($2, $4, $7);")],

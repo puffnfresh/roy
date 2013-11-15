@@ -1,5 +1,5 @@
 data Either a b =
-  Left a | Right b
+  Left #a | Right #b
 
 let f = \() ->
   console.log "This should only appear once"

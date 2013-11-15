@@ -99,6 +99,9 @@ describe('compiler', function(){
         it('primitive_types.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/primitive_types');
         });
+        it('recursive.roy with expected output', function() {
+            expectExecutionToHaveExpectedOutput('good/recursive');
+        });
         it('tagged_unions.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/tagged_unions');
         });
@@ -107,9 +110,6 @@ describe('compiler', function(){
         });
         it('unicode.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/unicode');
-        });
-        it('where.roy with expected output', function() {
-            expectExecutionToHaveExpectedOutput('good/where');
         });
         it('with.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/with');

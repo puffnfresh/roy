@@ -1,4 +1,4 @@
-data Option a = Some a | None
+data Option a = Some #a | None
 
 let fromOption d o = match o
   case (Some a) = a

@@ -175,7 +175,7 @@ nodes = toObject([
             var self = this;
             return this.attribute.map(function(attribute) {
                 return function(body) {
-                    return nodes.Type(self.name, self.value).withAttribute(attribute);
+                    return nodes.Type(self.name, self.value, body).withAttribute(attribute);
                 };
             }).ap(arraySequence(A, this.body, function(a) {
                 return a.sequence(A);

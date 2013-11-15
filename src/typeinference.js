@@ -165,17 +165,18 @@ State.prototype.evalState = function(s) {
 
   Everything required to calculate types for a node
 **/
-function GenerateState(variableId, monomorphic, memotable) {
+function GenerateState(variableId, monomorphic, memotable, aliases) {
     this.variableId = variableId;
     this.monomorphic = monomorphic;
     this.memotable = memotable;
+    this.aliases = aliases;
 }
-GenerateState.init = new GenerateState(0, [], []);
+GenerateState.init = new GenerateState(0, [], [], {});
 GenerateState.prototype.updateVariableId = function(variableId) {
-    return new GenerateState(variableId, this.monomorphic, this.memotable);
+    return new GenerateState(variableId, this.monomorphic, this.memotable, this.aliases);
 };
 GenerateState.prototype.updateMonomorphic = function(monomorphic) {
-    return new GenerateState(this.variableId, monomorphic, this.memotable);
+    return new GenerateState(this.variableId, monomorphic, this.memotable, this.aliases);
 };
 GenerateState.prototype.appendMonomorphic = function(monomorphic) {
     return this.updateMonomorphic(this.monomorphic.concat(monomorphic));
@@ -184,8 +185,14 @@ GenerateState.prototype.appendMemotable = function(node, result) {
     return new GenerateState(this.variableId, this.monomorphic, this.memotable.concat([{
         node: node,
         result: result
-    }]));
+    }]), this.aliases);
 };
+GenerateState.prototype.addAlias = function(name, type) {
+    var aliases = {};
+    aliases[name] = type;
+    return new GenerateState(this.variableId, this.monomorphic, this.memotable, _.extend(this.aliases, aliases));
+};
+
 function memoizedGenerate(node) {
     return State.get.chain(function(s) {
         var memotable = s.memotable,
@@ -335,6 +342,7 @@ function generate(node) {
                             constraintsFromLet,
                             result;
 
+                        // TODO: Probably wrong place to exit early
                         if(!body.length) {
                             return freshVariable.map(function(type) {
                                 return new InferenceResult(type);
@@ -356,24 +364,32 @@ function generate(node) {
                             );
                         });
 
-                        return State.of(
-                            value
+                        return (node.type ? nodeToType(node.type, {}, state.aliases).map(function(type) {
+                            return [new EqualityConstraint(
+                                type,
+                                value.type,
+                                state.monomorphic,
+                                node
+                            )];
+                        }) : State.of([])).map(function(constraintsFromAnnotation) {
+                            return value
                                 .withConstraints(constraintsFromLet)
+                                .withConstraints(constraintsFromAnnotation)
                                 .withConstraints(result.constraints)
                                 .withAssumptions(assumptionsWithoutLet)
-                                .withType(result.type)
-                        );
+                                .withType(result.type);
+                        });
                     });
                 });
             });
         },
         visitData: function() {
-            // TODO: Data using data
             return State.get.chain(function(state) {
                 return generateBody(node.body).chain(function(values) {
                     var body,
                         assumptionsWithoutTags;
 
+                    // TODO: Probably wrong place to exit early
                     if(!values.length) {
                         return freshVariable.map(function(type) {
                             return new InferenceResult(type);
@@ -391,27 +407,27 @@ function generate(node) {
                             return accum.chain(function(constraints) {
                                 var argNames = _.pluck(node.args, 'name');
                                 return arraySequence(_.map(node.args, function(arg) {
-                                    return freshVariable;
+                                    return freshVariable.map(function(v) {
+                                        return [arg.name, v];
+                                    });
                                 })).chain(function(types) {
-                                    var vars = {},
+                                    var vars,
                                         tagType;
 
-                                    _.each(tag.vars, function(v) {
-                                        var index = argNames.indexOf(v.value);
-                                        vars[v.value] = index != -1 ? types[index] : (function() {
-                                            throw new Error("TODO: Data declaration using another declaration");
-                                        })();
+                                    vars = _.map(tag.vars, function(v) {
+                                        return nodeToType(v, _.object(types), state.aliases);
                                     });
 
-                                    return arraySequence(_.map(node.args, function(a) {
-                                        return _.has(vars, a.name) ? State.of(vars[a.name]) : freshVariable;
-                                    })).map(function(types) {
-                                        var tagType = new t.TagType(node.name, types);
+                                    tagType = new t.TagType(node.name, _.map(types, function(t) {
+                                        return t[1];
+                                    }));
+
+                                    return arraySequence(vars).map(function(v) {
                                         return constraints.concat(
                                             _.map(body.assumptions[tag.name], function(assumption) {
                                                 return new ImplicitConstraint(
                                                     assumption,
-                                                    new t.FunctionType(_.values(vars).concat(tagType)),
+                                                    new t.FunctionType(v.concat(tagType)),
                                                     state.monomorphic,
                                                     node
                                                 );
@@ -573,7 +589,13 @@ function generate(node) {
             });
         },
         visitType: function() {
-            throw new Error("TODO: Type");
+            return State.get.chain(function(state) {
+                return nodeToType(node.value, {}, state.aliases).chain(function(type) {
+                    return State.put(state.addAlias(node.name, type)).chain(function(x) {
+                        return generateBody(node.body).map(_.last);
+                    });
+                });
+            });
         },
 
         visitExpression: function() {
@@ -725,8 +747,80 @@ function freeTypeVariables(typeNode) {
             throw new Error("TODO: visitTypeArray");
         },
         visitTypeObject: function() {
-            throw new Error("TODO1: visitTypeObject");
+            return _.flatten(_.map(typeNode.values, function(v) {
+                return freeTypeVariables(v);
+            }));
         }
+    });
+}
+
+function nodeToType(node, bindings, aliases) {
+    return arraySequence(_.map(freeTypeVariables(node), function(name) {
+        if(bindings[name]) {
+            return State.of([name, bindings[name]]);
+        }
+
+        return freshVariable.map(function(varType) {
+            return [name, varType];
+        });
+    })).chain(function(namedVars) {
+        var bindings = _.object(namedVars);
+
+        function recurse(node) {
+            return node.accept({
+                visitGeneric: function() {
+                    return State.of(bindings[node.value]);
+                },
+                visitTypeFunction: function() {
+                    return arraySequence(_.map(node.args, recurse)).map(function(args) {
+                        return new t.FunctionType(args);
+                    });
+                },
+                visitTypeName: function() {
+                    if(!node.args.length) {
+                        switch(node.value) {
+                        case 'String':
+                            return State.of(new t.StringType());
+                        case 'Number':
+                            return State.of(new t.NumberType());
+                        case 'Boolean':
+                            return State.of(new t.BooleanType());
+                        case 'Unit':
+                            return State.of(new t.UnitType());
+                        }
+                    }
+
+                    if(aliases[node.value]) {
+                        if(node.args.length) {
+                            throw new Error("TODO: alias with type parameters");
+                        } else {
+                            return State.of(aliases[node.value]);
+                        }
+                    }
+                    return arraySequence(_.map(node.args, function(n) {
+                        return nodeToType(n, bindings, aliases);
+                    })).map(function(args) {
+                        return new t.TagType(node.value, args);
+                    });
+                },
+                visitTypeArray: function() {
+                    throw new Error("TODO: visitTypeArray");
+                },
+                visitTypeObject: function() {
+                    return arraySequence(_.map(node.values, function(v, k) {
+                        return nodeToType(v, bindings, aliases).map(function(type) {
+                            return [k, type];
+                        });
+                    })).chain(function(o) {
+                        return freshVariable.map(function(row) {
+                            return new t.RowObjectType(row, _.object(o));
+                        });
+                    });
+                }
+            });
+        }
+
+        return recurse(node);
     });
 }
 

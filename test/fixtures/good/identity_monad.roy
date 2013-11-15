@@ -1,4 +1,4 @@
-data Identity a = Id a
+data Identity a = Id #a
 
 let identityReturn x =
   Id x
