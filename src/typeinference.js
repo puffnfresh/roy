@@ -998,6 +998,10 @@ function variableBind(a, b) {
 }
 
 function mostGeneralUnifier(a, b, node) {
+    var row,
+        props,
+        keys;
+
     function typeError() {
         throw new Error('Type error on line ' + node.lineno + ': ' + b.toString() + ' is not ' + a.toString());
     }
@@ -1015,27 +1019,39 @@ function mostGeneralUnifier(a, b, node) {
     } else if(a instanceof t.RowObjectType && b instanceof t.RowObjectType) {
         return mostGeneralUnifier(a, b.row, node);
     } else if(a instanceof t.RowObjectType && b instanceof t.ObjectType) {
-        return (function(row, props, keys) {
-            while(row instanceof t.RowObjectType) {
-                props.push(row.props);
-                keys = keys.concat(_.keys(row.props));
-                row = row.row;
-            }
+        row = a;
+        props = [];
+        keys = [];
 
-            if(_.difference(keys, _.keys(b.props)).length)
-                typeError();
+        while(row instanceof t.RowObjectType) {
+            props.push(row.props);
+            keys = keys.concat(_.keys(row.props));
+            row = row.row;
+        }
 
-            return _.reduce(props, function(accum, prop) {
-                return _.reduce(_.keys(prop), function(accum, key) {
-                    var c = typeSubstitute(accum, prop[key]),
-                        d = typeSubstitute(accum, b.props[key]);
+        if(_.difference(keys, _.keys(b.props)).length)
+            typeError();
 
-                    return _.extend(accum, mostGeneralUnifier(c, d, node));
-                }, accum);
-            }, {});
-        })(a, [], []);
+        return _.reduce(props, function(accum, prop) {
+            return _.reduce(_.keys(prop), function(accum, key) {
+                var c = typeSubstitute(accum, prop[key]),
+                    d = typeSubstitute(accum, b.props[key]);
+
+                return _.extend(accum, mostGeneralUnifier(c, d, node));
+            }, accum);
+        }, {});
     } else if(a instanceof t.ObjectType && b instanceof t.RowObjectType) {
         return mostGeneralUnifier(b, a);
+    } else if(a instanceof t.ObjectType && b instanceof t.ObjectType) {
+        if(_.difference(_.keys(a.props), _.keys(b.props)).length)
+            typeError();
+
+        return _.reduce(_.keys(a.props), function(accum, key) {
+            var c = typeSubstitute(accum, a.props[key]),
+                d = typeSubstitute(accum, b.props[key]);
+
+            return _.extend(accum, mostGeneralUnifier(c, d, node));
+        }, {});
     } else if(a instanceof t.ArrayType && b instanceof t.ArrayType) {
         return mostGeneralUnifier(a.type, b.type);
     } else if(a instanceof t.TagType && b instanceof t.TagType && a.name == b.name && a.vars.length == b.vars.length) {
