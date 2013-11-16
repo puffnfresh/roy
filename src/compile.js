@@ -57,6 +57,10 @@ function ensureStatements(nodes) {
     // multiple statements should be flattened with its context.
     function flattenBlocks(node) {
         if(node.type == "BlockStatement") {
+            // TODO: Maybe lift the comments up when empty body
+            if(node.leadingComments && node.body[0]) {
+                node.body[0].leadingComments = node.leadingComments;
+            }
             return node.body;
         }
         return [node];
