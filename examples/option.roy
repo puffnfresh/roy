@@ -9,9 +9,9 @@ let optionMonad = {
     case None = None ()
 }
 
-console.log (do optionMonad
+console.log (do optionMonad.bind
   x <- Some 1
   let y = 2
   z <- Some 3
-  return x + y + z
+  optionMonad.return x + y + z
 )

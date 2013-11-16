@@ -6,9 +6,9 @@ let deferred = {
   bind: \x f -> x.pipe f
 }
 
-let v = do deferred
+let v = do deferred.bind
   hello <- $.ajax 'examples/helloworld.roy'
   alias <- $.ajax 'examples/alias.roy'
-  return (hello ++ alias)
+  deferred.return (hello ++ alias)
 
 v.done console.log

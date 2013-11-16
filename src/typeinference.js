@@ -1034,6 +1034,8 @@ function mostGeneralUnifier(a, b, node) {
                 }, accum);
             }, {});
         })(a, [], []);
+    } else if(a instanceof t.ObjectType && b instanceof t.RowObjectType) {
+        return mostGeneralUnifier(b, a);
     } else if(a instanceof t.ArrayType && b instanceof t.ArrayType) {
         return mostGeneralUnifier(a.type, b.type);
     } else if(a instanceof t.TagType && b instanceof t.TagType && a.name == b.name && a.vars.length == b.vars.length) {

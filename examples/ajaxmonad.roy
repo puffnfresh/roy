@@ -6,10 +6,10 @@ let ajaxRequest = {
     $.get x.url x.payload f
 }
 
-let v = (do ajaxRequest
+let v = (do ajaxRequest.bind
   value <- {url: '/examples/helloworld.roy', payload: 'stuff'}
   console.log value
-  return value
+  ajaxRequest.return value
 )
 
 console.log v
