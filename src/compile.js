@@ -536,7 +536,7 @@ function compileNode(n) {
                 var maxTagPath = _.max(tagPaths, function(t) {
                     return t.path.length;
                 });
-                var maxPath = maxTagPath != -Infinity ? maxTagPath.path : [];
+                var maxPath = maxTagPath === -Infinity ? [] : maxTagPath.path;
 
                 var body = [];
                 if(vars) {
@@ -890,7 +890,7 @@ function compile(source, opts) {
     }
 
     return {
-        type: typedNode.attribute.type,
+        type: typedNode.attribute,
         output: escodegen.generate(jsNode, {
             comment: true
         })

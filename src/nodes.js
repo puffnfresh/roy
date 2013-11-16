@@ -226,6 +226,19 @@ nodes = toObject([
         }
     ),
     attributedNode(
+        'TypeRowObject',
+        ['row', 'values'],
+        function(A) {
+            var self = this;
+            return this.attribute.map(function(attribute) {
+                return nodes.TypeRowObject(self.row, self.values).withAttribute(attribute);
+            });
+        },
+        function(f) {
+            return nodes.TypeRowObject(this.row, this.values).withAttribute(f(this));
+        }
+    ),
+    attributedNode(
         'TypeObject',
         ['values'],
         function(A) {

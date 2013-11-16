@@ -6,6 +6,7 @@ var bnf = {
         ["GENERIC", "$$ = new yy.Generic($1);"],
         ["[ type ]", "$$ = new yy.TypeArray($2);"],
         ["( typeList )", "$$ = new yy.TypeObject($2);"],
+        ["{ GENERIC | optTypePairs }", "$$ = new yy.TypeRowObject($2, $4);"],
         ["{ optTypePairs }", "$$ = new yy.TypeObject($2);"]
     ],
     "typeList": [
@@ -53,9 +54,7 @@ var bnf = {
         ["MATCH", "$$ = $1;"],
         ["CASE", "$$ = $1;"],
         ["DO", "$$ = $1;"],
-        ["RETURN", "$$ = $1;"],
         ["WITH", "$$ = $1;"],
-        ["WHERE", "$$ = $1;"],
         ["IDENTIFIER", "$$ = $1;"]
     ]
 };

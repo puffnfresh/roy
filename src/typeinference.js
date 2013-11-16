@@ -764,7 +764,12 @@ function freeTypeVariables(typeNode) {
             return [];
         },
         visitTypeArray: function() {
-            throw new Error("TODO: visitTypeArray");
+            return freeTypeVariables(typeNode.value);
+        },
+        visitTypeRowObject: function() {
+            return _.flatten([typeNode.row].concat(_.map(typeNode.values, function(v) {
+                return freeTypeVariables(v);
+            })));
         },
         visitTypeObject: function() {
             return _.flatten(_.map(typeNode.values, function(v) {
@@ -828,15 +833,22 @@ function nodeToType(node, bindings, aliases) {
                         return new t.ArrayType(n);
                     });
                 },
+                visitTypeRowObject: function() {
+                    return arraySequence(_.map(node.values, function(v, k) {
+                        return nodeToType(v, bindings, aliases).map(function(type) {
+                            return [k, type];
+                        });
+                    })).map(function(o) {
+                        return new t.RowObjectType(node.row, _.object(o));
+                    });
+                },
                 visitTypeObject: function() {
                     return arraySequence(_.map(node.values, function(v, k) {
                         return nodeToType(v, bindings, aliases).map(function(type) {
                             return [k, type];
                         });
-                    })).chain(function(o) {
-                        return freshVariable.map(function(row) {
-                            return new t.RowObjectType(row, _.object(o));
-                        });
+                    })).map(function(o) {
+                        return new t.ObjectType(_.object(o));
                     });
                 }
             });
@@ -845,6 +857,7 @@ function nodeToType(node, bindings, aliases) {
         return recurse(node);
     });
 }
+exports.nodeToType = nodeToType;
 
 function tails(xs) {
     return _.map(_.range(xs.length), function(i) {

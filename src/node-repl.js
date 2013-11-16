@@ -49,6 +49,15 @@ function getFileContents(filename) {
     return source;
 }
 
+function colorLog(color) {
+    var args = [].slice.call(arguments, 1);
+
+    args[0] = '\u001b[' + color + 'm' + args[0];
+    args[args.length - 1] = args[args.length - 1] + '\u001b[0m';
+
+    console.log.apply(console, args);
+}
+
 function nodeRepl(opts) {
     var readline = require('readline'),
         fs = require('fs'),
@@ -62,10 +71,11 @@ function nodeRepl(opts) {
         stdin = process.openStdin(),
         repl = readline.createInterface(stdin, stdout),
 
-        env = {},
         sources = {},
-        aliases = {},
         sandbox = getSandbox();
+
+    var block = [];
+    var inBlock = false;
 
     // Prologue
     console.log("Roy: " + opts.info.description);
@@ -91,6 +101,7 @@ function nodeRepl(opts) {
         var metacommand = line.replace(/^\s+/, '').split(' '),
             compiled,
             output,
+            joined,
 
             filename,
             source,
@@ -98,67 +109,53 @@ function nodeRepl(opts) {
             tokens,
             ast;
 
-
         // Check for a "metacommand"
         // e.g. ":q" or ":l test.roy"
         try {
-            switch(metacommand[0]) {
-            case ":q":
-                // Exit
-                process.exit();
-                break;
-            case ":l":
-                // Load
-                filename = metacommand[1];
-                source = getFileContents(filename);
-                compiled = compile(source, {nodejs: true, filename: ".", run: true});
-                break;
-            case ":t":
-                if(metacommand[1] in env) {
-                    console.log(env[metacommand[1]].toString());
-                } else {
-                    colorLog(33, metacommand[1], "is not defined.");
-                }
-                break;
-            case ":s":
-                // Source
-                if(sources[metacommand[1]]) {
-                    colorLog(33, metacommand[1], "=", prettyPrint(sources[metacommand[1]]));
-                } else {
-                    if(metacommand[1]){
-                        colorLog(33, metacommand[1], "is not defined.");
-                    } else {
-                        console.log("Usage :s command ");
-                        console.log(":s [identifier] :: show original code about identifier.");
-                    }
-                }
-                break;
-            case ":?":
-                // Help
-                colorLog(32, "Commands available from the prompt");
-                console.log(":l -- load and run an external file");
-                console.log(":q -- exit REPL");
-                console.log(":s -- show original code about identifier");
-                console.log(":t -- show the type of the identifier");
-                console.log(":? -- show help");
-                break;
-            default:
-                // The line isn't a metacommand
+            if (!inBlock && /^:/.test(metacommand[0])) {
+                compiled = processMeta(metacommand, sources);
+            } else if (/(=|->|→|\(|\{|\[|\bthen|\b(do|match)\s+.+?)\s*$/.test(line)) {
+                // A block is starting.
+                // E.g.: let, lambda, object, match, etc.
+                // Remember that, change the prompt to signify we're in a block,
+                // and start keeping track of the lines in this block.
+                inBlock = true;
+                repl.setPrompt('.... ');
+                block.push(line);
+            } else if (inBlock && /\S/.test(line)) {
+                // We're still in the block.
+                block.push(line);
+            } else {
+                // End of a block.
+                // Add the final line to the block, and reset our stuff.
+                block.push(line);
+                joined = block.join('\n');
+
+                inBlock = false;
+                repl.setPrompt('roy> ');
+                block = [];
 
                 // Remember the source if it's a binding
-                tokens = lexer.tokenise(line);
+                tokens = lexer.tokenise(joined);
                 ast = parser.parse(tokens);
+
                 if(typeof ast.body[0] != 'undefined') {
                     ast.body[0].accept({
+                        // Simple bindings.
+                        // E.g.: let x = 37
                         visitLet: function(n) {
                             sources[n.name] = n.value;
+                        },
+                        // Bindings that are actually functions.
+                        // E.g.: let f x = 37
+                        visitFunction: function(n) {
+                            sources[n.name] = n;
                         }
                     });
                 }
 
                 // Just eval it
                 compiled = compile(line, {nodejs: true, filename: ".", run: true});
-                break;
             }
 
             if(compiled) {
@@ -170,13 +167,15 @@ function nodeRepl(opts) {
             }
         } catch(e) {
             colorLog(31, (e.stack || e.toString()));
+            // Reset the block because something wasn't formatted properly.
+            block = [];
         }
         repl.prompt();
     });
     repl.prompt();
 }
 
-function writeModule(env, exported, filename) {
+function writeModule(exported, filename) {
     var fs = require('fs'),
         moduleOutput = _.map(exported, function(v, k) {
             if(v instanceof types.TagType) {
@@ -195,29 +194,14 @@ function runRoy(argv, opts) {
 
         extensions = /\.l?roy$/,
 
-        env = {},
-        aliases = {},
         sandbox = getSandbox(),
-        exported,
-        modules;
+        exported;
 
     if(opts.run) {
         // Include the standard library
         if(opts.includePrelude) {
             argv.unshift(path.dirname(__dirname) + '/lib/prelude.roy');
         }
-    } else {
-        modules = [];
-        if(!argv.length || argv[0] != 'lib/prelude.roy') {
-            modules.push(path.dirname(__dirname) + '/lib/prelude');
-        }
-        _.each(modules, function(module) {
-            var moduleTypes = loadModule(module, {filename: '.'});
-            _.each(moduleTypes.env, function(v, k) {
-                env[k] = new types.Variable();
-                env[k] = nodeToType(v, env, aliases);
-            });
-        });
     }
 
     _.each(argv, function(filename) {
@@ -245,7 +229,7 @@ function runRoy(argv, opts) {
             // Write the JavaScript output.
             fs.writeFile(outputPath, compiled.output + '\n//@ sourceMappingURL=' + path.basename(outputPath) + '.map\n', 'utf8');
             fs.writeFile(outputPath + '.map', sourceMap.toString(), 'utf8');
-            writeModule(env, exported, filename.replace(extensions, '.roym'));
+            writeModule(exported, filename.replace(extensions, '.roym'));
         }
     });
 }
@@ -315,6 +299,48 @@ function processFlags(argv, opts) {
     }
 
     processFlags(argv, opts);
+}
+
+function processMeta(commands, sources) {
+    var compiled,
+        prettyPrint = require('./prettyprint').prettyPrint,
+        source;
+
+    switch(commands[0]) {
+    case ":q":
+        // Exit
+        process.exit();
+        break;
+    case ":l":
+        // Load
+        source = getFileContents(commands[1]);
+        return compile(source, {nodejs: true, filename: ".", run: true});
+    case ":s":
+        // Source
+        if(sources[commands[1]]) {
+            colorLog(33, commands[1], "=", prettyPrint(sources[commands[1]]));
+        } else {
+            if(commands[1]){
+                colorLog(33, commands[1], "is not defined.");
+            }else{
+                console.log("Usage :s command ");
+                console.log(":s [identifier] :: show original code about identifier.");
+            }
+        }
+        break;
+    case ":?":
+        // Help
+        colorLog(32, "Commands available from the prompt");
+        console.log(":l -- load and run an external file");
+        console.log(":q -- exit REPL");
+        console.log(":s -- show original code about identifier");
+        console.log(":? -- show help");
+        break;
+    default:
+        colorLog(31, "Invalid command");
+        console.log(":? for help");
+        break;
+    }
 }
 
 function main() {
