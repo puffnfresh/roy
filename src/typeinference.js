@@ -476,7 +476,7 @@ function generate(node) {
                                     return freshVariable;
                                 })).chain(function(types) {
                                     var patternAssumptions = {};
-                                    patternAssumptions[c.pattern.tag.value] = [
+                                    patternAssumptions[c.pattern.tag] = [
                                         new t.FunctionType(types.concat([value.type]))
                                     ];
                                     return inMonomorphic(types, memoizedGenerate(c.value).map(function(caseValue) {
