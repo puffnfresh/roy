@@ -1184,7 +1184,7 @@ function typecheck(module) {
     return module.extend(memoizedGenerate).sequence(State).chain(function(result) {
         return solve(result.attribute.constraints).map(function(substitutions) {
             return result.extend(function(node) {
-                return typeSubstitute(substitutions, result.attribute.type);
+                return typeSubstitute(substitutions, node.attribute.type);
             });
         });
     }).evalState(GenerateState.init);
