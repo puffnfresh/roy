@@ -273,7 +273,7 @@ nodes = toObject([
             return this.attribute.map(function(attribute) {
                 return function(value) {
                     return function(body) {
-                        return nodes.Do(self.value, self.body).withAttribute(attribute);
+                        return nodes.Do(value, body).withAttribute(attribute);
                     };
                 };
             }).ap(this.value.sequence(A)).ap(arraySequence(A, this.body, function(a) {
@@ -324,10 +324,12 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return function(cases) {
-                    return nodes.Match(self.value, cases).withAttribute(attribute);
+                return function(value) {
+                    return function(cases) {
+                        return nodes.Match(value, cases).withAttribute(attribute);
+                    };
                 };
-            }).ap(arraySequence(A, this.cases, function(a) {
+            }).ap(this.value.sequence(A)).ap(arraySequence(A, this.cases, function(a) {
                 return a.value.sequence(A).map(function(v) {
                     return {
                         pattern: a.pattern,
