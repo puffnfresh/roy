@@ -63,7 +63,14 @@ function FunctionType(types) {
 FunctionType.prototype = new BaseType();
 FunctionType.prototype.name = "Function";
 FunctionType.prototype.toString = function() {
-    return "(" + this.types.join(" -> ") + ")";
+    var self = this;
+    return _.map(this.types, function (t, index) {
+        var s = t.toString();
+        if(index < (self.types.length-1) && t instanceof FunctionType) {
+            s = "(" + s + ")";
+        }
+        return s;
+    }).join(" -> ");
 };
 FunctionType.prototype.argCount = function() {
     var last = this.types[this.types.length-1];

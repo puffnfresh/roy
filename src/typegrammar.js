@@ -1,8 +1,17 @@
 var bnf = {
     // For type annotations
     "type": [
+        ["typeFunction", "$$ = $1;"],
+        ["nonFunctionType", "$$ = $1;"]
+    ],
+    "typeFunction": [
+        ["nonFunctionType RIGHTARROW nonFunctionType", "$$ = new yy.TypeFunction([$1, $3]);"],
+        ["nonFunctionType RIGHTARROW typeFunction", "$$ = new yy.TypeFunction([$1, $3]);"],
+        ["( typeFunction ) RIGHTARROW nonFunctionType", "$$ = new yy.TypeFunction([$2, $5]);"],
+        ["( typeFunction ) RIGHTARROW typeFunction", "$$ = new yy.TypeFunction([$2, $5]);"]
+    ],
+    "nonFunctionType": [
         ["IDENTIFIER optTypeParamList", "$$ = new yy.TypeName($1, $2);"],
-        ["FUNCTION ( optTypeFunctionArgList )", "$$ = new yy.TypeFunction($3);"],
         ["GENERIC", "$$ = new yy.Generic($1);"],
         ["[ type ]", "$$ = new yy.TypeArray($2);"],
         ["( typeList )", "$$ = new yy.TypeObject($2);"],
@@ -10,8 +19,8 @@ var bnf = {
         ["{ optTypePairs }", "$$ = new yy.TypeObject($2);"]
     ],
     "typeList": [
-        ["type", "$$ = [$1];"],
-        ["typeList , type", "$$ = $1; $1.push($3);"]
+        ["nonFunctionType", "$$ = [$1];"],
+        ["typeList , nonFunctionType", "$$ = $1; $1.push($3);"]
     ],
     "optTypeParamList": [
         ["", "$$ = [];"],
@@ -24,14 +33,6 @@ var bnf = {
         ["typeParamList IDENTIFIER", "$$ = $1; $1.push(new yy.TypeName($2, []));"],
         ["typeParamList GENERIC", "$$ = $1; $1.push(new yy.Generic($2, []));"],
         ["typeParamList ( type )", "$$ = $1; $1.push($3);"]
-    ],
-    "optTypeFunctionArgList": [
-        ["", "$$ = [];"],
-        ["typeFunctionArgList", "$$ = $1;"]
-    ],
-    "typeFunctionArgList": [
-        ["type", "$$ = [$1];"],
-        ["typeFunctionArgList , type", "$$ = $1; $1.push($3);"]
     ],
     "optTypePairs": [
         ["", "$$ = {};"],
@@ -80,11 +81,11 @@ var grammar = {
         ],
 
         "type": bnf.type,
+        "nonFunctionType": bnf.nonFunctionType,
+        "typeFunction": bnf.typeFunction,
         "typeList": bnf.typeList,
         "optTypeParamList": bnf.optTypeParamList,
         "typeParamList": bnf.typeParamList,
-        "optTypeFunctionArgList": bnf.optTypeFunctionArgList,
-        "typeFunctionArgList": bnf.typeFunctionArgList,
         "optTypePairs": bnf.optTypePairs,
         "dataParamList": bnf.dataParamList,
         "optDataParamList": bnf.optDataParamList,

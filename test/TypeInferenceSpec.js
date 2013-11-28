@@ -14,6 +14,9 @@ describe('type inference', function() {
         it('identity', function() {
             expect(lib.typecheck('let id a = a\nid 1\nid true')).toStringEqual('Boolean');
         });
+        it('with multiple arguments', function() {
+            expect(lib.typecheck('let f x y = x + y\nf')).toStringEqual('Number -> Number -> Number');
+        });
     });
 
     describe('should type literal', function() {

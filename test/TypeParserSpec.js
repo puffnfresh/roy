@@ -69,13 +69,13 @@ describe('type parser', function(){
     });
 
     it('should parse function types', function() {
-        expectEqualTypes( parsedType('Function(String, String)'),
+        expectEqualTypes( parsedType('String -> String'),
                           new types.FunctionType([new types.StringType(), new types.StringType()]) );
     });
 
     it('should curry function types', function() {
         expectEqualTypes(
-            parsedType('Function(String, String, String)'),
+            parsedType('String -> String -> String'),
             new types.FunctionType([
                 new types.StringType(),
                 new types.FunctionType([
@@ -84,6 +84,19 @@ describe('type parser', function(){
                 ])
             ])
         );
+    });
+
+    it('should handle higher-order functions', function() {
+        expectEqualTypes(
+            parsedType('(String -> String) -> String'),
+            new types.FunctionType([
+                new types.FunctionType([
+                    new types.StringType(),
+                    new types.StringType(),
+                ]),
+                new types.StringType()
+            ])
+        )
     });
 
     it('should parse array types', function() {

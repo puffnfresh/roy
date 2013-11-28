@@ -119,11 +119,11 @@ var grammar = {
 
         // For type annotations (from the typegrammar module)
         "type": typegrammar.type,
+        "nonFunctionType": typegrammar.nonFunctionType,
+        "typeFunction": typegrammar.typeFunction,
         "typeList": typegrammar.typeList,
         "optTypeParamList": typegrammar.optTypeParamList,
         "typeParamList": typegrammar.typeParamList,
-        "optTypeFunctionArgList": typegrammar.optTypeFunctionArgList,
-        "typeFunctionArgList": typegrammar.typeFunctionArgList,
         "optTypePairs": typegrammar.optTypePairs,
         "dataParamList": typegrammar.dataParamList,
         "optDataParamList": typegrammar.optDataParamList,
