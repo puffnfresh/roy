@@ -628,7 +628,10 @@ function compileNode(n) {
                 params: [],
                 body: {
                     type: "BlockStatement",
-                    body: ensureStatements([call])
+                    body: [{
+                        type: "ReturnStatement",
+                        argument: call
+                    }]
                 }
             };
             for (i = 1; i <= argCount - n.args.length; i += 1) {
