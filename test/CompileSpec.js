@@ -59,6 +59,47 @@ describe('compiler', function(){
         expectExecutionToHaveExpectedOutput('good/match_expression_single_eval');
     });
 
+    it('should compile function definitions uncurried', function(){
+        expect(compilerOutput(
+            'let f x y = x + y'
+        )).toEqual(
+            'var f = function (x, y) {\n' +
+            '    return x + y;\n' +
+            '};'
+        );
+    });
+
+    it('should call functions uncurried by default', function(){
+        expect(compilerOutput(
+            'let f x y = x + y\n' +
+            'f 1 2'
+        )).toEqual(
+            'var f = function (x, y) {\n' +
+            '    return x + y;\n' +
+            '};\n' +
+            'f(1, 2);'
+        );
+    });
+
+    // Call site currying only works when the resulting function gets used.
+    // Otherwise it gets typed generically and we can't tell the number of
+    // arguments it expects to produce its final value.
+    it('should perform call-site currying', function (){
+        expect(compilerOutput(
+            'let f x y = x + y\n' +
+            'let g = f 1\n' +
+            'console.log (g 2)'
+        )).toEqual(
+            'var f = function (x, y) {\n' +
+            '    return x + y;\n' +
+            '};\n' +
+            'var g = function (_1) {\n' +
+            '    return f(1, _1);\n' +
+            '};\n' +
+            'console.log(g(2));'
+        );
+    });
+
     describe('should execute', function() {
         it('let.roy with expected output', function() {
             expectExecutionToHaveExpectedOutput('good/let');

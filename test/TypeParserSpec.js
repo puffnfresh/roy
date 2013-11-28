@@ -1,4 +1,4 @@
-describe('compiler', function(){
+describe('type parser', function(){
     var jison = require('jison'),
         typegrammar = require('../src/typegrammar'),
         typeinference = require('../src/typeinference'),
@@ -71,6 +71,19 @@ describe('compiler', function(){
     it('should parse function types', function() {
         expectEqualTypes( parsedType('Function(String, String)'),
                           new types.FunctionType([new types.StringType(), new types.StringType()]) );
+    });
+
+    it('should curry function types', function() {
+        expectEqualTypes(
+            parsedType('Function(String, String, String)'),
+            new types.FunctionType([
+                new types.StringType(),
+                new types.FunctionType([
+                    new types.StringType(),
+                    new types.StringType(),
+                ])
+            ])
+        );
     });
 
     it('should parse array types', function() {
