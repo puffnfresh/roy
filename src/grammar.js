@@ -37,7 +37,7 @@ var grammar = {
             ["expression restBody", "$$ = [$1].concat($2);"],
 
             ["LET IDENTIFIER optType = blockExpression restBody", "$$ = [new yy.Let($2, $5, $3, $6)];"],
-            ["LET IDENTIFIER paramList optType = blockExpression restBody", "$$ = [new yy.Let($2, [new yy.Function($3, $6)], $4, $7)];"],
+            ["LET IDENTIFIER paramList optType = blockExpression restBody", "$$ = [new yy.Let($2, [new yy.MultiFunction($3, $6)], $4, $7)];"],
 
             // data Maybe a = Some a | None
             ["DATA IDENTIFIER optDataParamList = dataList restBody", n("$$ = [new yy.Data($2, $3, $5, $6)];")],
@@ -55,7 +55,7 @@ var grammar = {
         ],
         "doBody": [
             ["LET IDENTIFIER optType = blockExpression TERMINATOR doBody", "$$ = $7; $7.unshift({type: 'let', name: $2, optType: $3, value: $5});"],
-            ["LET IDENTIFIER paramList optType = blockExpression TERMINATOR doBody", "$$ = $8; $8.unshift({type: 'let', name: $2, optType: $4, value: [new yy.Function($3, $6)]});"],
+            ["LET IDENTIFIER paramList optType = blockExpression TERMINATOR doBody", "$$ = $8; $8.unshift({type: 'let', name: $2, optType: $4, value: [new yy.MultiFunction($3, $6)]});"],
 
             ["IDENTIFIER LEFTARROW expression TERMINATOR doBody", "$$ = $5; $5.unshift({type: 'bind', name: $1, value: $3});"],
             ["expression TERMINATOR doBody", "$$ = $3; $3.unshift({type: 'expression', value: $1});"],
@@ -66,8 +66,8 @@ var grammar = {
         ],
         "expression": [
             ["innerExpression", "$$ = $1;"],
-            ["LAMBDA paramList RIGHTARROW expression", n("$$ = new yy.Function($2, [$4]);")],
-            ["LAMBDA paramList RIGHTARROW block", n("$$ = new yy.Function($2, $4);")],
+            ["LAMBDA paramList RIGHTARROW expression", n("$$ = new yy.MultiFunction($2, [$4]);")],
+            ["LAMBDA paramList RIGHTARROW block", n("$$ = new yy.MultiFunction($2, $4);")],
             ["MATCH innerExpression INDENT caseList outdentOrEof", n("$$ = new yy.Match($2, $4);")],
             ["DO innerExpression doBlock", n("$$ = new yy.Do($2, $3);")],
             ["ifThenElse", "$$ = $1;"]
@@ -129,8 +129,8 @@ var grammar = {
         "optDataParamList": typegrammar.optDataParamList,
 
         "function": [
-            ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Let($1, [new yy.Function($2, $5, $6)], $3);")],
-            ["IDENTIFIER paramList optType = expression", n("$$ = new yy.Let($1, [new yy.Function($2, [$5])], $3);")]
+            ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Let($1, [new yy.MultiFunction($2, $5, $6)], $3);")],
+            ["IDENTIFIER paramList optType = expression", n("$$ = new yy.Let($1, [new yy.MultiFunction($2, [$5])], $3);")]
         ],
         "binding": [
             ["IDENTIFIER optType = expression", n("$$ = new yy.Let($1, [$4], $2);")],
@@ -160,13 +160,13 @@ var grammar = {
         ],
         "whereDecl": [
             ["dataDecl", "$$ = $1;"],
-            ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Let($1, [new yy.Function($2, $5, $6)], $3);")],
-            ["IDENTIFIER paramList optType = expression", n("$$ = new yy.Let($1, [new yy.Function($2, [$5])], $3);")]
+            ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Let($1, [new yy.MultiFunction($2, $5, $6)], $3);")],
+            ["IDENTIFIER paramList optType = expression", n("$$ = new yy.Let($1, [new yy.MultiFunction($2, [$5])], $3);")]
         ],
 
         "call": [
-            ["accessor argList", n("$$ = new yy.Call($1, $2);")],
-            ["( expression ) argList", n("$$ = new yy.Call($2, $4);")]
+            ["accessor argList", n("$$ = new yy.MultiCall($1, $2);")],
+            ["( expression ) argList", n("$$ = new yy.MultiCall($2, $4);")]
         ],
         "argList": [
             ["( )", "$$ = [];"],

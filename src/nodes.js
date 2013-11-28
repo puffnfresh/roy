@@ -657,5 +657,27 @@ nodes = toObject([
         }
     )
 ]);
+nodes.MultiFunction = function (args, value, whereDecls) {
+    if(args.length > 1) {
+        return new nodes.Function(
+            [args[0]],
+            [new nodes.MultiFunction(
+                args.slice(1),
+                value,
+                whereDecls
+            )]
+        );
+    }
+    return new nodes.Function(args, value, whereDecls);
+};
+nodes.MultiCall = function (func, args) {
+    if(args.length > 1) {
+        return new nodes.MultiCall(
+            new nodes.Call(func, [args[0]]),
+            args.slice(1)
+        );
+    }
+    return new nodes.Call(func, args);
+};
 
 module.exports = nodes;

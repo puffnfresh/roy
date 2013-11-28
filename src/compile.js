@@ -175,6 +175,12 @@ function compileNode(n) {
             };
         },
         visitFunction: function() {
+            while(n.value[0] instanceof nodes.Function) {
+                n.args.push(n.value[0].args.shift());
+                n.attribute.types = n.attribute.types.slice(0, -1).concat(n.attribute.types.slice(-1)[0].types);
+                n.value = n.value[0].value;
+            }
+
             var exprsWithoutComments = _.map(splitComments(n.value), compileNode),
                 body = _.map(n.whereDecls, function(w) {
                     return compileNode(w);
@@ -599,12 +605,41 @@ function compileNode(n) {
             };
         },
         visitCall: function() {
-            var args = _.map(n.args, compileNode);
-            return {
-                type: "CallExpression",
-                "arguments": args,
-                callee: compileNode(n.func)
+            while(n.func instanceof nodes.Call && n.func.args.length == 1) {
+                n.args.unshift(n.func.args[0]);
+                n.func = n.func.func;
+                n.attribute = n.func.attribute;
+            }
+            var args = _.map(n.args, compileNode),
+                argCount = n.func.attribute.argCount ? n.func.attribute.argCount() : 0,
+                call = {
+                    type: "CallExpression",
+                    "arguments": args,
+                    callee: compileNode(n.func)
+                };
+
+            if(argCount <= n.args.length) {
+                return call;
+            }
+
+            var i, ident, curry = {
+                type: "FunctionExpression",
+                id: null,
+                params: [],
+                body: {
+                    type: "BlockStatement",
+                    body: ensureStatements([call])
+                }
             };
+            for (i = 1; i <= argCount - n.args.length; i += 1) {
+                ident = {
+                    type: "Identifier",
+                    name: "_" + i
+                };
+                curry.params.push(ident);
+                call["arguments"].push(ident);
+            }
+            return curry;
         },
         visitPropertyAccess: function() {
             return {

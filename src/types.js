@@ -56,13 +56,21 @@ exports.BaseType = BaseType;
 // return type. Each element before represents an argument type.
 function FunctionType(types) {
     this.types = types;
+    if(this.types.length > 2) {
+        this.types = [this.types[0], new FunctionType(this.types.slice(1))];
+    }
 }
 FunctionType.prototype = new BaseType();
 FunctionType.prototype.name = "Function";
 FunctionType.prototype.toString = function() {
-    return this.name + "(" + _.map(this.types, function(type) {
-        return type.toString();
-    }).join(', ') + ")";
+    return "(" + this.types.join(" -> ") + ")";
+};
+FunctionType.prototype.argCount = function() {
+    var last = this.types[this.types.length-1];
+    if(last instanceof FunctionType) {
+        return this.types.length + last.argCount() - 1;
+    }
+    return this.types.length - 1;
 };
 exports.FunctionType = FunctionType;
 
