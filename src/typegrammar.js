@@ -34,8 +34,23 @@ var bnf = {
     ],
     "optTypePairs": [
         ["", "$$ = {};"],
+        ["typePairs", "$$ = $1"],
+        ["INDENT typePairs OUTDENT TERMINATOR", "$$ = $2;"]
+    ],
+    "typePairs": [
         ["keywordOrIdentifier : type", "$$ = {}; $$[$1] = $3;"],
-        ["optTypePairs , keywordOrIdentifier : type", "$$ = $1; $1[$3] = $5;"]
+        ["typePairs , keywordOrIdentifier : type", "$$ = $1; $1[$3] = $5;"],
+        ["typePairs TERMINATOR optTerm keywordOrIdentifier : type", "$$ = $1; $1[$4] = $6;"],
+        ["STRING : type", "$$ = {}; $$[$1] = $3;"],
+        ["typePairs , STRING : type", "$$ = $1; $1[$3] = $5;"],
+        ["typePairs TERMINATOR optTerm STRING : type", "$$ = $1; $1[$4] = $6;"],
+        ["NUMBER : type", "$$ = {}; $$[$1] = $3;"],
+        ["typePairs , NUMBER : type", "$$ = $1; $1[$3] = $5;"],
+        ["typePairs TERMINATOR optTerm NUMBER : type", "$$ = $1; $1[$4] = $6;"]
+    ],
+    "optTerm": [
+        ["", ""],
+        ["TERMINATOR", ""]
     ],
     "dataParamList": [
         ["IDENTIFIER", "$$ = [new yy.Arg($1)];"],
@@ -87,6 +102,8 @@ var grammar = {
         "optTypeFunctionArgList": bnf.optTypeFunctionArgList,
         "typeFunctionArgList": bnf.typeFunctionArgList,
         "optTypePairs": bnf.optTypePairs,
+        "typePairs": bnf.typePairs,
+        "optTerm": bnf.optTerm,
         "dataParamList": bnf.dataParamList,
         "optDataParamList": bnf.optDataParamList,
         "keywordOrIdentifier": bnf.keywordOrIdentifier
