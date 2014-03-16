@@ -165,14 +165,9 @@ var grammar = {
         ],
 
         "call": [
-            ["accessor argList", n("$$ = new yy.MultiCall($1, $2);")],
-            ["( expression ) argList", n("$$ = new yy.MultiCall($2, $4);")]
-        ],
-        "argList": [
-            ["( )", "$$ = [];"],
-            ["callArgument", "$$ = [$1];"],
-            ["argList ( )", "$$ = $1;"],
-            ["argList callArgument", "$$ = $1; $1.push($2);"]
+            ["accessor callArgument", n("$$ = new yy.Call($1, $2);")],
+            ["( expression ) callArgument", n("$$ = new yy.Call($2, $4);")],
+            ["call callArgument", n("$$ = new yy.Call($1, $2);")]
         ],
         "tuple": [
             ["( innerExpression , tupleList )", n("$4.unshift($2); $$ = new yy.Tuple($4);")]

@@ -165,6 +165,17 @@ function ensureExpression(node) {
 
 var extraComments = [];
 
+function genSym(prefix) {
+    prefix = prefix || "gen_";
+    var ident = {
+        type: "Identifier",
+        name: prefix + genSym.counter.toString(16)
+    };
+    genSym.counter += 1;
+    return ident;
+}
+genSym.counter = 0;
+
 function compileNode(n) {
     var result = n.accept({
         visitModule: function() {
@@ -175,16 +186,18 @@ function compileNode(n) {
             };
         },
         visitFunction: function() {
-            while(n.value[0] instanceof nodes.Function) {
-                n.args.push(n.value[0].args.shift());
-                n.attribute.types = n.attribute.types.slice(0, -1).concat(n.attribute.types.slice(-1)[0].types);
-                n.value = n.value[0].value;
+            // As a special case, if n.value.length is 1 and n.value[0] is a
+            // Function node, then collect the arguments and take the innermost
+            // body.
+            var innerFunc, exprsWithoutComments, body, args = [n.arg];
+            while(n.value.length === 1 && n.value[0] instanceof nodes.Function) {
+                innerFunc = n.value[0];
+                args.push(innerFunc.arg);
+                n.value = innerFunc.value;
             }
 
-            var exprsWithoutComments = _.map(splitComments(n.value), compileNode),
-                body = _.map(n.whereDecls, function(w) {
-                    return compileNode(w);
-                });
+            exprsWithoutComments = _.map(splitComments(n.value), compileNode);
+            body = _.map(n.whereDecls, compileNode);
 
             exprsWithoutComments[exprsWithoutComments.length - 1] = {
                 type: "ReturnStatement",
@@ -194,7 +207,7 @@ function compileNode(n) {
             return {
                 type: "FunctionExpression",
                 id: null,
-                params: _.map(n.args, function(a) {
+                params: _.map(args, function(a) {
                     return {
                         type: "Identifier",
                         name: a.name
@@ -451,7 +464,7 @@ function compileNode(n) {
             };
         },
         visitMatch: function() {
-            var valuePlaceholder = '__match';
+            var valuePlaceholder = genSym('_match_');
             var flatMap = function(a, f) {
                 return _.flatten(_.map(a, f));
             };
@@ -474,7 +487,7 @@ function compileNode(n) {
                                     object: structure,
                                     property: { type: "Identifier", name: "_" + varPathName }
                                 };
-                            }, { type: "Identifier", name: valuePlaceholder });
+                            }, valuePlaceholder);
 
                             return [{
                                 type: "VariableDeclarator",
@@ -520,7 +533,7 @@ function compileNode(n) {
                             object: structure,
                             property: { type: "Identifier", name: "_" + piece }
                         };
-                    }, { type: "Identifier", name: valuePlaceholder });
+                    }, valuePlaceholder);
                     return {
                         type: "BinaryExpression",
                         operator: "instanceof",
@@ -559,7 +572,7 @@ function compileNode(n) {
                 var test = {
                     type: "BinaryExpression",
                     operator: "instanceof",
-                    left: { type: "Identifier", name: valuePlaceholder },
+                    left: valuePlaceholder,
                     right: { type: "Identifier", name: c.pattern.tag }
                 };
                 if(extraConditions) {
@@ -596,7 +609,7 @@ function compileNode(n) {
                 callee: {
                     type: "FunctionExpression",
                     id: null,
-                    params: [{ type: "Identifier", name: valuePlaceholder }],
+                    params: [valuePlaceholder],
                     body: {
                         type: "BlockStatement",
                         body: ensureStatements(cases)
@@ -605,44 +618,51 @@ function compileNode(n) {
             };
         },
         visitCall: function() {
-            while(n.func instanceof nodes.Call && n.func.args.length == 1) {
-                n.args.unshift(n.func.args[0]);
-                n.func = n.func.func;
-                n.attribute = n.func.attribute;
-            }
-            var args = _.map(n.args, compileNode),
-                argCount = n.func.attribute.argCount ? n.func.attribute.argCount() : 0,
-                call = {
-                    type: "CallExpression",
-                    "arguments": args,
-                    callee: compileNode(n.func)
-                };
-
-            if(argCount <= n.args.length) {
-                return call;
+            // Much like visitFunction above, nested calls need to be collapsed
+            // Into one. Also, if after collapsing, not enough arguments are
+            // supplied, then we need to generate a wrapping function that has
+            // the rest of the arguments.
+            var args = [n.arg];
+            var func = n.func;
+            while(func instanceof nodes.Call) {
+                args.unshift(func.arg);
+                func = func.func;
             }
 
-            var i, ident, curry = {
-                type: "FunctionExpression",
-                id: null,
-                params: [],
-                body: {
-                    type: "BlockStatement",
-                    body: [{
-                        type: "ReturnStatement",
-                        argument: call
-                    }]
-                }
+            var expectedArgCount = null,
+                actualArgCount = args.length;
+            if(func.attribute instanceof types.FunctionType) {
+                expectedArgCount = func.attribute.argCount();
+            }
+
+            var callee = compileNode(func);
+            var expr = {
+                type: "CallExpression",
+                "arguments": _.map(args, compileNode),
+                callee: callee
             };
-            for (i = 1; i <= argCount - n.args.length; i += 1) {
-                ident = {
-                    type: "Identifier",
-                    name: "_" + i
+
+            if(expectedArgCount > actualArgCount) {
+                var params =_.map(_.range(expectedArgCount - actualArgCount), function () {
+                    var symbol = genSym("_");
+                    expr["arguments"].push(symbol);
+                    return symbol;
+                });
+                expr = {
+                    type: "FunctionExpression",
+                    id: null,
+                    params: params,
+                    body: {
+                        type: "BlockStatement",
+                        body: [{
+                            type: "ReturnStatement",
+                            argument: expr
+                        }]
+                    }
                 };
-                curry.params.push(ident);
-                call["arguments"].push(ident);
             }
-            return curry;
+
+            return expr;
         },
         visitPropertyAccess: function() {
             return {

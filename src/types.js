@@ -54,30 +54,37 @@ exports.BaseType = BaseType;
 //
 // A `FunctionType` contains a `types` array. The last element represents the
 // return type. Each element before represents an argument type.
-function FunctionType(types) {
-    this.types = types;
-    if(this.types.length > 2) {
-        this.types = [this.types[0], new FunctionType(this.types.slice(1))];
+function FunctionType(from, to) {
+    this.from = from;
+    this.to = to;
+    if(_.isArray(from) && _.isUndefined(to)) {
+        throw new Error("FunctionType constructed from array!");
     }
 }
+FunctionType.fromArray = function(types) {
+    if(types.length < 2) {
+        throw new Error("Attempted to create FunctionType from too small array: [" + types.join(", ") + "]");
+    } else if(types.length === 2) {
+        return new FunctionType(types[0], types[1]);
+    } else {
+        return new FunctionType(types[0], FunctionType.fromArray(types.slice(1)));
+    }
+};
 FunctionType.prototype = new BaseType();
 FunctionType.prototype.name = "Function";
 FunctionType.prototype.toString = function() {
-    var self = this;
-    return _.map(this.types, function (t, index) {
-        var s = t.toString();
-        if(index < (self.types.length-1) && t instanceof FunctionType) {
-            s = "(" + s + ")";
-        }
-        return s;
-    }).join(" -> ");
+    var from = this.from.toString();
+    if(this.from instanceof FunctionType) {
+        from = "(" + from + ")";
+    }
+    return from + " -> " + this.to;
 };
 FunctionType.prototype.argCount = function() {
-    var last = this.types[this.types.length-1];
-    if(last instanceof FunctionType) {
-        return this.types.length + last.argCount() - 1;
+    if(this.to instanceof FunctionType) {
+      return 1 + this.to.argCount();
+    } else {
+      return 1;
     }
-    return this.types.length - 1;
 };
 exports.FunctionType = FunctionType;
 

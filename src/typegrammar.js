@@ -5,10 +5,10 @@ var bnf = {
         ["nonFunctionType", "$$ = $1;"]
     ],
     "typeFunction": [
-        ["nonFunctionType RIGHTARROW nonFunctionType", "$$ = new yy.TypeFunction([$1, $3]);"],
-        ["nonFunctionType RIGHTARROW typeFunction", "$$ = new yy.TypeFunction([$1, $3]);"],
-        ["( typeFunction ) RIGHTARROW nonFunctionType", "$$ = new yy.TypeFunction([$2, $5]);"],
-        ["( typeFunction ) RIGHTARROW typeFunction", "$$ = new yy.TypeFunction([$2, $5]);"]
+        ["nonFunctionType RIGHTARROW nonFunctionType", "$$ = new yy.TypeFunction($1, $3);"],
+        ["nonFunctionType RIGHTARROW typeFunction", "$$ = new yy.TypeFunction($1, $3);"],
+        ["( typeFunction ) RIGHTARROW nonFunctionType", "$$ = new yy.TypeFunction($2, $5);"],
+        ["( typeFunction ) RIGHTARROW typeFunction", "$$ = new yy.TypeFunction($2, $5);"]
     ],
     "nonFunctionType": [
         ["IDENTIFIER optTypeParamList", "$$ = new yy.TypeName($1, $2);"],

@@ -70,32 +70,32 @@ describe('type parser', function(){
 
     it('should parse function types', function() {
         expectEqualTypes( parsedType('String -> String'),
-                          new types.FunctionType([new types.StringType(), new types.StringType()]) );
+                          new types.FunctionType(new types.StringType(), new types.StringType()) );
     });
 
     it('should curry function types', function() {
         expectEqualTypes(
             parsedType('String -> String -> String'),
-            new types.FunctionType([
+            new types.FunctionType(
                 new types.StringType(),
-                new types.FunctionType([
+                new types.FunctionType(
                     new types.StringType(),
-                    new types.StringType(),
-                ])
-            ])
+                    new types.StringType()
+                )
+            )
         );
     });
 
     it('should handle higher-order functions', function() {
         expectEqualTypes(
             parsedType('(String -> String) -> String'),
-            new types.FunctionType([
-                new types.FunctionType([
+            new types.FunctionType(
+                new types.FunctionType(
                     new types.StringType(),
-                    new types.StringType(),
-                ]),
+                    new types.StringType()
+                ),
                 new types.StringType()
-            ])
+            )
         )
     });
 

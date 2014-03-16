@@ -300,15 +300,13 @@ function generate(node) {
         visitCall: function() {
             return freshVariable.chain(function(type) {
                 return memoizedGenerate(node.func).chain(function(func) {
-                    return generateBody(node.args).map(function(args) {
-                        var argTypes = _.pluck(args, 'type'),
-                            argResult = args.length ? InferenceResult.concat(args) : new InferenceResult(type);
-                        return argResult
+                    return memoizedGenerate(node.arg).map(function(arg) {
+                        return arg
                             .append(func)
                             .withConstraints([
                                 new EqualityConstraint(
                                     func.type,
-                                    new t.FunctionType(argTypes.concat(type)),
+                                    new t.FunctionType(arg.type, type),
                                     node
                                 )
                             ])
@@ -318,34 +316,24 @@ function generate(node) {
             });
         },
         visitFunction: function() {
-            return arraySequence(_.map(node.args, function(arg) {
-                return freshVariable;
-            })).chain(function(types) {
-                return inMonomorphic(types, generateBody(node.value).map(function(values) {
+            return freshVariable.chain(function (type) {
+                return inMonomorphic([type], generateBody(node.value).map(function (values) {
                     var value = InferenceResult.concat(values),
-                        argNames = _.pluck(node.args, 'name'),
                         assumptionsNotInArgs = {},
                         constraintsFromAssumptions = [];
 
-                    _.each(value.assumptions, function(v, k) {
-                        var index = argNames.indexOf(k);
-                        if(index != -1) {
-                            _.each(v, function(assumption) {
-                                constraintsFromAssumptions.push(
-                                    new EqualityConstraint(
-                                        assumption,
-                                        types[index],
-                                        node
-                                    )
-                                );
+                    _.each(value.assumptions, function (assumptions, name) {
+                        if(name === node.arg.name) {
+                            constraintsFromAssumptions = _.map(assumptions, function (a) {
+                                return new EqualityConstraint(a, type, node);
                             });
-                        } else if(k != node.name) {
-                            assumptionsNotInArgs[k] = v;
+                        } else if(name !== node.name) {
+                            assumptionsNotInArgs[name] = assumptions;
                         }
                     });
 
                     return new InferenceResult(
-                        new t.FunctionType(types.concat(value.type)),
+                        new t.FunctionType(type, value.type),
                         constraintsFromAssumptions,
                         assumptionsNotInArgs
                     ).withConstraints(value.constraints);
@@ -357,19 +345,23 @@ function generate(node) {
             return State.get.chain(function(state) {
                 return generateBody(node.value).chain(function(values) {
                     return generateBody(node.body).chain(function(body) {
-                        var value,
+                        var value = InferenceResult.concat(values),
                             assumptionsWithoutLet,
                             constraintsFromLet,
-                            result;
-
-                        // TODO: Probably wrong place to exit early
+                            result,
+                            mainConstraintState = (node.type ? nodeToType(node.type, {}, state.aliases).map(function(type) {
+                            return [new EqualityConstraint(
+                                type,
+                                value.type,
+                                state.monomorphic,
+                                node
+                            )];
+                        }) : State.of([]));
                         if(!body.length) {
-                            return freshVariable.map(function(type) {
-                                return new InferenceResult(type);
+                            return mainConstraintState.map(function(constraintsFromAnnotation) {
+                                return value.withConstraints(constraintsFromAnnotation);
                             });
                         }
-
-                        value = InferenceResult.concat(values);
                         result = InferenceResult.concat(body);
                         assumptionsWithoutLet = _.omit(
                             result.assumptions,
@@ -384,14 +376,7 @@ function generate(node) {
                             );
                         });
 
-                        return (node.type ? nodeToType(node.type, {}, state.aliases).map(function(type) {
-                            return [new EqualityConstraint(
-                                type,
-                                value.type,
-                                state.monomorphic,
-                                node
-                            )];
-                        }) : State.of([])).map(function(constraintsFromAnnotation) {
+                        return mainConstraintState.map(function(constraintsFromAnnotation) {
                             return value
                                 .withConstraints(constraintsFromLet)
                                 .withConstraints(constraintsFromAnnotation)
@@ -447,7 +432,7 @@ function generate(node) {
                                             _.map(body.assumptions[tag.name], function(assumption) {
                                                 return new ImplicitConstraint(
                                                     assumption,
-                                                    new t.FunctionType(v.concat(tagType)),
+                                                    new t.FunctionType.fromArray(v.concat(tagType)),
                                                     state.monomorphic,
                                                     node
                                                 );
@@ -477,7 +462,7 @@ function generate(node) {
                                 })).chain(function(types) {
                                     var patternAssumptions = {};
                                     patternAssumptions[c.pattern.tag] = [
-                                        new t.FunctionType(types.concat([value.type]))
+                                        new t.FunctionType.fromArray(types.concat([value.type]))
                                     ];
                                     return inMonomorphic(types, memoizedGenerate(c.value).map(function(caseValue) {
                                         var assumptionsWithoutVars,
@@ -797,8 +782,10 @@ function nodeToType(node, bindings, aliases) {
                     return State.of(bindings[node.value]);
                 },
                 visitTypeFunction: function() {
-                    return arraySequence(_.map(node.args, recurse)).map(function(args) {
-                        return new t.FunctionType(args);
+                    return recurse(node.from).chain(function (from) {
+                        return recurse(node.to).map(function (to) {
+                            return new t.FunctionType(from, to);
+                        });
                     });
                 },
                 visitTypeName: function() {
@@ -1003,19 +990,25 @@ function mostGeneralUnifier(a, b, node) {
         keys;
 
     function typeError() {
-        throw new Error('Type error on line ' + node.lineno + ': ' + b.toString() + ' is not ' + a.toString());
+        throw new Error('Type error on line ' + (node ? node.lineno : "<unknown>")  + ': ' + b + ' is not ' + a);
     }
 
     if(a instanceof t.Variable) {
         return variableBind(a, b);
     } else if(b instanceof t.Variable) {
         return variableBind(b, a);
-    } else if(a instanceof t.FunctionType && b instanceof t.FunctionType && a.types.length == b.types.length) {
-        return _.reduce(_.zip(a.types, b.types), function(accum, pair) {
-            var a = typeSubstitute(accum, pair[0]),
-                b = typeSubstitute(accum, pair[1]);
-            return _.extend(accum, mostGeneralUnifier(a, b, node));
-        }, {});
+    } else if(a instanceof t.FunctionType && b instanceof t.FunctionType) {
+        var from = mostGeneralUnifier(
+                typeSubstitute({}, a.from),
+                typeSubstitute({}, b.from),
+                node
+            ),
+            to = mostGeneralUnifier(
+                typeSubstitute(from, a.to),
+                typeSubstitute(from, b.to),
+                node
+            );
+        return _.extend(from, to);
     } else if(a instanceof t.RowObjectType && b instanceof t.RowObjectType) {
         return mostGeneralUnifier(a, b.row, node);
     } else if(a instanceof t.RowObjectType && b instanceof t.ObjectType) {
@@ -1145,9 +1138,10 @@ function typeSubstitute(substitutions, type) {
         }
         return type;
     } else if(type instanceof t.FunctionType) {
-        return new t.FunctionType(_.map(type.types, function(t) {
-            return typeSubstitute(substitutions, t);
-        }));
+        return new t.FunctionType(
+            typeSubstitute(substitutions, type.from),
+            typeSubstitute(substitutions, type.to)
+        );
     } else if(type instanceof t.ArrayType) {
         return new t.ArrayType(typeSubstitute(substitutions, type.type));
     } else if(type instanceof t.ObjectType) {

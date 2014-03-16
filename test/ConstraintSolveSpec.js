@@ -29,14 +29,14 @@ describe('constraint solving', function() {
             it('identity', function() {
                 var type = lib.typecheck('\\x -> x');
                 expect(type instanceof types.FunctionType).toBe(true);
-                expect(type.types[0] instanceof types.Variable).toBe(true);
-                expect(type.types[1] instanceof types.Variable).toBe(true);
-                expect(type.types[0].id).toEqual(type.types[1].id);
+                expect(type.from instanceof types.Variable).toBe(true);
+                expect(type.to instanceof types.Variable).toBe(true);
+                expect(type.from.id).toEqual(type.to.id);
             });
             it('returning primitives', function() {
                 var type = lib.typecheck('\\x -> 100');
-                expect(type.types[0] instanceof types.Variable).toBe(true);
-                expect(type.types[1] instanceof types.NumberType).toBe(true);
+                expect(type.from instanceof types.Variable).toBe(true);
+                expect(type.to instanceof types.NumberType).toBe(true);
             });
         });
     });

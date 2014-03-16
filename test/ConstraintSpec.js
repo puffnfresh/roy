@@ -49,8 +49,8 @@ describe('constraint generation', function() {
 
             expect(state.constraints[1].b instanceof types.Variable).toBe(true);
             expect(state.constraints[1].a instanceof types.FunctionType).toBe(true);
-            expect(state.constraints[1].a.types[0] instanceof types.BooleanType).toBe(true);
-            expect(state.constraints[1].a.types[1] instanceof types.Variable).toBe(true);
+            expect(state.constraints[1].a.from instanceof types.BooleanType).toBe(true);
+            expect(state.constraints[1].a.to instanceof types.Variable).toBe(true);
 
             // Two implicit constraints
 

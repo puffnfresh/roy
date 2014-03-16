@@ -124,31 +124,31 @@ nodes = toObject([
         function(A) {
             return this.attribute.map(function(attribute) {
                 return function(body) {
-                    return nodes.Module(body).withAttribute(attribute);
+                    return new nodes.Module(body).withAttribute(attribute);
                 };
             }).ap(arraySequence(A, this.body, function(a) {
                 return a.sequence(A);
             }));
         },
         function(f) {
-            return nodes.Module(arrayExtend(this.body, f)).withAttribute(f(this));
+            return new nodes.Module(arrayExtend(this.body, f)).withAttribute(f(this));
         }
     ),
     attributedNode(
         'Function',
-        ['args', 'value', 'whereDecls'],
+        ['arg', 'value', 'whereDecls'],
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
                 return function(value) {
-                    return nodes.Function(self.args, value, undefined).withAttribute(attribute);
+                    return new nodes.Function(self.arg, value, undefined).withAttribute(attribute);
                 };
             }).ap(arraySequence(A, this.value, function(a) {
                 return a.sequence(A);
             }));
         },
         function(f) {
-            return nodes.Function(this.args, arrayExtend(this.value, f), undefined).withAttribute(f(this));
+            return new nodes.Function(this.arg, arrayExtend(this.value, f), this.whereDecls).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -158,14 +158,14 @@ nodes = toObject([
             var self = this;
             return this.attribute.map(function(attribute) {
                 return function(body) {
-                    return nodes.Data(self.name, self.args, self.tags, body).withAttribute(attribute);
+                    return new nodes.Data(self.name, self.args, self.tags, body).withAttribute(attribute);
                 };
             }).ap(arraySequence(A, this.body, function(a) {
                 return a.sequence(A);
             }));
         },
         function(f) {
-            return nodes.Data(this.name, this.args, this.tags, arrayExtend(this.body, f)).withAttribute(f(this));
+            return new nodes.Data(this.name, this.args, this.tags, arrayExtend(this.body, f)).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -175,14 +175,14 @@ nodes = toObject([
             var self = this;
             return this.attribute.map(function(attribute) {
                 return function(body) {
-                    return nodes.Type(self.name, self.value, body).withAttribute(attribute);
+                    return new nodes.Type(self.name, self.value, body).withAttribute(attribute);
                 };
             }).ap(arraySequence(A, this.body, function(a) {
                 return a.sequence(A);
             }));
         },
         function(f) {
-            return nodes.Type(this.name, this.value, arrayExtend(this.body, f)).withAttribute(f(this));
+            return new nodes.Type(this.name, this.value, arrayExtend(this.body, f)).withAttribute(f(this));
         }
     ),
 
@@ -192,24 +192,24 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.Generic(self.value).withAttribute(attribute);
+                return new nodes.Generic(self.value).withAttribute(attribute);
             });
         },
         function(f) {
-            return nodes.Generic(this.value).withAttribute(f(this));
+            return new nodes.Generic(this.value).withAttribute(f(this));
         }
     ),
     attributedNode(
         'TypeFunction',
-        ['args'],
+        ['from', 'to'],
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.TypeFunction(self.args).withAttribute(attribute);
+                return new nodes.TypeFunction(self.from, self.to).withAttribute(attribute);
             });
         },
         function(f) {
-            return nodes.TypeFunction(this.args).withAttribute(f(this));
+            return new nodes.TypeFunction(this.from, this.to).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -218,11 +218,11 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.TypeName(self.value, self.args).withAttribute(attribute);
+                return new nodes.TypeName(self.value, self.args).withAttribute(attribute);
             });
         },
         function(f) {
-            return this.TypeName(this.value, this.args).withAttribute(f(this));
+            return new nodes.TypeName(this.value, this.args).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -231,11 +231,11 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.TypeRowObject(self.row, self.values).withAttribute(attribute);
+                return new nodes.TypeRowObject(self.row, self.values).withAttribute(attribute);
             });
         },
         function(f) {
-            return nodes.TypeRowObject(this.row, this.values).withAttribute(f(this));
+            return new nodes.TypeRowObject(this.row, this.values).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -244,11 +244,11 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.TypeObject(self.values).withAttribute(attribute);
+                return new nodes.TypeObject(self.values).withAttribute(attribute);
             });
         },
         function(f) {
-            return nodes.TypeObject(this.values).withAttribute(f(this));
+            return new nodes.TypeObject(this.values).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -257,11 +257,11 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.TypeArray(self.value).withAttribute(attribute);
+                return new nodes.TypeArray(self.value).withAttribute(attribute);
             });
         },
         function(f) {
-            return nodes.TypeArray(this.value).withAttribute(f(this));
+            return new nodes.TypeArray(this.value).withAttribute(f(this));
         }
     ),
 
@@ -273,7 +273,7 @@ nodes = toObject([
             return this.attribute.map(function(attribute) {
                 return function(value) {
                     return function(body) {
-                        return nodes.Do(value, body).withAttribute(attribute);
+                        return new nodes.Do(value, body).withAttribute(attribute);
                     };
                 };
             }).ap(this.value.sequence(A)).ap(arraySequence(A, this.body, function(a) {
@@ -299,7 +299,7 @@ nodes = toObject([
             }));
         },
         function(f) {
-            return nodes.Do(this.value.extend(f), _.map(this.body, function(v) {
+            return new nodes.Do(this.value.extend(f), _.map(this.body, function(v) {
                 var value;
 
                 switch(v.type) {
@@ -326,7 +326,7 @@ nodes = toObject([
             return this.attribute.map(function(attribute) {
                 return function(value) {
                     return function(cases) {
-                        return nodes.Match(value, cases).withAttribute(attribute);
+                        return new nodes.Match(value, cases).withAttribute(attribute);
                     };
                 };
             }).ap(this.value.sequence(A)).ap(arraySequence(A, this.cases, function(a) {
@@ -345,7 +345,7 @@ nodes = toObject([
                     value: cas.value.extend(f)
                 };
             });
-            return nodes.Match(this.value.extend(f), cases).withAttribute(f(this));
+            return new nodes.Match(this.value.extend(f), cases).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -356,7 +356,7 @@ nodes = toObject([
             return this.attribute.map(function(attribute) {
                 return function(value) {
                     return function(body) {
-                        return nodes.Let(self.name, value, self.type, body).withAttribute(attribute);
+                        return new nodes.Let(self.name, value, self.type, body).withAttribute(attribute);
                     };
                 };
             }).ap(arraySequence(A, this.value, function(a) {
@@ -366,28 +366,26 @@ nodes = toObject([
             }));
         },
         function(f) {
-            return nodes.Let(this.name, arrayExtend(this.value, f), this.type, arrayExtend(this.body, f)).withAttribute(f(this));
+            return new nodes.Let(this.name, arrayExtend(this.value, f), this.type, arrayExtend(this.body, f)).withAttribute(f(this));
         }
     ),
     attributedNode(
         'Call',
-        ['func', 'args'],
+        ['func', 'arg'],
         function(A) {
             return this.attribute.map(function(attribute) {
                 return function(func) {
-                    return function(args) {
-                        return nodes.Call(func, args).withAttribute(attribute);
+                    return function(arg) {
+                        return new nodes.Call(func, arg).withAttribute(attribute);
                     };
                 };
-            }).ap(this.func.sequence(A)).ap(arraySequence(A, this.args, function(a) {
-                return a.sequence(A);
-            }));
+            }).ap(this.func.sequence(A)).ap(this.arg.sequence(A));
         },
         function(f) {
-            var args = _.map(this.args, function(arg) {
-                return arg.extend(f);
-            });
-            return nodes.Call(this.func.extend(f), args).withAttribute(f(this));
+            return new nodes.Call(
+                this.func.extend(f),
+                this.arg.extend(f)
+            ).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -398,7 +396,7 @@ nodes = toObject([
                 return function(condition) {
                     return function(ifTrue) {
                         return function(ifFalse) {
-                            return nodes.IfThenElse(condition, ifTrue, ifFalse).withAttribute(attribute);
+                            return new nodes.IfThenElse(condition, ifTrue, ifFalse).withAttribute(attribute);
                         };
                     };
                 };
@@ -409,7 +407,7 @@ nodes = toObject([
             }));
         },
         function(f) {
-            return nodes.IfThenElse(this.condition.extend(f), arrayExtend(this.ifTrue, f), arrayExtend(this.ifFalse, f)).withAttribute(f(this));
+            return new nodes.IfThenElse(this.condition.extend(f), arrayExtend(this.ifTrue, f), arrayExtend(this.ifFalse, f)).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -418,11 +416,11 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.Comment(self.value).withAttribute(attribute);
+                return new nodes.Comment(self.value).withAttribute(attribute);
             });
         },
         function(f) {
-            return nodes.Comment(this.value).withAttribute(f(this));
+            return new nodes.Comment(this.value).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -432,12 +430,12 @@ nodes = toObject([
             var self = this;
             return this.attribute.map(function(attribute) {
                 return function(value) {
-                    return nodes.PropertyAccess(value, self.property).withAttribute(attribute);
+                    return new nodes.PropertyAccess(value, self.property).withAttribute(attribute);
                 };
             }).ap(this.value.sequence(A));
         },
         function(f) {
-            return nodes.PropertyAccess(this.value.extend(f), this.property).withAttribute(f(this));
+            return new nodes.PropertyAccess(this.value.extend(f), this.property).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -447,12 +445,12 @@ nodes = toObject([
             var self = this;
             return this.attribute.map(function(attribute) {
                 return function(value) {
-                    return nodes.Access(value, self.property).withAttribute(attribute);
+                    return new nodes.Access(value, self.property).withAttribute(attribute);
                 };
             }).ap(this.value.sequence(A));
         },
         function(f) {
-            return nodes.Access(this.value.extend(f), this.property).withAttribute(f(this));
+            return new nodes.Access(this.value.extend(f), this.property).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -462,12 +460,12 @@ nodes = toObject([
             var self = this;
             return this.attribute.map(function(attribute) {
                 return function(value) {
-                    return nodes.BinaryGenericOperator(self.name, value).withAttribute(attribute);
+                    return new nodes.BinaryGenericOperator(self.name, value).withAttribute(attribute);
                 };
             }).ap(this.value.sequence(A));
         },
         function(f) {
-            return nodes.UnaryBooleanOperator(this.name, this.value.extend(f)).withAttribute(f(this));
+            return new nodes.UnaryBooleanOperator(this.name, this.value.extend(f)).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -478,13 +476,13 @@ nodes = toObject([
             return this.attribute.map(function(attribute) {
                 return function(left) {
                     return function(right) {
-                        return nodes.BinaryGenericOperator(self.name, left, right).withAttribute(attribute);
+                        return new nodes.BinaryGenericOperator(self.name, left, right).withAttribute(attribute);
                     };
                 };
             }).ap(this.left.sequence(A)).ap(this.right.sequence(A));
         },
         function(f) {
-            return nodes.BinaryGenericOperator(this.name, this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
+            return new nodes.BinaryGenericOperator(this.name, this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -495,13 +493,13 @@ nodes = toObject([
             return this.attribute.map(function(attribute) {
                 return function(left) {
                     return function(right) {
-                        return nodes.BinaryNumberOperator(self.name, left, right).withAttribute(attribute);
+                        return new nodes.BinaryNumberOperator(self.name, left, right).withAttribute(attribute);
                     };
                 };
             }).ap(this.left.sequence(A)).ap(this.right.sequence(A));
         },
         function(f) {
-            return nodes.BinaryNumberOperator(this.name, this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
+            return new nodes.BinaryNumberOperator(this.name, this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -512,13 +510,13 @@ nodes = toObject([
             return this.attribute.map(function(attribute) {
                 return function(left) {
                     return function(right) {
-                        return nodes.BinaryBooleanOperator(self.name, left, right).withAttribute(attribute);
+                        return new nodes.BinaryBooleanOperator(self.name, left, right).withAttribute(attribute);
                     };
                 };
             }).ap(this.left.sequence(A)).ap(this.right.sequence(A));
         },
         function(f) {
-            return nodes.BinaryBooleanOperator(this.name, this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
+            return new nodes.BinaryBooleanOperator(this.name, this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -529,13 +527,13 @@ nodes = toObject([
             return this.attribute.map(function(attribute) {
                 return function(left) {
                     return function(right) {
-                        return nodes.BinaryStringOperator(self.name, left, right).withAttribute(attribute);
+                        return new nodes.BinaryStringOperator(self.name, left, right).withAttribute(attribute);
                     };
                 };
             }).ap(this.left.sequence(A)).ap(this.right.sequence(A));
         },
         function(f) {
-            return nodes.BinaryStringOperator(this.name, this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
+            return new nodes.BinaryStringOperator(this.name, this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -545,13 +543,13 @@ nodes = toObject([
             return this.attribute.map(function(attribute) {
                 return function(left) {
                     return function(right) {
-                        return nodes.With(left, right).withAttribute(attribute);
+                        return new nodes.With(left, right).withAttribute(attribute);
                     };
                 };
             }).ap(this.left.sequence(A)).ap(this.right.sequence(A));
         },
         function(f) {
-            return nodes.With(this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
+            return new nodes.With(this.left.extend(f), this.right.extend(f)).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -560,11 +558,11 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.Identifier(self.value).withAttribute(attribute);
+                return new nodes.Identifier(self.value).withAttribute(attribute);
             });
         },
         function(f) {
-            return nodes.Identifier(this.value).withAttribute(f(this));
+            return new nodes.Identifier(this.value).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -573,14 +571,14 @@ nodes = toObject([
         function(A) {
             return this.attribute.map(function(attribute) {
                 return function(values) {
-                    return nodes.Tuple(values).withAttribute(attribute);
+                    return new nodes.Tuple(values).withAttribute(attribute);
                 };
             }).ap(arraySequence(A, this.values, function(a) {
                 return a.sequence(A);
             }));
         },
         function(f) {
-            return nodes.Tuple(arrayExtend(this.values, f)).withAttribute(f(this));
+            return new nodes.Tuple(arrayExtend(this.values, f)).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -589,11 +587,11 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.Number(self.value).withAttribute(attribute);
+                return new nodes.Number(self.value).withAttribute(attribute);
             });
         },
         function(f) {
-            return nodes.Number(this.value).withAttribute(f(this));
+            return new nodes.Number(this.value).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -602,11 +600,11 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.String(self.value).withAttribute(attribute);
+                return new nodes.String(self.value).withAttribute(attribute);
             });
         },
         function(f) {
-            return nodes.String(this.value).withAttribute(f(this));
+            return new nodes.String(this.value).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -615,11 +613,11 @@ nodes = toObject([
         function(A) {
             var self = this;
             return this.attribute.map(function(attribute) {
-                return nodes.Boolean(self.value).withAttribute(attribute);
+                return new nodes.Boolean(self.value).withAttribute(attribute);
             });
         },
         function(f) {
-            return nodes.Boolean(this.value).withAttribute(f(this));
+            return new nodes.Boolean(this.value).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -628,14 +626,14 @@ nodes = toObject([
         function(A) {
             return this.attribute.map(function(attribute) {
                 return function(values) {
-                    return nodes.Array(values).withAttribute(attribute);
+                    return new nodes.Array(values).withAttribute(attribute);
                 };
             }).ap(arraySequence(A, this.values, function(a) {
                 return a.sequence(A);
             }));
         },
         function(f) {
-            return nodes.Array(arrayExtend(this.values, f)).withAttribute(f(this));
+            return new nodes.Array(arrayExtend(this.values, f)).withAttribute(f(this));
         }
     ),
     attributedNode(
@@ -644,7 +642,7 @@ nodes = toObject([
         function(A) {
             return this.attribute.map(function(attribute) {
                 return function(values) {
-                    return nodes.Object(values).withAttribute(attribute);
+                    return new nodes.Object(values).withAttribute(attribute);
                 };
             }).ap(objectSequence(A, this.values));
         },
@@ -653,31 +651,25 @@ nodes = toObject([
             _.each(this.values, function(value, key) {
                 values[key] = value.extend(f);
             });
-            return nodes.Object(values).withAttribute(f(this));
+            return new nodes.Object(values).withAttribute(f(this));
         }
     )
 ]);
 nodes.MultiFunction = function (args, value, whereDecls) {
     if(args.length > 1) {
         return new nodes.Function(
-            [args[0]],
+            args[0],
             [new nodes.MultiFunction(
                 args.slice(1),
                 value,
                 whereDecls
             )]
         );
+    } else if(args.length === 1) {
+        return new nodes.Function(args[0], value, whereDecls);
+    } else {
+        throw new Error("Call to nodes.MultiFunction without enough arguments!");
     }
-    return new nodes.Function(args, value, whereDecls);
-};
-nodes.MultiCall = function (func, args) {
-    if(args.length > 1) {
-        return new nodes.MultiCall(
-            new nodes.Call(func, [args[0]]),
-            args.slice(1)
-        );
-    }
-    return new nodes.Call(func, args);
 };
 
 module.exports = nodes;
