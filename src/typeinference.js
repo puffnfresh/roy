@@ -422,6 +422,9 @@ function generate(node) {
                                     vars = _.map(tag.vars, function(v) {
                                         return nodeToType(v, _.object(types), state.aliases);
                                     });
+                                    if(!vars.length) {
+                                        vars = [State.of(new t.UnitType())];
+                                    }
 
                                     tagType = new t.TagType(node.name, _.map(types, function(t) {
                                         return t[1];
@@ -732,6 +735,9 @@ function generate(node) {
         },
         visitString: function() {
             return State.of(new InferenceResult(new t.StringType()));
+        },
+        visitUnit: function() {
+            return State.of(new InferenceResult(new t.UnitType()));
         }
     });
 }
@@ -837,6 +843,9 @@ function nodeToType(node, bindings, aliases) {
                     })).map(function(o) {
                         return new t.ObjectType(_.object(o));
                     });
+                },
+                visitUnit: function() {
+                    return State.of(new t.UnitType());
                 }
             });
         }
@@ -1060,6 +1069,8 @@ function mostGeneralUnifier(a, b, node) {
         return {};
     } else if(a instanceof t.BooleanType && b instanceof t.BooleanType) {
         return {};
+    } else if(a instanceof t.UnitType && b instanceof t.UnitType) {
+        return {};
     }
     typeError();
 }
@@ -1167,6 +1178,8 @@ function typeSubstitute(substitutions, type) {
     } else if(type instanceof t.StringType) {
         return type;
     } else if(type instanceof t.BooleanType) {
+        return type;
+    } else if(type instanceof t.UnitType) {
         return type;
     }
     throw new Error("Not handled: " + type.toString());

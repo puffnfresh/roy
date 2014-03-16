@@ -173,4 +173,7 @@ exports.TagType = TagType;
 function UnitType() {}
 UnitType.prototype = new BaseType();
 UnitType.prototype.name = "Unit";
+UnitType.prototype.toString = function() {
+    return "()";
+};
 exports.UnitType = UnitType;

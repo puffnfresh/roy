@@ -33,7 +33,8 @@ var keywordTokens = {
     'case':      'CASE',
     'do':        'DO',
     'with':      'WITH',
-    'where':     'WHERE'
+    'where':     'WHERE',
+    '()':        'UNIT'
 };
 
 var indent;
@@ -237,6 +238,14 @@ var literalToken = function(chunk) {
     case '⇒':
         tokens.push(['RIGHTFATARROW', tag, lineno]);
         return 1;
+    case '(':
+        next = chunk.slice(0, 2);
+        if(next == '()') {
+            tokens.push(['UNIT', next, lineno]);
+            return 2;
+        }
+        tokens.push([tag, tag, lineno]);
+        return 1;
     case '@':
     case ']':
     case ':':
@@ -244,7 +253,6 @@ var literalToken = function(chunk) {
     case ',':
     case '{':
     case '}':
-    case '(':
         tokens.push([tag, tag, lineno]);
         return 1;
     }

@@ -653,6 +653,18 @@ nodes = toObject([
             });
             return new nodes.Object(values).withAttribute(f(this));
         }
+    ),
+    attributedNode(
+        'Unit',
+        [],
+        function(A) {
+            return this.attribute.map(function(attribute) {
+                return new nodes.Unit().withAttribute(attribute);
+            });
+        },
+        function(f) {
+            return new nodes.Unit().withAttribute(f(this));
+        }
     )
 ]);
 nodes.MultiFunction = function (args, value, whereDecls) {

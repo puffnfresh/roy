@@ -16,7 +16,8 @@ var bnf = {
         ["[ type ]", "$$ = new yy.TypeArray($2);"],
         ["( typeList )", "$$ = new yy.TypeObject($2);"],
         ["{ GENERIC | optTypePairs }", "$$ = new yy.TypeRowObject($2, $4);"],
-        ["{ optTypePairs }", "$$ = new yy.TypeObject($2);"]
+        ["{ optTypePairs }", "$$ = new yy.TypeObject($2);"],
+        ["UNIT", "$$ = new yy.Unit();"]
     ],
     "typeList": [
         ["nonFunctionType", "$$ = [$1];"],
@@ -40,6 +41,7 @@ var bnf = {
         ["optTypePairs , keywordOrIdentifier : type", "$$ = $1; $1[$3] = $5;"]
     ],
     "dataParamList": [
+        ["UNIT", "$$ = new yy.Unit();"],
         ["IDENTIFIER", "$$ = [{name: $1}];"],
         ["dataParamList IDENTIFIER", "$$ = $1; $1.push({name: $2});"]
     ],

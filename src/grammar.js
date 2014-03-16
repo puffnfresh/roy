@@ -96,12 +96,13 @@ var grammar = {
         ],
         "pattern": [
             ["innerPattern", "$$ = $1;"],
-            ["IDENTIFIER", n("$$ = {tag: $1, vars: []};")]
+            ["IDENTIFIER", n("$$ = {tag: $1, vars: [new yy.Unit()]};")]
         ],
         "innerPattern": [
             ["( IDENTIFIER patternIdentifiers )", n("$$ = {tag: $2, vars: $3};")]
         ],
         "patternIdentifiers": [
+            ["UNIT", "$$ = [new yy.Unit()];"],
             ["IDENTIFIER", "$$ = [$1];"],
             ["innerPattern", "$$ = [$1];"],
             ["patternIdentifiers innerPattern", "$$ = $1; $1.push($2);"],
@@ -137,12 +138,11 @@ var grammar = {
             ["IDENTIFIER optType = block", n("$$ = new yy.Let($1, $4, $2);")]
         ],
         "paramList": [
-            ["( )", "$$ = [];"],
             ["param", "$$ = [$1];"],
-            ["paramList ( )", "$$ = $1;"],
             ["paramList param", "$$ = $1; $1.push($2);"]
         ],
         "param": [
+            ["UNIT", n("$$ = new yy.Unit();")],
             ["IDENTIFIER", n("$$ = {name: $1};")],
             ["( IDENTIFIER : type )", n("$$ = {name: $2, type: $4};")]
         ],
@@ -160,11 +160,15 @@ var grammar = {
         ],
         "whereDecl": [
             ["dataDecl", "$$ = $1;"],
+            ["IDENTIFIER UNIT optType = block optWhere", n("$$ = new yy.Let($1, [new yy.Function(new yy.Unit(), $5, $6)], $3);")],
             ["IDENTIFIER paramList optType = block optWhere", n("$$ = new yy.Let($1, [new yy.MultiFunction($2, $5, $6)], $3);")],
+            ["IDENTIFIER UNIT optType = expression", n("$$ = new yy.Let($1, [new yy.MultiFunction(new yy.Unit(), [$5])], $3);")],
             ["IDENTIFIER paramList optType = expression", n("$$ = new yy.Let($1, [new yy.MultiFunction($2, [$5])], $3);")]
         ],
 
         "call": [
+            ["accessor UNIT", n("$$ = new yy.Call($1, new yy.Unit());")],
+            ["( expression ) UNIT", n("$$ = new yy.Call($2, new yy.Unit());")],
             ["accessor callArgument", n("$$ = new yy.Call($1, $2);")],
             ["( expression ) callArgument", n("$$ = new yy.Call($2, $4);")],
             ["call callArgument", n("$$ = new yy.Call($1, $2);")]

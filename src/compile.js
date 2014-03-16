@@ -264,6 +264,10 @@ function compileNode(n) {
                     type: "Identifier",
                     name: tag.name
                 };
+                var vars = tag.vars.slice(0);
+                if(vars.length === 1 && vars[0] instanceof nodes.Unit) {
+                    vars = [];
+                }
                 var args = _.map(tag.vars, function(v, i) {
                     return {
                         type: "Identifier",
@@ -470,6 +474,9 @@ function compileNode(n) {
             };
 
             var pathConditions = _.map(n.cases, function(c) {
+                c.pattern.vars = _.reject(c.pattern.vars, function (v) {
+                    return v instanceof nodes.Unit;
+                });
                 function getVars(pattern, varPath) {
                     var decls = flatMap(pattern.vars, function(a, i) {
                         var nextVarPath = varPath.slice(),
@@ -633,6 +640,14 @@ function compileNode(n) {
                 actualArgCount = args.length;
             if(func.attribute instanceof types.FunctionType) {
                 expectedArgCount = func.attribute.argCount();
+            }
+
+            args = _.reject(args, function(arg) {
+                return arg instanceof nodes.Unit;
+            });
+
+            if(args.length !== actualArgCount && args.length) {
+                throw new Error("Unit should be only param to call");
             }
 
             var callee = compileNode(func);
